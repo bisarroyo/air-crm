@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 
+const publicRoutes = ['/signin', '/signup', '/forgot-password']
+
 export async function proxy(request: NextRequest) {
+    const { pathname } = request.nextUrl
+
+    if (publicRoutes.includes(pathname)) {
+        return NextResponse.next()
+    }
+
     const session = await auth.api.getSession({
         headers: await headers()
     })
@@ -15,5 +23,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/'] // Specify the routes the middleware applies to
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
 }

@@ -16,14 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-    BadgeCheckIcon,
-    BellIcon,
-    CreditCardIcon,
-    LogOut,
-    LogOutIcon,
-    ShieldCheck
-} from 'lucide-react'
+import { BadgeCheckIcon, LogOutIcon, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
 export function Header() {
@@ -81,15 +74,17 @@ export function Header() {
                             )}
                             <DropdownMenuContent align='end'>
                                 <DropdownMenuGroup>
-                                    <DropdownMenuItem>
-                                        <BadgeCheckIcon />
-                                        Account
-                                    </DropdownMenuItem>
+                                    <Link href='/account'>
+                                        <DropdownMenuItem>
+                                            <BadgeCheckIcon />
+                                            Account
+                                        </DropdownMenuItem>
+                                    </Link>
                                     {session?.user.role === 'admin' && (
                                         <Link href={'/admin'}>
                                             <DropdownMenuItem>
                                                 <ShieldCheck />
-                                                Admin Panel
+                                                Admin
                                             </DropdownMenuItem>
                                         </Link>
                                     )}

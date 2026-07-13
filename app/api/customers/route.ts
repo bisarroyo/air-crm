@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { and, eq, like, or, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
-import { customers, status, priority } from '@/db/schema'
+import { customers, status, priority, logs } from '@/db/schema'
 import { user } from '@/auth-schema'
 
 export async function GET(request: Request) {
@@ -132,6 +132,18 @@ export async function POST(request: Request) {
                     '0vd84cJDrYloFlFJRdErhuztO9J9jwaI'
             })
             .returning()
+
+        await db.insert(logs).values({
+            customerId: newCustomer.id,
+            action: 'created',
+            changes: JSON.stringify({
+                name: body.name,
+                email: body.email,
+                phone: body.phone,
+                travelTime: body.travelTime
+            }),
+            userId: session.user.id
+        })
 
         return NextResponse.json(newCustomer, { status: 201 })
     } catch (error: any) {

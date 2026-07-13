@@ -36,6 +36,20 @@
       "when": 1783714000000,
       "tag": "0004_teal_thunder",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1783973693238,
+      "tag": "0005_fat_black_bolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783978822450,
+      "tag": "0006_odd_swarm",
+      "breakpoints": true
     }
   ]
 }

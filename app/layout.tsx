@@ -4,6 +4,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { Providers } from './provider'
 import { Header } from '@/components/header'
+import { Sidebar } from '@/components/sidebar'
 
 const poppins = Poppins({
     weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
@@ -25,7 +26,12 @@ export default function RootLayout({
             <body className={poppins.className}>
                 <Providers>
                     <Header />
-                    {children}
+                    <div className='flex'>
+                        <Sidebar />
+                        <main className='flex-1 overflow-y-auto'>
+                            {children}
+                        </main>
+                    </div>
                     <Toaster richColors />
                 </Providers>
             </body>

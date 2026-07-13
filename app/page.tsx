@@ -102,6 +102,8 @@ export default function Home() {
     const [search, setSearch] = useState('')
     const [filterStatusId, setFilterStatusId] = useState('')
     const [filterPriorityId, setFilterPriorityId] = useState('')
+    const [filterAssignedTo, setFilterAssignedTo] = useState('')
+    const initialFilterRef = useRef(false)
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(25)
     const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -111,6 +113,10 @@ export default function Home() {
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [modalOpen, setModalOpen] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
+
+    const [bulkStatusId, setBulkStatusId] = useState('')
+    const [bulkPriorityId, setBulkPriorityId] = useState('')
+    const [bulkAssignedTo, setBulkAssignedTo] = useState('')
 
     const form = useForm<CustomerFormValues>({
         resolver: zodResolver(customerSchema),
@@ -130,6 +136,7 @@ export default function Home() {
         search,
         filterStatusId,
         filterPriorityId,
+        filterAssignedTo,
         page,
         pageSize
     ] as const
@@ -143,6 +150,8 @@ export default function Home() {
                 params.set('statusId', filterStatusId)
             if (filterPriorityId)
                 params.set('priorityId', filterPriorityId)
+            if (filterAssignedTo)
+                params.set('assignedTo', filterAssignedTo)
             params.set('page', String(page))
             params.set('pageSize', String(pageSize))
 
@@ -188,12 +197,27 @@ export default function Home() {
     })
 
     useEffect(() => {
+        if (!initialFilterRef.current && session?.user.id) {
+            setFilterAssignedTo(session.user.id)
+            initialFilterRef.current = true
+        }
+    }, [session?.user.id])
+
+    useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
         debounceRef.current = setTimeout(() => setPage(1), 300)
         return () => {
             if (debounceRef.current) clearTimeout(debounceRef.current)
         }
-    }, [search, filterStatusId, filterPriorityId])
+    }, [search, filterStatusId, filterPriorityId, filterAssignedTo])
+
+    useEffect(() => {
+        if (selectedIds.length === 0) {
+            setBulkStatusId('')
+            setBulkPriorityId('')
+            setBulkAssignedTo('')
+        }
+    }, [selectedIds])
 
     const customers = customersData?.data ?? []
     const total = customersData?.total ?? 0
@@ -227,6 +251,7 @@ export default function Home() {
             ids: number[]
             statusId?: number
             priorityId?: number
+            assignedTo?: string
         }) => {
             const res = await fetch('/api/customers/bulk', {
                 method: 'POST',
@@ -242,6 +267,9 @@ export default function Home() {
         onSuccess: (res: any) => {
             toast.success(`${res.updated} customers updated`)
             setSelectedIds([])
+            setBulkStatusId('')
+            setBulkPriorityId('')
+            setBulkAssignedTo('')
             invalidate()
         },
         onError: (error: Error) => toast.error(error.message)
@@ -433,31 +461,40 @@ export default function Home() {
                                 </option>
                             ))}
                         </select>
+                        {isAdmin && (
+                            <select
+                                value={filterAssignedTo}
+                                onChange={e => {
+                                    setFilterAssignedTo(e.target.value)
+                                    setPage(1)
+                                }}
+                                className='h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'>
+                                <option value=''>All Users</option>
+                                {users.map(u => (
+                                    <option key={u.id} value={u.id}>
+                                        {u.name}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     {selectedIds.length > 0 && (
-                        <div className='mb-3 flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2'>
+                        <div className='mb-3 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2'>
                             <span className='text-sm font-medium'>
                                 {selectedIds.length} selected
                             </span>
                             <span className='text-muted-foreground'>|</span>
                             <label className='text-sm text-muted-foreground'>
-                                Set status:
+                                Status:
                             </label>
                             <select
-                                onChange={e => {
-                                    if (!e.target.value) return
-                                    bulkMutation.mutate({
-                                        ids: selectedIds,
-                                        statusId: Number(e.target.value)
-                                    })
-                                    e.target.value = ''
-                                }}
-                                defaultValue=''
+                                value={bulkStatusId}
+                                onChange={e =>
+                                    setBulkStatusId(e.target.value)
+                                }
                                 className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                <option value='' disabled>
-                                    Status...
-                                </option>
+                                <option value=''>No change</option>
                                 {statuses.map(s => (
                                     <option key={s.id} value={s.id}>
                                         {s.name}
@@ -468,30 +505,183 @@ export default function Home() {
                                 Priority:
                             </label>
                             <select
-                                onChange={e => {
-                                    if (!e.target.value) return
-                                    bulkMutation.mutate({
-                                        ids: selectedIds,
-                                        priorityId: Number(e.target.value)
-                                    })
-                                    e.target.value = ''
-                                }}
-                                defaultValue=''
+                                value={bulkPriorityId}
+                                onChange={e =>
+                                    setBulkPriorityId(e.target.value)
+                                }
                                 className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                <option value='' disabled>
-                                    Priority...
-                                </option>
+                                <option value=''>No change</option>
                                 {priorities.map(p => (
                                     <option key={p.id} value={p.id}>
                                         {p.name}
                                     </option>
                                 ))}
                             </select>
+                            {isAdmin && (
+                                <>
+                                    <label className='text-sm text-muted-foreground'>
+                                        Assign to:
+                                    </label>
+                                    <select
+                                        value={bulkAssignedTo}
+                                        onChange={e =>
+                                            setBulkAssignedTo(
+                                                e.target.value
+                                            )
+                                        }
+                                        className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3'>
+                                        <option value=''>No change</option>
+                                        {users.map(u => (
+                                            <option
+                                                key={u.id}
+                                                value={u.id}>
+                                                {u.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </>
+                            )}
+                            <Button
+                                size='xs'
+                                onClick={() => {
+                                    if (
+                                        !bulkStatusId &&
+                                        !bulkPriorityId &&
+                                        !bulkAssignedTo
+                                    ) {
+                                        toast.error(
+                                            'Select at least one change'
+                                        )
+                                        return
+                                    }
+                                    bulkMutation.mutate({
+                                        ids: selectedIds,
+                                        ...(bulkStatusId && {
+                                            statusId: Number(
+                                                bulkStatusId
+                                            )
+                                        }),
+                                        ...(bulkPriorityId && {
+                                            priorityId: Number(
+                                                bulkPriorityId
+                                            )
+                                        }),
+                                        ...(bulkAssignedTo && {
+                                            assignedTo:
+                                                bulkAssignedTo
+                                        })
+                                    })
+                                }}
+                                disabled={bulkMutation.isPending}>
+                                {bulkMutation.isPending ? (
+                                    <Loader2
+                                        size={14}
+                                        className='animate-spin'
+                                    />
+                                ) : (
+                                    'Save'
+                                )}
+                            </Button>
+                            <span className='text-muted-foreground'>|</span>
+                            <Button
+                                size='xs'
+                                variant='outline'
+                                onClick={() => {
+                                    const selected = customers.filter(
+                                        c =>
+                                            selectedIds.includes(c.id)
+                                    )
+                                    const headers = [
+                                        'Name',
+                                        'Email',
+                                        'Phone',
+                                        'Travel Time',
+                                        'Status',
+                                        'Priority',
+                                        'Assigned To'
+                                    ]
+                                    const csv =
+                                        '\uFEFF' +
+                                        [
+                                            headers.join(','),
+                                            ...selected.map(c =>
+                                                [
+                                                    c.name,
+                                                    c.email,
+                                                    c.phone,
+                                                    c.travelTime,
+                                                    c.statusName || '',
+                                                    c.priorityName || '',
+                                                    c.assignedUserName ||
+                                                        ''
+                                                ]
+                                                    .map(f =>
+                                                        f.includes(',')
+                                                            ? `"${f}"`
+                                                            : f
+                                                    )
+                                                    .join(',')
+                                            )
+                                        ].join('\n')
+                                    const blob = new Blob([csv], {
+                                        type: 'text/csv;charset=utf-8;'
+                                    })
+                                    const url =
+                                        URL.createObjectURL(blob)
+                                    const a =
+                                        document.createElement('a')
+                                    a.href = url
+                                    a.download = 'contacts.csv'
+                                    a.click()
+                                    URL.revokeObjectURL(url)
+                                }}>
+                                Export CSV
+                            </Button>
+                            <Button
+                                size='xs'
+                                variant='outline'
+                                onClick={() => {
+                                    const selected = customers.filter(
+                                        c =>
+                                            selectedIds.includes(c.id)
+                                    )
+                                    const rows = selected.map(c => {
+                                        const firstName =
+                                            c.name.split(' ')[0]
+                                        const phone =
+                                            c.phone.replace(/\s/g, '')
+                                        return `${firstName},${phone}`
+                                    })
+                                    const csv =
+                                        '\uFEFF' +
+                                        [
+                                            'First Name,Phone',
+                                            ...rows
+                                        ].join('\n')
+                                    const blob = new Blob([csv], {
+                                        type: 'text/csv;charset=utf-8;'
+                                    })
+                                    const url =
+                                        URL.createObjectURL(blob)
+                                    const a =
+                                        document.createElement('a')
+                                    a.href = url
+                                    a.download = 'wa-sender.csv'
+                                    a.click()
+                                    URL.revokeObjectURL(url)
+                                }}>
+                                WA Sender
+                            </Button>
                             <Button
                                 size='xs'
                                 variant='ghost'
-                                className='ml-auto text-muted-foreground'
-                                onClick={() => setSelectedIds([])}>
+                                className='text-muted-foreground'
+                                onClick={() => {
+                                    setSelectedIds([])
+                                    setBulkStatusId('')
+                                    setBulkPriorityId('')
+                                    setBulkAssignedTo('')
+                                }}>
                                 Clear
                             </Button>
                         </div>
@@ -719,9 +909,44 @@ export default function Home() {
                                                         </SelectRoot>
                                                     </td>
                                                     {isAdmin && (
-                                                        <td className='py-2.5 text-muted-foreground'>
-                                                            {customer.assignedUserName ||
-                                                                'Unassigned'}
+                                                        <td className='py-2.5'>
+                                                            <SelectRoot
+                                                                value={
+                                                                    customer.assignedTo
+                                                                }
+                                                                onValueChange={(val: any) =>
+                                                                    handleInlineUpdate(
+                                                                        customer.id,
+                                                                        'assignedTo',
+                                                                        val
+                                                                    )
+                                                                }>
+                                                                <SelectTrigger className='h-7 max-w-[150px] text-xs'>
+                                                                    <SelectValue>
+                                                                        {customer.assignedUserName ||
+                                                                            'Unassigned'}
+                                                                    </SelectValue>
+                                                                </SelectTrigger>
+                                                                <SelectPopup>
+                                                                    <SelectList>
+                                                                        {users.map(
+                                                                            u => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        u.id
+                                                                                    }
+                                                                                    value={
+                                                                                        u.id
+                                                                                    }>
+                                                                                    {
+                                                                                        u.name
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            )
+                                                                        )}
+                                                                    </SelectList>
+                                                                </SelectPopup>
+                                                            </SelectRoot>
                                                         </td>
                                                     )}
                                                     <td className='py-2.5 text-right'>

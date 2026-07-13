@@ -16,8 +16,6 @@ import { reactResetPasswordEmail } from './email/reset-password'
 import {
     organization,
     admin as adminPlugin,
-    openAPI,
-    multiSession,
     oneTap,
     twoFactor
 } from 'better-auth/plugins'
@@ -26,7 +24,7 @@ const from = process.env.BETTER_AUTH_EMAIL || 'delivered@resend.dev'
 const to = process.env.TEST_EMAIL || ''
 
 export const auth = betterAuth({
-    appName: 'better-auth',
+    appName: 'authcrm',
     database: drizzleAdapter(db, {
         provider: 'sqlite', // or "pg" or "mysql"
         schema: authSchema
@@ -70,11 +68,9 @@ export const auth = betterAuth({
             }
         }),
         passkey(),
-        openAPI(),
-        multiSession(),
         nextCookies(),
         oneTap()
-    ], //pendiente
+    ],
 
     emailAndPassword: {
         enabled: true,

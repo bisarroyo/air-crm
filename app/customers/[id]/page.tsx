@@ -2,7 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, Pencil, Trash2, UserRound } from 'lucide-react'
+import {
+    ArrowLeft,
+    Loader2,
+    Pencil,
+    Trash2,
+    UserRound
+} from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -48,6 +54,16 @@ interface SelectOption {
     name: string
 }
 
+interface LogEntry {
+    id: number
+    action: string
+    changes: string | null
+    createdAt: string | null
+    userName: string | null
+    userEmail: string | null
+    referralCode: string | null
+}
+
 const customerSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email'),
@@ -59,6 +75,65 @@ const customerSchema = z.object({
 })
 
 type CustomerFormValues = z.infer<typeof customerSchema>
+
+function formatAction(action: string) {
+    const map: Record<string, string> = {
+        created: 'Created',
+        updated: 'Updated',
+        lead_created: 'Lead Received',
+        lead_updated: 'Lead Re-submitted',
+        bulk_updated: 'Bulk Updated'
+    }
+    return map[action] || action
+}
+
+const FIELD_LABELS: Record<string, string> = {
+    name: 'Name',
+    email: 'Email',
+    phone: 'Phone',
+    travelTime: 'Travel Time',
+    travel_time: 'Travel Time',
+    statusId: 'Status',
+    priorityId: 'Priority',
+    assignedTo: 'Assigned To',
+    referralId: 'Referral',
+    referralCode: 'Referral Code'
+}
+
+function formatChanges(
+    changes: string,
+    statuses: SelectOption[],
+    priorities: SelectOption[],
+    users: SelectOption[]
+) {
+    const data = JSON.parse(changes)
+    return Object.entries(data).map(([key, value]) => {
+        const label = FIELD_LABELS[key] || key
+
+        let displayValue: string
+        if (key === 'statusId') {
+            displayValue =
+                statuses.find(s => s.id === value)?.name ||
+                String(value)
+        } else if (key === 'priorityId') {
+            displayValue =
+                priorities.find(p => p.id === value)?.name ||
+                String(value)
+        } else if (key === 'assignedTo') {
+            displayValue =
+                users.find(u => u.id === value)?.name ||
+                String(value)
+        } else if (key === 'referralId') {
+            displayValue = value ? `#${value}` : 'None'
+        } else if (value === null || value === undefined) {
+            displayValue = 'None'
+        } else {
+            displayValue = String(value)
+        }
+
+        return { label, value: displayValue }
+    })
+}
 
 function ColorDot({ color }: { color: string }) {
     return (
@@ -129,6 +204,15 @@ export default function CustomerDetailPage() {
                 name: u.name || u.email
             })),
         enabled: isAdmin
+    })
+
+    const { data: logs = [] } = useQuery<LogEntry[]>({
+        queryKey: ['logs', id],
+        queryFn: async () => {
+            const res = await fetch(`/api/customers/${id}/logs`)
+            if (!res.ok) throw new Error('Failed to fetch logs')
+            return res.json()
+        }
     })
 
     const updateMutation = useMutation({
@@ -350,9 +434,10 @@ export default function CustomerDetailPage() {
                             <p className='text-sm'>
                                 {customer.createdAt
                                     ? new Date(
-                                          Number(customer.createdAt) * 1000
-                                      ).toLocaleDateString('es', {
-                                          dateStyle: 'long'
+                                          customer.createdAt
+                                      ).toLocaleString('es', {
+                                          dateStyle: 'long',
+                                          timeStyle: 'short'
                                       })
                                     : '—'}
                             </p>
@@ -364,13 +449,95 @@ export default function CustomerDetailPage() {
                             <p className='text-sm'>
                                 {customer.updatedAt
                                     ? new Date(
-                                          Number(customer.updatedAt) * 1000
-                                      ).toLocaleDateString('es', {
-                                          dateStyle: 'long'
+                                          customer.updatedAt
+                                      ).toLocaleString('es', {
+                                          dateStyle: 'long',
+                                          timeStyle: 'short'
                                       })
                                     : '—'}
                             </p>
                         </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className='mt-6'>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Activity History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {logs.length === 0 ? (
+                            <p className='py-4 text-center text-sm text-muted-foreground'>
+                                No activity recorded yet.
+                            </p>
+                        ) : (
+                            <div className='space-y-0'>
+                                {logs.map((log, i) => (
+                                    <div
+                                        key={log.id}
+                                        className='relative flex gap-4 pb-6 last:pb-0'>
+                                        {i < logs.length - 1 && (
+                                            <div className='absolute left-[7px] top-3 h-full w-px bg-border' />
+                                        )}
+                                        <div className='flex shrink-0 items-start pt-0.5'>
+                                            <div className='h-[15px] w-[15px] rounded-full border-2 border-primary bg-background' />
+                                        </div>
+                                        <div className='flex-1 space-y-1'>
+                                            <div className='flex items-center gap-2 text-sm'>
+                                                <span className='font-medium capitalize'>
+                                                    {formatAction(log.action)}
+                                                </span>
+                                                {log.referralCode && (
+                                                    <span className='rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-medium text-primary'>
+                                                        {log.referralCode}
+                                                    </span>
+                                                )}
+                                                <span className='text-xs text-muted-foreground'>
+                                                    {log.createdAt
+                                                        ? new Date(
+                                                              log.createdAt
+                                                          ).toLocaleString(
+                                                              'es',
+                                                              {
+                                                                  dateStyle:
+                                                                      'short',
+                                                                  timeStyle:
+                                                                      'short'
+                                                              }
+                                                          )
+                                                        : ''}
+                                                </span>
+                                            </div>
+                                            {log.changes && (
+                                                <div className='flex flex-wrap gap-x-4 gap-y-1 rounded-md bg-muted/50 p-2 text-xs'>
+                                                    {formatChanges(
+                                                        log.changes,
+                                                        statuses,
+                                                        priorities,
+                                                        users
+                                                    ).map(({ label, value }) => (
+                                                        <span key={label}>
+                                                            <span className='font-medium text-foreground'>
+                                                                {label}:
+                                                            </span>{' '}
+                                                            <span className='text-muted-foreground'>
+                                                                {value}
+                                                            </span>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <p className='text-xs text-muted-foreground'>
+                                                {log.userName
+                                                    ? `by ${log.userName}`
+                                                    : 'by anonymous'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

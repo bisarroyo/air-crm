@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
-import { customers, status, priority } from '@/db/schema'
+import { customers, status, priority, logs } from '@/db/schema'
 import { user } from '@/auth-schema'
 
 export async function GET(
@@ -100,6 +100,13 @@ export async function PUT(
                 { status: 404 }
             )
         }
+
+        await db.insert(logs).values({
+            customerId: Number(id),
+            action: 'updated',
+            changes: JSON.stringify(updateData),
+            userId: session.user.id
+        })
 
         return NextResponse.json(updated)
     } catch (error: any) {
