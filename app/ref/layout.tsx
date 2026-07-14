@@ -28,10 +28,12 @@ export default function RefLayout({ children }: { children: React.ReactNode }) {
         <div className='flex min-h-screen'>
             <aside className='fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r bg-background'>
                 <div className='flex h-14 items-center border-b px-4'>
-                    <span className='text-sm font-semibold'>Referral Portal</span>
+                    <span className='text-sm font-semibold'>
+                        Referral Portal
+                    </span>
                 </div>
                 <nav className='flex flex-1 flex-col gap-1 overflow-y-auto p-2'>
-                    {navItems.map(item => {
+                    {navItems.map((item) => {
                         const Icon = item.icon
                         const isActive = pathname === item.href
                         return (
@@ -53,8 +55,12 @@ export default function RefLayout({ children }: { children: React.ReactNode }) {
                 <div className='border-t p-2'>
                     <div className='flex items-center gap-2 px-3 py-2'>
                         <div className='flex-1 min-w-0'>
-                            <p className='text-sm font-medium truncate'>{session.user.name}</p>
-                            <p className='text-xs text-muted-foreground truncate'>{session.user.email}</p>
+                            <p className='text-sm font-medium truncate'>
+                                {session.user.name}
+                            </p>
+                            <p className='text-xs text-muted-foreground truncate'>
+                                {session.user.email}
+                            </p>
                         </div>
                     </div>
                     <button
@@ -65,7 +71,7 @@ export default function RefLayout({ children }: { children: React.ReactNode }) {
                     </button>
                 </div>
             </aside>
-            <main className='flex-1 ml-56'>{children}</main>
+            <main className='flex-1'>{children}</main>
         </div>
     )
 }

@@ -23,3 +23,5 @@ export const ref = ac.newRole({
 })
 
 export const user = ac.newRole({})
+
+export const pending = ac.newRole({})

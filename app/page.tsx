@@ -1256,18 +1256,24 @@ export default function Home() {
                                             <FieldLabel htmlFor='statusId'>
                                                 Status
                                             </FieldLabel>
-                                            <select
-                                                {...field}
-                                                id='statusId'
-                                                className='h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                                {statuses.map(s => (
-                                                    <option
-                                                        key={s.id}
-                                                        value={s.id}>
-                                                        {s.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <SelectRoot
+                                                value={field.value}
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger id='statusId'>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectPopup>
+                                                    <SelectList>
+                                                        {statuses.map(s => (
+                                                            <SelectItem
+                                                                key={s.id}
+                                                                value={String(s.id)}>
+                                                                {s.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectList>
+                                                </SelectPopup>
+                                            </SelectRoot>
                                         </Field>
                                     )}
                                 />
@@ -1279,18 +1285,24 @@ export default function Home() {
                                             <FieldLabel htmlFor='priorityId'>
                                                 Priority
                                             </FieldLabel>
-                                            <select
-                                                {...field}
-                                                id='priorityId'
-                                                className='h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                                {priorities.map(p => (
-                                                    <option
-                                                        key={p.id}
-                                                        value={p.id}>
-                                                        {p.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <SelectRoot
+                                                value={field.value}
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger id='priorityId'>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectPopup>
+                                                    <SelectList>
+                                                        {priorities.map(p => (
+                                                            <SelectItem
+                                                                key={p.id}
+                                                                value={String(p.id)}>
+                                                                {p.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectList>
+                                                </SelectPopup>
+                                            </SelectRoot>
                                         </Field>
                                     )}
                                 />
@@ -1303,18 +1315,24 @@ export default function Home() {
                                                 <FieldLabel htmlFor='assignedTo'>
                                                     Assigned To
                                                 </FieldLabel>
-                                                <select
-                                                    {...field}
-                                                    id='assignedTo'
-                                                    className='h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                                    {users.map(u => (
-                                                        <option
-                                                            key={u.id}
-                                                            value={u.id}>
-                                                            {u.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <SelectRoot
+                                                    value={field.value}
+                                                    onValueChange={field.onChange}>
+                                                    <SelectTrigger id='assignedTo'>
+                                                        <SelectValue placeholder='Select...' />
+                                                    </SelectTrigger>
+                                                    <SelectPopup>
+                                                        <SelectList>
+                                                            {users.map(u => (
+                                                                <SelectItem
+                                                                    key={u.id}
+                                                                    value={u.id}>
+                                                                    {u.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectList>
+                                                    </SelectPopup>
+                                                </SelectRoot>
                                             </Field>
                                         )}
                                     />
@@ -1328,21 +1346,27 @@ export default function Home() {
                                                 <FieldLabel htmlFor='referralId'>
                                                     Referral Code
                                                 </FieldLabel>
-                                                <select
-                                                    {...field}
-                                                    id='referralId'
-                                                    className='h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                                    <option value=''>
-                                                        None
-                                                    </option>
-                                                    {referralOptions.map(r => (
-                                                        <option
-                                                            key={r.id}
-                                                            value={r.id}>
-                                                            {r.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <SelectRoot
+                                                    value={field.value}
+                                                    onValueChange={field.onChange}>
+                                                    <SelectTrigger id='referralId'>
+                                                        <SelectValue placeholder='Select...' />
+                                                    </SelectTrigger>
+                                                    <SelectPopup>
+                                                        <SelectList>
+                                                            <SelectItem value=''>
+                                                                None
+                                                            </SelectItem>
+                                                            {referralOptions.map(r => (
+                                                                <SelectItem
+                                                                    key={r.id}
+                                                                    value={String(r.id)}>
+                                                                    {r.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectList>
+                                                    </SelectPopup>
+                                                </SelectRoot>
                                             </Field>
                                         )}
                                     />

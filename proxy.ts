@@ -21,6 +21,10 @@ export async function proxy(request: NextRequest) {
 
     const role = session.user?.role
 
+    if (role === 'pending' && !pathname.startsWith('/pending') && !pathname.startsWith('/api')) {
+        return NextResponse.redirect(new URL('/pending', request.url))
+    }
+
     if (role === 'ref' && !pathname.startsWith('/ref') && !pathname.startsWith('/api')) {
         return NextResponse.redirect(new URL('/ref', request.url))
     }
@@ -30,6 +34,10 @@ export async function proxy(request: NextRequest) {
     }
 
     if (pathname.startsWith('/ref') && role !== 'ref') {
+        return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (pathname.startsWith('/pending') && role !== 'pending') {
         return NextResponse.redirect(new URL('/', request.url))
     }
 

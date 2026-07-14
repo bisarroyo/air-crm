@@ -12,7 +12,7 @@ import { reactInvitationEmail } from './email/invitation'
 import { resend } from './email/resend'
 import { reactResetPasswordEmail } from './email/reset-password'
 
-import { ac, admin, ref, user } from '@/lib/permissions'
+import { ac, admin, ref, user, pending } from '@/lib/permissions'
 
 import {
     organization,
@@ -51,9 +51,9 @@ export const auth = betterAuth({
     },
     plugins: [
         adminPlugin({
-            defaultRole: 'user',
+            defaultRole: 'pending',
             ac,
-            roles: { admin, ref, user }
+            roles: { admin, ref, user, pending }
         }),
         organization({
             async sendInvitationEmail(data) {
