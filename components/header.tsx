@@ -39,7 +39,7 @@ export function Header() {
         router.refresh()
     }
 
-    const isImpersonating = !!(session?.session?.impersonatedBy)
+    const isImpersonating = !!session?.session?.impersonatedBy
 
     return (
         <>
@@ -77,7 +77,8 @@ export function Header() {
                                                 <Avatar>
                                                     <AvatarImage
                                                         src={
-                                                            session?.user.image ||
+                                                            session?.user
+                                                                .image ||
                                                             '/avatar-placeholder.png'
                                                         }
                                                         alt='shadcn'
@@ -94,12 +95,23 @@ export function Header() {
                                 )}
                                 <DropdownMenuContent align='end'>
                                     <DropdownMenuGroup>
-                                        <Link href='/account'>
-                                            <DropdownMenuItem>
-                                                <BadgeCheckIcon />
-                                                Account
-                                            </DropdownMenuItem>
-                                        </Link>
+                                        {session?.user.role === 'ref' && (
+                                            <Link href='/ref/account'>
+                                                <DropdownMenuItem>
+                                                    <BadgeCheckIcon />
+                                                    Account
+                                                </DropdownMenuItem>
+                                            </Link>
+                                        )}
+                                        {session?.user.role === 'user' && (
+                                            <Link href='/account'>
+                                                <DropdownMenuItem>
+                                                    <BadgeCheckIcon />
+                                                    Account
+                                                </DropdownMenuItem>
+                                            </Link>
+                                        )}
+
                                         {session?.user.role === 'admin' && (
                                             <Link href={'/admin'}>
                                                 <DropdownMenuItem>
