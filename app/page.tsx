@@ -30,14 +30,48 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
+    Select,
+    SelectContent,
+    SelectGroup,
     SelectItem,
-    SelectList,
-    SelectPopup,
-    SelectRoot,
+    SelectLabel,
+    SelectSeparator,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
 import { useSession } from '@/hooks/use-session'
+
+interface StatusOption {
+    id: number
+    status: string
+    color: string
+    isActive: number
+}
+
+interface PriorityOption {
+    id: number
+    priority: string
+    color: string
+    isActive: number
+}
+
+interface UserOption {
+    id: string
+    name: string | null
+    email: string
+    image: string | null
+}
+
+interface ReferralOption {
+    id: number
+    code: string
+}
+
+interface LabelOption {
+    id: number
+    name: string
+    color: string
+}
 
 interface CustomerRow {
     id: number
@@ -173,48 +207,44 @@ export default function Home() {
         }
     })
 
-    const { data: statuses = [] } = useQuery<LabelOption[]>({
+    const { data: statuses = [] } = useQuery({
         queryKey: ['statuses'],
         queryFn: () => fetch('/api/status').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map((s: any) => ({
+        select: (data: StatusOption[]) =>
+            data.map(s => ({
                 id: s.id,
                 name: s.status,
                 color: s.color || '#6b7280'
             }))
-    })
+    }) as { data: LabelOption[] | undefined }
 
-    const { data: priorities = [] } = useQuery<LabelOption[]>({
+    const { data: priorities = [] } = useQuery({
         queryKey: ['priorities'],
         queryFn: () => fetch('/api/priority').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map((p: any) => ({
+        select: (data: PriorityOption[]) =>
+            data.map(p => ({
                 id: p.id,
                 name: p.priority,
                 color: p.color || '#6b7280'
             }))
-    })
+    }) as { data: LabelOption[] | undefined }
 
-    const { data: users = [] } = useQuery<
-        { id: string; name: string }[]
-    >({
+    const { data: users = [] } = useQuery({
         queryKey: ['users'],
         queryFn: () => fetch('/api/users').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map((u: any) => ({
+        select: (data: UserOption[]) =>
+            data.map(u => ({
                 id: u.id,
                 name: u.name || u.email
             })),
         enabled: isAdmin
-    })
+    }) as { data: { id: string; name: string }[] | undefined }
 
-    const { data: referralOptions = [] } = useQuery<
-        { id: number; name: string }[]
-    >({
+    const { data: referralOptions = [] } = useQuery({
         queryKey: ['referrals'],
         queryFn: () => fetch('/api/referrals').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map((r: any) => ({
+        select: (data: ReferralOption[]) =>
+            data.map(r => ({
                 id: r.id,
                 name: r.code
             })),
@@ -237,9 +267,13 @@ export default function Home() {
     }, [search, filterStatusId, filterPriorityId, filterAssignedTo])
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (selectedIds.length === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBulkStatusId('')
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBulkPriorityId('')
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBulkAssignedTo('')
         }
     }, [selectedIds])
@@ -255,7 +289,7 @@ export default function Home() {
         mutationFn: async ({
             id,
             ...data
-        }: Record<string, any>) => {
+        }: { id: number; [key: string]: string | number | null | undefined }) => {
             const res = await fetch(`/api/customers/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -289,7 +323,7 @@ export default function Home() {
             }
             return res.json()
         },
-        onSuccess: (res: any) => {
+        onSuccess: (res: { updated: number }) => {
             toast.success(`${res.updated} customers updated`)
             setSelectedIds([])
             setBulkStatusId('')
@@ -307,13 +341,15 @@ export default function Home() {
                 ? `/api/customers/${editingId}`
                 : '/api/customers'
             const method = isEdit ? 'PUT' : 'POST'
-            const body: Record<string, any> = {
-                ...data,
+            const body = {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                travelTime: data.travelTime,
                 statusId: Number(data.statusId),
-                priorityId: Number(data.priorityId)
-            }
-            if (isEdit) {
-                body.referralId = data.referralId ? Number(data.referralId) : null
+                priorityId: Number(data.priorityId),
+                assignedTo: data.assignedTo,
+                referralId: isEdit && data.referralId ? Number(data.referralId) : null
             }
 
             const res = await fetch(url, {
@@ -828,19 +864,15 @@ export default function Home() {
                                                         {travelTimeLabels[customer.travelTime] || customer.travelTime}
                                                     </td>
                                                     <td className='py-2.5'>
-                                                        <SelectRoot
+<Select
                                                             value={String(
                                                                 customer.statusId
                                                             )}
-                                                            onValueChange={(
-                                                                val: any
-                                                            ) =>
+                                                            onValueChange={(val: string | null) =>
                                                                 handleInlineUpdate(
                                                                     customer.id,
                                                                     'statusId',
-                                                                    Number(
-                                                                        val
-                                                                    )
+                                                                    Number(val)
                                                                 )
                                                             }>
                                                             <SelectTrigger className='h-7 max-w-[130px] text-xs gap-1'>
@@ -856,8 +888,8 @@ export default function Home() {
                                                                         )}
                                                                 </SelectValue>
                                                             </SelectTrigger>
-                                                            <SelectPopup>
-                                                                <SelectList>
+                                                            <SelectContent>
+                                                                <SelectGroup>
                                                                     {statuses.map(
                                                                         s => (
                                                                             <SelectItem
@@ -878,24 +910,20 @@ export default function Home() {
                                                                             </SelectItem>
                                                                         )
                                                                     )}
-                                                                </SelectList>
-                                                            </SelectPopup>
-                                                        </SelectRoot>
+                                                                </SelectGroup>
+                                                            </SelectContent>
+                                                        </Select>
                                                     </td>
                                                     <td className='py-2.5'>
-                                                        <SelectRoot
+<Select
                                                             value={String(
                                                                 customer.priorityId
                                                             )}
-                                                            onValueChange={(
-                                                                val: any
-                                                            ) =>
+                                                            onValueChange={(val: string | null) =>
                                                                 handleInlineUpdate(
                                                                     customer.id,
                                                                     'priorityId',
-                                                                    Number(
-                                                                        val
-                                                                    )
+                                                                    Number(val)
                                                                 )
                                                             }>
                                                             <SelectTrigger className='h-7 max-w-[130px] text-xs gap-1'>
@@ -911,8 +939,8 @@ export default function Home() {
                                                                         )}
                                                                 </SelectValue>
                                                             </SelectTrigger>
-                                                            <SelectPopup>
-                                                                <SelectList>
+                                                            <SelectContent>
+                                                                <SelectGroup>
                                                                     {priorities.map(
                                                                         p => (
                                                                             <SelectItem
@@ -933,21 +961,21 @@ export default function Home() {
                                                                             </SelectItem>
                                                                         )
                                                                     )}
-                                                                </SelectList>
-                                                            </SelectPopup>
-                                                        </SelectRoot>
+                                                                </SelectGroup>
+                                                            </SelectContent>
+                                                        </Select>
                                                     </td>
                                                     {isAdmin && (
                                                         <td className='py-2.5'>
-                                                            <SelectRoot
+                                                            <Select
                                                                 value={
                                                                     customer.assignedTo
                                                                 }
-                                                                onValueChange={(val: any) =>
+onValueChange={(val: string | null) =>
                                                                     handleInlineUpdate(
                                                                         customer.id,
                                                                         'assignedTo',
-                                                                        val
+                                                                        val || ''
                                                                     )
                                                                 }>
                                                                 <SelectTrigger className='h-7 max-w-[150px] text-xs'>
@@ -956,8 +984,8 @@ export default function Home() {
                                                                             'Unassigned'}
                                                                     </SelectValue>
                                                                 </SelectTrigger>
-                                                                <SelectPopup>
-                                                                    <SelectList>
+                                                                <SelectContent>
+                                                                    <SelectGroup>
                                                                         {users.map(
                                                                             u => (
                                                                                 <SelectItem
@@ -973,9 +1001,9 @@ export default function Home() {
                                                                                 </SelectItem>
                                                                             )
                                                                         )}
-                                                                    </SelectList>
-                                                                </SelectPopup>
-                                                            </SelectRoot>
+                                                                    </SelectGroup>
+                                                                </SelectContent>
+                                                            </Select>
                                                         </td>
                                                     )}
                                                     <td className='py-2.5 text-right'>
@@ -1220,7 +1248,7 @@ export default function Home() {
                                             <FieldLabel htmlFor='travelTime'>
                                                 Travel Time
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger
@@ -1228,16 +1256,16 @@ export default function Home() {
                                                     aria-invalid={fieldState.invalid}>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
+                                                <SelectContent>
+                                                    <SelectGroup>
                                                         <SelectItem value='0-3'>Lo antes posible</SelectItem>
                                                         <SelectItem value='3-6'>En 3-6 meses</SelectItem>
                                                         <SelectItem value='6-12'>En 6-12 meses</SelectItem>
                                                         <SelectItem value='12-18'>En 12-18 meses</SelectItem>
                                                         <SelectItem value='0'>Solo explorando</SelectItem>
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                             {fieldState.invalid && (
                                                 <FieldError
                                                     errors={[
@@ -1256,14 +1284,14 @@ export default function Home() {
                                             <FieldLabel htmlFor='statusId'>
                                                 Status
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='statusId'>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
+                                                <SelectContent>
+                                                    <SelectGroup>
                                                         {statuses.map(s => (
                                                             <SelectItem
                                                                 key={s.id}
@@ -1271,9 +1299,9 @@ export default function Home() {
                                                                 {s.name}
                                                             </SelectItem>
                                                         ))}
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                         </Field>
                                     )}
                                 />
@@ -1285,14 +1313,14 @@ export default function Home() {
                                             <FieldLabel htmlFor='priorityId'>
                                                 Priority
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='priorityId'>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
+                                                <SelectContent>
+                                                    <SelectGroup>
                                                         {priorities.map(p => (
                                                             <SelectItem
                                                                 key={p.id}
@@ -1300,9 +1328,9 @@ export default function Home() {
                                                                 {p.name}
                                                             </SelectItem>
                                                         ))}
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                         </Field>
                                     )}
                                 />
@@ -1315,14 +1343,14 @@ export default function Home() {
                                                 <FieldLabel htmlFor='assignedTo'>
                                                     Assigned To
                                                 </FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value}
                                                     onValueChange={field.onChange}>
                                                     <SelectTrigger id='assignedTo'>
                                                         <SelectValue placeholder='Select...' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
+                                                    <SelectContent>
+                                                        <SelectGroup>
                                                             {users.map(u => (
                                                                 <SelectItem
                                                                     key={u.id}
@@ -1330,9 +1358,9 @@ export default function Home() {
                                                                     {u.name}
                                                                 </SelectItem>
                                                             ))}
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />
@@ -1346,14 +1374,14 @@ export default function Home() {
                                                 <FieldLabel htmlFor='referralId'>
                                                     Referral Code
                                                 </FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value}
                                                     onValueChange={field.onChange}>
                                                     <SelectTrigger id='referralId'>
                                                         <SelectValue placeholder='Select...' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
+                                                    <SelectContent>
+                                                        <SelectGroup>
                                                             <SelectItem value=''>
                                                                 None
                                                             </SelectItem>
@@ -1364,9 +1392,9 @@ export default function Home() {
                                                                     {r.name}
                                                                 </SelectItem>
                                                             ))}
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />

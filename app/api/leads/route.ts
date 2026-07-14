@@ -49,9 +49,12 @@ export async function POST(request: Request) {
                 .set(updateData)
                 .where(eq(customers.email, body.email))
 
-            const changedFields: Record<string, { from: any; to: any }> = {}
+            const changedFields: Record<
+                string,
+                { from: string | number | Date | null | undefined; to: string | number | Date | null | undefined }
+            > = {}
             for (const [key, newValue] of Object.entries(updateData)) {
-                const oldValue = (existing as any)[key]
+                const oldValue = existing[key as keyof typeof existing]
                 if (String(oldValue) !== String(newValue)) {
                     changedFields[key] = { from: oldValue, to: newValue }
                 }

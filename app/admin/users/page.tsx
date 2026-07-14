@@ -28,9 +28,9 @@ import {
 } from '@/components/ui/field'
 import {
     SelectItem,
-    SelectList,
-    SelectPopup,
-    SelectRoot,
+    SelectGroup,
+    SelectContent,
+    Select,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
@@ -186,7 +186,7 @@ export default function AdminUsersPage() {
                 data: {
                     name: form.name,
                     email: form.email,
-                role: (form.role || 'user') as any
+                    role: form.role || 'user'
                 }
             })
             if (error) throw new Error(error.message || 'Failed to update user')
@@ -275,9 +275,9 @@ export default function AdminUsersPage() {
                 userId: user.id
             })
             if (error) throw new Error(error.message || 'Failed to impersonate')
-            return data
+            return data as { url?: string } | null
         },
-        onSuccess: (data: any) => {
+        onSuccess: (data: { url?: string } | null) => {
             toast.success('Impersonating user')
             if (data?.url) window.location.href = data.url
         },
@@ -718,7 +718,7 @@ export default function AdminUsersPage() {
                                                     fieldState.invalid
                                                 }>
                                                 <FieldLabel>Role</FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value}
                                                     onValueChange={
                                                         field.onChange
@@ -729,8 +729,8 @@ export default function AdminUsersPage() {
                                                         }>
                                                         <SelectValue placeholder='Select role' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
+                                                    <SelectContent>
+                                                        <SelectGroup>
                                                             <SelectItem value='user'>
                                                                 User
                                                             </SelectItem>
@@ -743,9 +743,9 @@ export default function AdminUsersPage() {
                                                             <SelectItem value='pending'>
                                                                 Pending
                                                             </SelectItem>
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />
@@ -851,7 +851,7 @@ export default function AdminUsersPage() {
                                                     fieldState.invalid
                                                 }>
                                                 <FieldLabel>Role</FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value}
                                                     onValueChange={
                                                         field.onChange
@@ -862,8 +862,8 @@ export default function AdminUsersPage() {
                                                         }>
                                                         <SelectValue placeholder='Select role' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
+                                                    <SelectContent>
+                                                        <SelectGroup>
                                                             <SelectItem value='user'>
                                                                 User
                                                             </SelectItem>
@@ -876,9 +876,9 @@ export default function AdminUsersPage() {
                                                             <SelectItem value='pending'>
                                                                 Pending
                                                             </SelectItem>
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />
@@ -1021,7 +1021,7 @@ export default function AdminUsersPage() {
                                                 <FieldLabel>
                                                     Ban Duration
                                                 </FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value || ''}
                                                     onValueChange={
                                                         field.onChange
@@ -1029,8 +1029,8 @@ export default function AdminUsersPage() {
                                                     <SelectTrigger>
                                                         <SelectValue placeholder='Permanent (never expires)' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
+                                                    <SelectContent>
+                                                        <SelectGroup>
                                                             <SelectItem value=''>
                                                                 Permanent
                                                             </SelectItem>
@@ -1052,9 +1052,9 @@ export default function AdminUsersPage() {
                                                             <SelectItem value='31536000'>
                                                                 1 year
                                                             </SelectItem>
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />

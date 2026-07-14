@@ -39,7 +39,7 @@ export function Header() {
         router.refresh()
     }
 
-    const isImpersonating = !!(session as any)?.session?.impersonatedBy
+    const isImpersonating = !!(session?.session?.impersonatedBy)
 
     return (
         <>

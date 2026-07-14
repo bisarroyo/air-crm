@@ -60,15 +60,16 @@ export async function PUT(
         }
 
         return NextResponse.json(updated)
-    } catch (error: any) {
-        if (error?.message?.includes('UNIQUE')) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to update referral'
+        if (message.includes('UNIQUE')) {
             return NextResponse.json(
                 { error: 'A referral with this code already exists' },
                 { status: 409 }
             )
         }
         return NextResponse.json(
-            { error: 'Failed to update referral' },
+            { error: message },
             { status: 500 }
         )
     }
@@ -100,9 +101,10 @@ export async function DELETE(
         }
 
         return NextResponse.json(deleted)
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to delete referral'
         return NextResponse.json(
-            { error: 'Failed to delete referral' },
+            { error: message },
             { status: 500 }
         )
     }

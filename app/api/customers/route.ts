@@ -147,9 +147,10 @@ export async function POST(request: Request) {
         })
 
         return NextResponse.json(newCustomer, { status: 201 })
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to create customer'
         return NextResponse.json(
-            { error: error?.message || 'Failed to create customer' },
+            { error: message },
             { status: 500 }
         )
     }

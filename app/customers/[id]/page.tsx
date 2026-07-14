@@ -18,19 +18,19 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/components/ui/card'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
     SelectItem,
-    SelectList,
-    SelectPopup,
-    SelectRoot,
+    SelectGroup,
+    SelectContent,
+    Select,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
@@ -121,20 +121,20 @@ const FIELD_LABELS: Record<string, string> = {
 
 function resolveValue(
     key: string,
-    value: any,
+    value: string | number | null | undefined,
     statuses: SelectOption[],
     priorities: SelectOption[],
     users: SelectOption[]
 ): string {
     if (value === null || value === undefined || value === '') return 'None'
     if (key === 'statusId') {
-        return statuses.find(s => s.id === value)?.name || String(value)
+        return statuses.find((s) => s.id === value)?.name || String(value)
     }
     if (key === 'priorityId') {
-        return priorities.find(p => p.id === value)?.name || String(value)
+        return priorities.find((p) => p.id === value)?.name || String(value)
     }
     if (key === 'assignedTo') {
-        return users.find(u => u.id === value)?.name || String(value)
+        return users.find((u) => u.id === value)?.name || String(value)
     }
     if (key === 'referralId') {
         return value ? `#${value}` : 'None'
@@ -151,19 +151,36 @@ function formatChanges(
     priorities: SelectOption[],
     users: SelectOption[]
 ) {
-    const data = JSON.parse(changes)
+    const data = JSON.parse(changes) as Record<
+        string,
+        | { from: string | number | null | undefined; to: string | number | null | undefined }
+        | string
+        | number
+        | null
+        | undefined
+    >
     return Object.entries(data).map(([key, rawValue]) => {
         const label = FIELD_LABELS[key] || key
 
         const isChangeFormat =
             rawValue !== null &&
             typeof rawValue === 'object' &&
-            'from' in (rawValue as any) &&
-            'to' in (rawValue as any)
+            'from' in rawValue &&
+            'to' in rawValue
 
         if (isChangeFormat) {
-            const { from, to } = rawValue as { from: any; to: any }
-            const fromDisplay = resolveValue(key, from, statuses, priorities, users)
+            const changeValue = rawValue as {
+                from: string | number | null | undefined
+                to: string | number | null | undefined
+            }
+            const { from, to } = changeValue
+            const fromDisplay = resolveValue(
+                key,
+                from,
+                statuses,
+                priorities,
+                users
+            )
             const toDisplay = resolveValue(key, to, statuses, priorities, users)
             return { label, value: `${fromDisplay} → ${toDisplay}` }
         }
@@ -224,41 +241,41 @@ export default function CustomerDetailPage() {
         }
     })
 
-    const { data: statuses = [] } = useQuery<SelectOption[]>({
+    const { data: statuses = [] } = useQuery({
         queryKey: ['statuses'],
-        queryFn: () => fetch('/api/status').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map(s => ({ id: s.id, name: s.status }))
-    })
+        queryFn: () => fetch('/api/status').then((r) => r.json()),
+        select: (data: Array<{ id: number; status: string; color: string }>) =>
+            data.map((s) => ({ id: s.id, name: s.status }))
+    }) as { data: SelectOption[] | undefined }
 
-    const { data: priorities = [] } = useQuery<SelectOption[]>({
+    const { data: priorities = [] } = useQuery({
         queryKey: ['priorities'],
-        queryFn: () => fetch('/api/priority').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map(p => ({ id: p.id, name: p.priority }))
-    })
+        queryFn: () => fetch('/api/priority').then((r) => r.json()),
+        select: (data: Array<{ id: number; priority: string; color: string }>) =>
+            data.map((p) => ({ id: p.id, name: p.priority }))
+    }) as { data: SelectOption[] | undefined }
 
-    const { data: users = [] } = useQuery<SelectOption[]>({
+    const { data: users = [] } = useQuery({
         queryKey: ['users'],
-        queryFn: () => fetch('/api/users').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map((u: any) => ({
+        queryFn: () => fetch('/api/users').then((r) => r.json()),
+        select: (data: Array<{ id: string; name: string | null; email: string }>) =>
+            data.map((u) => ({
                 id: u.id,
                 name: u.name || u.email
             })),
         enabled: isAdmin
-    })
+    }) as { data: SelectOption[] | undefined }
 
-    const { data: referralOptions = [] } = useQuery<SelectOption[]>({
+    const { data: referralOptions = [] } = useQuery({
         queryKey: ['referrals'],
-        queryFn: () => fetch('/api/referrals').then(r => r.json()),
-        select: (data: any[]) =>
-            data.map((r: any) => ({
+        queryFn: () => fetch('/api/referrals').then((r) => r.json()),
+        select: (data: Array<{ id: number; code: string }>) =>
+            data.map((r) => ({
                 id: r.id,
                 name: r.code
             })),
         enabled: isAdmin
-    })
+    }) as { data: SelectOption[] | undefined }
 
     const { data: logs = [] } = useQuery<LogEntry[]>({
         queryKey: ['logs', id],
@@ -331,8 +348,7 @@ export default function CustomerDetailPage() {
         setModalOpen(true)
     }
 
-    const onSubmit = (data: CustomerFormValues) =>
-        updateMutation.mutate(data)
+    const onSubmit = (data: CustomerFormValues) => updateMutation.mutate(data)
 
     const handleDelete = () => {
         if (deleteConfirmText !== 'confirm') return
@@ -379,10 +395,7 @@ export default function CustomerDetailPage() {
                             onClick={() => setDeleteDialogOpen(true)}
                             disabled={deleteMutation.isPending}>
                             {deleteMutation.isPending ? (
-                                <Loader2
-                                    size={14}
-                                    className='animate-spin'
-                                />
+                                <Loader2 size={14} className='animate-spin' />
                             ) : (
                                 <Trash2 size={14} />
                             )}
@@ -424,7 +437,10 @@ export default function CustomerDetailPage() {
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
                                 Travel Time
                             </p>
-                            <p className='text-sm'>{travelTimeLabels[customer.travelTime] || customer.travelTime}</p>
+                            <p className='text-sm'>
+                                {travelTimeLabels[customer.travelTime] ||
+                                    customer.travelTime}
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
@@ -440,9 +456,7 @@ export default function CustomerDetailPage() {
                             </p>
                             <div className='mt-1 flex items-center gap-2'>
                                 <ColorDot
-                                    color={
-                                        customer.statusColor || '#6b7280'
-                                    }
+                                    color={customer.statusColor || '#6b7280'}
                                 />
                                 <span
                                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -460,9 +474,7 @@ export default function CustomerDetailPage() {
                             </p>
                             <div className='mt-1 flex items-center gap-2'>
                                 <ColorDot
-                                    color={
-                                        customer.priorityColor || '#6b7280'
-                                    }
+                                    color={customer.priorityColor || '#6b7280'}
                                 />
                                 <span className='inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'>
                                     {customer.priorityName || 'Unknown'}
@@ -580,16 +592,18 @@ export default function CustomerDetailPage() {
                                                         statuses,
                                                         priorities,
                                                         users
-                                                    ).map(({ label, value }) => (
-                                                        <span key={label}>
-                                                            <span className='font-medium text-foreground'>
-                                                                {label}:
-                                                            </span>{' '}
-                                                            <span className='text-muted-foreground'>
-                                                                {value}
+                                                    ).map(
+                                                        ({ label, value }) => (
+                                                            <span key={label}>
+                                                                <span className='font-medium text-foreground'>
+                                                                    {label}:
+                                                                </span>{' '}
+                                                                <span className='text-muted-foreground'>
+                                                                    {value}
+                                                                </span>
                                                             </span>
-                                                        </span>
-                                                    ))}
+                                                        )
+                                                    )}
                                                 </div>
                                             )}
                                             <p className='text-xs text-muted-foreground'>
@@ -638,9 +652,7 @@ export default function CustomerDetailPage() {
                                             />
                                             {fieldState.invalid && (
                                                 <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
+                                                    errors={[fieldState.error]}
                                                 />
                                             )}
                                         </Field>
@@ -666,9 +678,7 @@ export default function CustomerDetailPage() {
                                             />
                                             {fieldState.invalid && (
                                                 <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
+                                                    errors={[fieldState.error]}
                                                 />
                                             )}
                                         </Field>
@@ -694,9 +704,7 @@ export default function CustomerDetailPage() {
                                             />
                                             {fieldState.invalid && (
                                                 <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
+                                                    errors={[fieldState.error]}
                                                 />
                                             )}
                                         </Field>
@@ -711,29 +719,39 @@ export default function CustomerDetailPage() {
                                             <FieldLabel htmlFor='edit-travelTime'>
                                                 Travel Time
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger
                                                     id='edit-travelTime'
-                                                    aria-invalid={fieldState.invalid}>
+                                                    aria-invalid={
+                                                        fieldState.invalid
+                                                    }>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
-                                                        <SelectItem value='0-3'>Lo antes posible</SelectItem>
-                                                        <SelectItem value='3-6'>En 3-6 meses</SelectItem>
-                                                        <SelectItem value='6-12'>En 6-12 meses</SelectItem>
-                                                        <SelectItem value='12-18'>En 12-18 meses</SelectItem>
-                                                        <SelectItem value='0'>Solo explorando</SelectItem>
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value='0-3'>
+                                                            Lo antes posible
+                                                        </SelectItem>
+                                                        <SelectItem value='3-6'>
+                                                            En 3-6 meses
+                                                        </SelectItem>
+                                                        <SelectItem value='6-12'>
+                                                            En 6-12 meses
+                                                        </SelectItem>
+                                                        <SelectItem value='12-18'>
+                                                            En 12-18 meses
+                                                        </SelectItem>
+                                                        <SelectItem value='0'>
+                                                            Solo explorando
+                                                        </SelectItem>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                             {fieldState.invalid && (
                                                 <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
+                                                    errors={[fieldState.error]}
                                                 />
                                             )}
                                         </Field>
@@ -747,24 +765,26 @@ export default function CustomerDetailPage() {
                                             <FieldLabel htmlFor='edit-statusId'>
                                                 Status
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='edit-statusId'>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
-                                                        {statuses.map(s => (
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {statuses.map((s) => (
                                                             <SelectItem
                                                                 key={s.id}
-                                                                value={String(s.id)}>
+                                                                value={String(
+                                                                    s.id
+                                                                )}>
                                                                 {s.name}
                                                             </SelectItem>
                                                         ))}
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                         </Field>
                                     )}
                                 />
@@ -776,24 +796,26 @@ export default function CustomerDetailPage() {
                                             <FieldLabel htmlFor='edit-priorityId'>
                                                 Priority
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='edit-priorityId'>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
-                                                        {priorities.map(p => (
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {priorities.map((p) => (
                                                             <SelectItem
                                                                 key={p.id}
-                                                                value={String(p.id)}>
+                                                                value={String(
+                                                                    p.id
+                                                                )}>
                                                                 {p.name}
                                                             </SelectItem>
                                                         ))}
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                         </Field>
                                     )}
                                 />
@@ -806,24 +828,28 @@ export default function CustomerDetailPage() {
                                                 <FieldLabel htmlFor='edit-assignedTo'>
                                                     Assigned To
                                                 </FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value}
-                                                    onValueChange={field.onChange}>
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }>
                                                     <SelectTrigger id='edit-assignedTo'>
                                                         <SelectValue placeholder='Select...' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
-                                                            {users.map(u => (
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            {users.map((u) => (
                                                                 <SelectItem
                                                                     key={u.id}
-                                                                    value={u.id}>
+                                                                    value={
+                                                                        u.id
+                                                                    }>
                                                                     {u.name}
                                                                 </SelectItem>
                                                             ))}
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />
@@ -837,27 +863,35 @@ export default function CustomerDetailPage() {
                                                 <FieldLabel htmlFor='edit-referralId'>
                                                     Referral Code
                                                 </FieldLabel>
-                                                <SelectRoot
+                                                <Select
                                                     value={field.value}
-                                                    onValueChange={field.onChange}>
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }>
                                                     <SelectTrigger id='edit-referralId'>
                                                         <SelectValue placeholder='Select...' />
                                                     </SelectTrigger>
-                                                    <SelectPopup>
-                                                        <SelectList>
+                                                    <SelectContent>
+                                                        <SelectGroup>
                                                             <SelectItem value=''>
                                                                 None
                                                             </SelectItem>
-                                                            {referralOptions.map(r => (
-                                                                <SelectItem
-                                                                    key={r.id}
-                                                                    value={String(r.id)}>
-                                                                    {r.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectList>
-                                                    </SelectPopup>
-                                                </SelectRoot>
+                                                            {referralOptions.map(
+                                                                (r) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            r.id
+                                                                        }
+                                                                        value={String(
+                                                                            r.id
+                                                                        )}>
+                                                                        {r.name}
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                             </Field>
                                         )}
                                     />
@@ -901,11 +935,15 @@ export default function CustomerDetailPage() {
                         </p>
                         <div className='mb-4'>
                             <label className='mb-1 block text-sm font-medium'>
-                                Type <span className='font-mono font-bold text-destructive'>confirm</span> to proceed
+                                Type{' '}
+                                <span className='font-mono font-bold text-destructive'>
+                                    confirm
+                                </span>{' '}
+                                to proceed
                             </label>
                             <Input
                                 value={deleteConfirmText}
-                                onChange={e =>
+                                onChange={(e) =>
                                     setDeleteConfirmText(e.target.value)
                                 }
                                 placeholder='confirm'

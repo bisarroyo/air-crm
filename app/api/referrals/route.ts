@@ -59,15 +59,16 @@ export async function POST(request: Request) {
             .returning()
 
         return NextResponse.json(record, { status: 201 })
-    } catch (error: any) {
-        if (error?.message?.includes('UNIQUE')) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to create referral'
+        if (message.includes('UNIQUE')) {
             return NextResponse.json(
                 { error: 'A referral with this code already exists' },
                 { status: 409 }
             )
         }
         return NextResponse.json(
-            { error: 'Failed to create referral' },
+            { error: message },
             { status: 500 }
         )
     }

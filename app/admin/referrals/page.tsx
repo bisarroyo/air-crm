@@ -19,9 +19,9 @@ import {
 import { Input } from '@/components/ui/input'
 import {
     SelectItem,
-    SelectList,
-    SelectPopup,
-    SelectRoot,
+    SelectGroup,
+    SelectContent,
+    Select,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
@@ -84,7 +84,9 @@ export default function ReferralsPage() {
     const saveMutation = useMutation({
         mutationFn: async (data: FormValues) => {
             const isEdit = editingId !== null
-            const url = isEdit ? `/api/referrals/${editingId}` : '/api/referrals'
+            const url = isEdit
+                ? `/api/referrals/${editingId}`
+                : '/api/referrals'
             const method = isEdit ? 'PUT' : 'POST'
 
             const res = await fetch(url, {
@@ -145,7 +147,7 @@ export default function ReferralsPage() {
     }
 
     const getSelectedUserName = (userId: string) => {
-        const user = users.find(u => u.id === userId)
+        const user = users.find((u) => u.id === userId)
         return user ? `${user.name} (${user.email})` : 'Unknown user'
     }
 
@@ -185,9 +187,7 @@ export default function ReferralsPage() {
                             <table className='w-full text-sm'>
                                 <thead>
                                     <tr className='border-b text-left text-muted-foreground'>
-                                        <th className='pb-2 font-medium'>
-                                            ID
-                                        </th>
+                                        <th className='pb-2 font-medium'>ID</th>
                                         <th className='pb-2 font-medium'>
                                             Code
                                         </th>
@@ -212,7 +212,7 @@ export default function ReferralsPage() {
                                             </td>
                                         </tr>
                                     )}
-                                    {referrals.map(referral => (
+                                    {referrals.map((referral) => (
                                         <tr
                                             key={referral.id}
                                             className='border-b last:border-0'>
@@ -284,7 +284,8 @@ export default function ReferralsPage() {
                                     name='code'
                                     control={form.control}
                                     render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
+                                        <Field
+                                            data-invalid={fieldState.invalid}>
                                             <FieldLabel htmlFor='code'>
                                                 Code
                                             </FieldLabel>
@@ -324,11 +325,12 @@ export default function ReferralsPage() {
                                     name='userId'
                                     control={form.control}
                                     render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
+                                        <Field
+                                            data-invalid={fieldState.invalid}>
                                             <FieldLabel htmlFor='userId'>
                                                 Linked User
                                             </FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger
@@ -338,9 +340,9 @@ export default function ReferralsPage() {
                                                     }>
                                                     <SelectValue placeholder='Select a user' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
-                                                        {users.map(user => (
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {users.map((user) => (
                                                             <SelectItem
                                                                 key={user.id}
                                                                 value={user.id}>
@@ -348,9 +350,9 @@ export default function ReferralsPage() {
                                                                 {user.email})
                                                             </SelectItem>
                                                         ))}
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                             {fieldState.invalid && (
                                                 <FieldError
                                                     errors={[fieldState.error]}

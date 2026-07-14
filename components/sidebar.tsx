@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useSession } from '@/hooks/use-session'
@@ -24,12 +25,12 @@ import { useSession } from '@/hooks/use-session'
 interface MenuItem {
     href: string
     label: string
-    icon: any
+    icon: LucideIcon
 }
 
 interface MenuSection {
     label: string
-    icon?: any
+    icon?: LucideIcon
     defaultOpen?: boolean
     items: MenuItem[]
 }

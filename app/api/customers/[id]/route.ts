@@ -120,9 +120,12 @@ export async function PUT(
             )
         }
 
-        const changedFields: Record<string, { from: any; to: any }> = {}
+        const changedFields: Record<
+            string,
+            { from: string | number | Date | null | undefined; to: string | number | Date | null | undefined }
+        > = {}
         for (const [key, newValue] of Object.entries(updateData)) {
-            const oldValue = (existing as any)[key]
+            const oldValue = existing[key as keyof typeof existing]
             if (String(oldValue) !== String(newValue)) {
                 changedFields[key] = { from: oldValue, to: newValue }
             }
@@ -138,9 +141,10 @@ export async function PUT(
         }
 
         return NextResponse.json(updated)
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const err = error as Error
         return NextResponse.json(
-            { error: error?.message || 'Failed to update customer' },
+            { error: err?.message || 'Failed to update customer' },
             { status: 500 }
         )
     }
@@ -172,9 +176,10 @@ export async function DELETE(
         }
 
         return NextResponse.json(deleted)
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const err = error as Error
         return NextResponse.json(
-            { error: error?.message || 'Failed to delete customer' },
+            { error: err?.message || 'Failed to delete customer' },
             { status: 500 }
         )
     }

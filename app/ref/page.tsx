@@ -13,9 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
     SelectItem,
-    SelectList,
-    SelectPopup,
-    SelectRoot,
+    SelectGroup,
+    SelectContent,
+    Select,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
@@ -390,14 +390,14 @@ export default function RefDashboard() {
                                     render={({ field }) => (
                                         <Field>
                                             <FieldLabel>Travel Time</FieldLabel>
-                                            <SelectRoot
+                                            <Select
                                                 value={field.value}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder='Select...' />
                                                 </SelectTrigger>
-                                                <SelectPopup>
-                                                    <SelectList>
+                                                <SelectContent>
+                                                    <SelectGroup>
                                                         <SelectItem value='0-3'>
                                                             Lo antes posible
                                                         </SelectItem>
@@ -413,9 +413,9 @@ export default function RefDashboard() {
                                                         <SelectItem value='0'>
                                                             Solo explorando
                                                         </SelectItem>
-                                                    </SelectList>
-                                                </SelectPopup>
-                                            </SelectRoot>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                         </Field>
                                     )}
                                 />

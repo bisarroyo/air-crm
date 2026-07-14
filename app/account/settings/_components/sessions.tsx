@@ -8,12 +8,22 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { UAParser } from 'ua-parser-js'
 
+interface SessionData {
+    id: string
+    token: string
+    userAgent?: string | null
+    createdAt: Date
+    expiresAt: Date
+    impersonatedBy?: string | null
+    activeOrganizationId?: string | null
+}
+
 export default function Sessions({
     currentSession
 }: {
     currentSession: Session | null
 }) {
-    const { data: sessions, refetch } = useQuery({
+    const { data: sessions, refetch } = useQuery<SessionData[]>({
         queryKey: ['sessions'],
         queryFn: async () => {
             const { data, error } = await authClient.listSessions()
@@ -25,7 +35,7 @@ export default function Sessions({
 
     const router = useRouter()
 
-    const handleSessionTerminate = async (session: any) => {
+    const handleSessionTerminate = async (session: SessionData) => {
         setIsTerminating(session.id)
         const res = await authClient.revokeSession({
             token: session.token
@@ -46,8 +56,8 @@ export default function Sessions({
         <div className='border-l-2 px-2 w-max gap-1 flex flex-col'>
             <p className='text-xs font-medium '>Sesiones activas</p>
             {sessions
-                ?.filter((session: any) => session.userAgent)
-                .map((session: any) => (
+                ?.filter((session: SessionData) => session.userAgent)
+                .map((session: SessionData) => (
                     <div key={session.id}>
                         <div className='flex items-center gap-2 text-sm text-black font-medium dark:text-white'>
                             {new UAParser(

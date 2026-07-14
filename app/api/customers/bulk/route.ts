@@ -58,9 +58,12 @@ export async function POST(request: Request) {
                 const existing = existingMap.get(r.id)
                 if (!existing) return null
 
-                const changedFields: Record<string, { from: any; to: any }> = {}
+                const changedFields: Record<
+                    string,
+                    { from: string | number | Date | null | undefined; to: string | number | Date | null | undefined }
+                > = {}
                 for (const [key, newValue] of Object.entries(updateData)) {
-                    const oldValue = (existing as any)[key]
+                    const oldValue = existing[key as keyof typeof existing]
                     if (String(oldValue) !== String(newValue)) {
                         changedFields[key] = { from: oldValue, to: newValue }
                     }
@@ -75,19 +78,20 @@ export async function POST(request: Request) {
                     userId: session.user.id
                 }
             })
-            .filter(Boolean)
+            .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 
         if (logEntries.length > 0) {
-            await db.insert(logs).values(logEntries as any[])
+            await db.insert(logs).values(logEntries)
         }
 
         return NextResponse.json({
             success: true,
             updated: result.length
         })
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const err = error as Error
         return NextResponse.json(
-            { error: error?.message || 'Failed to update customers' },
+            { error: err?.message || 'Failed to update customers' },
             { status: 500 }
         )
     }

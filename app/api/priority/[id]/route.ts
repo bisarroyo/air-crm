@@ -60,8 +60,9 @@ export async function PUT(
         }
 
         return NextResponse.json(updated)
-    } catch (error: any) {
-        if (error?.message?.includes('UNIQUE')) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : ''
+        if (message.includes('UNIQUE')) {
             return NextResponse.json(
                 { error: 'A priority with this name already exists' },
                 { status: 409 }
@@ -100,8 +101,9 @@ export async function DELETE(
         }
 
         return NextResponse.json(deleted)
-    } catch (error: any) {
-        if (error?.message?.includes('FOREIGN KEY')) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : ''
+        if (message.includes('FOREIGN KEY')) {
             return NextResponse.json(
                 {
                     error:

@@ -43,8 +43,8 @@ export async function POST(request: Request) {
             })
             .returning()
         return NextResponse.json(newStatus, { status: 201 })
-    } catch (error: any) {
-        if (error?.message?.includes('UNIQUE')) {
+    } catch (error) {
+        if ((error as Error)?.message?.includes('UNIQUE')) {
             return NextResponse.json(
                 { error: 'A status with this name already exists' },
                 { status: 409 }
