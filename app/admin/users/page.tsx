@@ -153,7 +153,7 @@ export default function AdminUsersPage() {
                 name: form.name,
                 email: form.email,
                 password: form.password,
-                role: (form.role || 'user') as 'user' | 'admin'
+                role: (form.role || 'user') as 'user' | 'admin' | 'ref'
             })
             if (error) throw new Error(error.message || 'Failed to create user')
             return data
@@ -448,8 +448,9 @@ export default function AdminUsersPage() {
                                                     </SelectTrigger>
                                                     <SelectPopup>
                                                         <SelectList>
-                                                            <SelectItem value='user'>User</SelectItem>
-                                                            <SelectItem value='admin'>Admin</SelectItem>
+                                                        <SelectItem value='user'>User</SelectItem>
+                                                        <SelectItem value='ref'>Ref</SelectItem>
+                                                        <SelectItem value='admin'>Admin</SelectItem>
                                                         </SelectList>
                                                     </SelectPopup>
                                                 </SelectRoot>
@@ -503,8 +504,9 @@ export default function AdminUsersPage() {
                                                     </SelectTrigger>
                                                     <SelectPopup>
                                                         <SelectList>
-                                                            <SelectItem value='user'>User</SelectItem>
-                                                            <SelectItem value='admin'>Admin</SelectItem>
+                                                        <SelectItem value='user'>User</SelectItem>
+                                                        <SelectItem value='ref'>Ref</SelectItem>
+                                                        <SelectItem value='admin'>Admin</SelectItem>
                                                         </SelectList>
                                                     </SelectPopup>
                                                 </SelectRoot>

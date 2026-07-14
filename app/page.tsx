@@ -7,6 +7,7 @@ import {
     ChevronRight,
     ExternalLink,
     Loader2,
+    MessageCircle,
     Pencil,
     Plus,
     Search,
@@ -47,6 +48,7 @@ interface CustomerRow {
     statusId: number
     priorityId: number
     assignedTo: string
+    referralId: number | null
     createdAt: string | null
     updatedAt: string | null
     statusName: string | null
@@ -73,6 +75,14 @@ interface LabelOption {
     color: string
 }
 
+const travelTimeLabels: Record<string, string> = {
+    '0-3': 'Lo antes posible',
+    '3-6': 'En 3-6 meses',
+    '6-12': 'En 6-12 meses',
+    '12-18': 'En 12-18 meses',
+    '0': 'Solo explorando'
+}
+
 const customerSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email'),
@@ -80,7 +90,8 @@ const customerSchema = z.object({
     travelTime: z.string().min(1, 'Travel time is required'),
     statusId: z.string().min(1),
     priorityId: z.string().min(1),
-    assignedTo: z.string().optional()
+    assignedTo: z.string().optional(),
+    referralId: z.string().optional()
 })
 
 type CustomerFormValues = z.infer<typeof customerSchema>
@@ -127,7 +138,8 @@ export default function Home() {
             travelTime: '',
             statusId: '1',
             priorityId: '1',
-            assignedTo: ''
+            assignedTo: '',
+            referralId: ''
         }
     })
 
@@ -192,6 +204,19 @@ export default function Home() {
             data.map((u: any) => ({
                 id: u.id,
                 name: u.name || u.email
+            })),
+        enabled: isAdmin
+    })
+
+    const { data: referralOptions = [] } = useQuery<
+        { id: number; name: string }[]
+    >({
+        queryKey: ['referrals'],
+        queryFn: () => fetch('/api/referrals').then(r => r.json()),
+        select: (data: any[]) =>
+            data.map((r: any) => ({
+                id: r.id,
+                name: r.code
             })),
         enabled: isAdmin
     })
@@ -282,10 +307,13 @@ export default function Home() {
                 ? `/api/customers/${editingId}`
                 : '/api/customers'
             const method = isEdit ? 'PUT' : 'POST'
-            const body = {
+            const body: Record<string, any> = {
                 ...data,
                 statusId: Number(data.statusId),
                 priorityId: Number(data.priorityId)
+            }
+            if (isEdit) {
+                body.referralId = data.referralId ? Number(data.referralId) : null
             }
 
             const res = await fetch(url, {
@@ -332,7 +360,8 @@ export default function Home() {
             travelTime: customer.travelTime,
             statusId: String(customer.statusId),
             priorityId: String(customer.priorityId),
-            assignedTo: customer.assignedTo || ''
+            assignedTo: customer.assignedTo || '',
+            referralId: customer.referralId ? String(customer.referralId) : ''
         })
         setModalOpen(true)
     }
@@ -796,7 +825,7 @@ export default function Home() {
                                                         {customer.phone}
                                                     </td>
                                                     <td className='py-2.5'>
-                                                        {customer.travelTime}
+                                                        {travelTimeLabels[customer.travelTime] || customer.travelTime}
                                                     </td>
                                                     <td className='py-2.5'>
                                                         <SelectRoot
@@ -951,6 +980,19 @@ export default function Home() {
                                                     )}
                                                     <td className='py-2.5 text-right'>
                                                         <div className='flex items-center justify-end gap-1'>
+                                                            <a
+                                                                href={`https://wa.me/${customer.phone.replace(/\D/g, '')}`}
+                                                                target='_blank'
+                                                                rel='noopener noreferrer'>
+                                                                <Button
+                                                                    size='icon-sm'
+                                                                    variant='ghost'
+                                                                    className='text-green-600 hover:text-green-700'>
+                                                                    <MessageCircle
+                                                                        size={14}
+                                                                    />
+                                                                </Button>
+                                                            </a>
                                                             <Link
                                                                 href={`/customers/${customer.id}`}>
                                                                 <Button
@@ -1178,14 +1220,24 @@ export default function Home() {
                                             <FieldLabel htmlFor='travelTime'>
                                                 Travel Time
                                             </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='travelTime'
-                                                placeholder='e.g. 2 hours, 30 min'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
+                                            <SelectRoot
+                                                value={field.value}
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger
+                                                    id='travelTime'
+                                                    aria-invalid={fieldState.invalid}>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectPopup>
+                                                    <SelectList>
+                                                        <SelectItem value='0-3'>Lo antes posible</SelectItem>
+                                                        <SelectItem value='3-6'>En 3-6 meses</SelectItem>
+                                                        <SelectItem value='6-12'>En 6-12 meses</SelectItem>
+                                                        <SelectItem value='12-18'>En 12-18 meses</SelectItem>
+                                                        <SelectItem value='0'>Solo explorando</SelectItem>
+                                                    </SelectList>
+                                                </SelectPopup>
+                                            </SelectRoot>
                                             {fieldState.invalid && (
                                                 <FieldError
                                                     errors={[
@@ -1260,6 +1312,34 @@ export default function Home() {
                                                             key={u.id}
                                                             value={u.id}>
                                                             {u.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                        )}
+                                    />
+                                )}
+                                {isAdmin && editingId && (
+                                    <Controller
+                                        name='referralId'
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <Field>
+                                                <FieldLabel htmlFor='referralId'>
+                                                    Referral Code
+                                                </FieldLabel>
+                                                <select
+                                                    {...field}
+                                                    id='referralId'
+                                                    className='h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3'>
+                                                    <option value=''>
+                                                        None
+                                                    </option>
+                                                    {referralOptions.map(r => (
+                                                        <option
+                                                            key={r.id}
+                                                            value={r.id}>
+                                                            {r.name}
                                                         </option>
                                                     ))}
                                                 </select>

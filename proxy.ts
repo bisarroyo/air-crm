@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 
-const publicRoutes = ['/signin', '/signup', '/forgot-password']
+const publicRoutes = ['/signin', '/signup', '/forget-password', '/reset-password', '/two-factor']
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    if (publicRoutes.includes(pathname)) {
+    if (publicRoutes.some(route => pathname.startsWith(route))) {
         return NextResponse.next()
     }
 
@@ -17,6 +17,20 @@ export async function proxy(request: NextRequest) {
 
     if (!session) {
         return NextResponse.redirect(new URL('/signin', request.url))
+    }
+
+    const role = session.user?.role
+
+    if (role === 'ref' && !pathname.startsWith('/ref') && !pathname.startsWith('/api')) {
+        return NextResponse.redirect(new URL('/ref', request.url))
+    }
+
+    if (pathname.startsWith('/admin') && role !== 'admin') {
+        return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (pathname.startsWith('/ref') && role !== 'ref') {
+        return NextResponse.redirect(new URL('/', request.url))
     }
 
     return NextResponse.next()

@@ -16,6 +16,7 @@ export async function POST(request: Request) {
 
         let referralId: number | undefined
 
+        console.log('Received referral code:', body.referralCode)
         if (body.referralCode) {
             const [referral] = await db
                 .select()
@@ -48,11 +49,21 @@ export async function POST(request: Request) {
                 .set(updateData)
                 .where(eq(customers.email, body.email))
 
-            await db.insert(logs).values({
-                customerId: existing.id,
-                action: 'lead_updated',
-                changes: JSON.stringify(updateData)
-            })
+            const changedFields: Record<string, { from: any; to: any }> = {}
+            for (const [key, newValue] of Object.entries(updateData)) {
+                const oldValue = (existing as any)[key]
+                if (String(oldValue) !== String(newValue)) {
+                    changedFields[key] = { from: oldValue, to: newValue }
+                }
+            }
+
+            if (Object.keys(changedFields).length > 0) {
+                await db.insert(logs).values({
+                    customerId: existing.id,
+                    action: 'lead_updated',
+                    changes: JSON.stringify(changedFields)
+                })
+            }
 
             return NextResponse.json(
                 { message: 'Customer updated successfully' },

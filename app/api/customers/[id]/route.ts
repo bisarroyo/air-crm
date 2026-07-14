@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
-import { customers, status, priority, logs } from '@/db/schema'
+import { customers, status, priority, logs, referrals } from '@/db/schema'
 import { user } from '@/auth-schema'
 
 export async function GET(
@@ -28,6 +28,7 @@ export async function GET(
             statusId: customers.statusId,
             priorityId: customers.priorityId,
             assignedTo: customers.assignedTo,
+            referralId: customers.referralId,
             createdAt: customers.createdAt,
             updatedAt: customers.updatedAt,
             statusName: status.status,
@@ -69,7 +70,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const updateData: Record<string, string | number> = {}
+    const updateData: Record<string, string | number | null> = {}
 
     if (body.name !== undefined) updateData.name = body.name
     if (body.email !== undefined) updateData.email = body.email
@@ -79,6 +80,11 @@ export async function PUT(
     if (body.priorityId !== undefined)
         updateData.priorityId = Number(body.priorityId)
     if (body.assignedTo !== undefined) updateData.assignedTo = body.assignedTo
+    if (body.referralId !== undefined) {
+        updateData.referralId = body.referralId === null || body.referralId === '' || body.referralId === 0
+            ? null
+            : Number(body.referralId)
+    }
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
@@ -88,6 +94,19 @@ export async function PUT(
     }
 
     try {
+        const [existing] = await db
+            .select()
+            .from(customers)
+            .where(eq(customers.id, Number(id)))
+            .limit(1)
+
+        if (!existing) {
+            return NextResponse.json(
+                { error: 'Customer not found' },
+                { status: 404 }
+            )
+        }
+
         const [updated] = await db
             .update(customers)
             .set(updateData)
@@ -101,12 +120,22 @@ export async function PUT(
             )
         }
 
-        await db.insert(logs).values({
-            customerId: Number(id),
-            action: 'updated',
-            changes: JSON.stringify(updateData),
-            userId: session.user.id
-        })
+        const changedFields: Record<string, { from: any; to: any }> = {}
+        for (const [key, newValue] of Object.entries(updateData)) {
+            const oldValue = (existing as any)[key]
+            if (String(oldValue) !== String(newValue)) {
+                changedFields[key] = { from: oldValue, to: newValue }
+            }
+        }
+
+        if (Object.keys(changedFields).length > 0) {
+            await db.insert(logs).values({
+                customerId: Number(id),
+                action: 'updated',
+                changes: JSON.stringify(changedFields),
+                userId: session.user.id
+            })
+        }
 
         return NextResponse.json(updated)
     } catch (error: any) {

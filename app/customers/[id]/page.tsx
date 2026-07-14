@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
     ArrowLeft,
     Loader2,
+    MessageCircle,
     Pencil,
     Trash2,
     UserRound
@@ -25,6 +26,14 @@ import {
 } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import {
+    SelectItem,
+    SelectList,
+    SelectPopup,
+    SelectRoot,
+    SelectTrigger,
+    SelectValue
+} from '@/components/ui/select'
 import { useSession } from '@/hooks/use-session'
 
 interface CustomerDetail {
@@ -36,6 +45,7 @@ interface CustomerDetail {
     statusId: number
     priorityId: number
     assignedTo: string
+    referralId: number | null
     createdAt: string | null
     updatedAt: string | null
     statusName: string | null
@@ -64,6 +74,14 @@ interface LogEntry {
     referralCode: string | null
 }
 
+const travelTimeLabels: Record<string, string> = {
+    '0-3': 'Lo antes posible',
+    '3-6': 'En 3-6 meses',
+    '6-12': 'En 6-12 meses',
+    '12-18': 'En 12-18 meses',
+    '0': 'Solo explorando'
+}
+
 const customerSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email'),
@@ -71,7 +89,8 @@ const customerSchema = z.object({
     travelTime: z.string().min(1, 'Travel time is required'),
     statusId: z.string().min(1),
     priorityId: z.string().min(1),
-    assignedTo: z.string().optional()
+    assignedTo: z.string().optional(),
+    referralId: z.string().optional()
 })
 
 type CustomerFormValues = z.infer<typeof customerSchema>
@@ -100,6 +119,32 @@ const FIELD_LABELS: Record<string, string> = {
     referralCode: 'Referral Code'
 }
 
+function resolveValue(
+    key: string,
+    value: any,
+    statuses: SelectOption[],
+    priorities: SelectOption[],
+    users: SelectOption[]
+): string {
+    if (value === null || value === undefined || value === '') return 'None'
+    if (key === 'statusId') {
+        return statuses.find(s => s.id === value)?.name || String(value)
+    }
+    if (key === 'priorityId') {
+        return priorities.find(p => p.id === value)?.name || String(value)
+    }
+    if (key === 'assignedTo') {
+        return users.find(u => u.id === value)?.name || String(value)
+    }
+    if (key === 'referralId') {
+        return value ? `#${value}` : 'None'
+    }
+    if (key === 'travelTime' || key === 'travel_time') {
+        return travelTimeLabels[String(value)] || String(value)
+    }
+    return String(value)
+}
+
 function formatChanges(
     changes: string,
     statuses: SelectOption[],
@@ -107,31 +152,26 @@ function formatChanges(
     users: SelectOption[]
 ) {
     const data = JSON.parse(changes)
-    return Object.entries(data).map(([key, value]) => {
+    return Object.entries(data).map(([key, rawValue]) => {
         const label = FIELD_LABELS[key] || key
 
-        let displayValue: string
-        if (key === 'statusId') {
-            displayValue =
-                statuses.find(s => s.id === value)?.name ||
-                String(value)
-        } else if (key === 'priorityId') {
-            displayValue =
-                priorities.find(p => p.id === value)?.name ||
-                String(value)
-        } else if (key === 'assignedTo') {
-            displayValue =
-                users.find(u => u.id === value)?.name ||
-                String(value)
-        } else if (key === 'referralId') {
-            displayValue = value ? `#${value}` : 'None'
-        } else if (value === null || value === undefined) {
-            displayValue = 'None'
-        } else {
-            displayValue = String(value)
+        const isChangeFormat =
+            rawValue !== null &&
+            typeof rawValue === 'object' &&
+            'from' in (rawValue as any) &&
+            'to' in (rawValue as any)
+
+        if (isChangeFormat) {
+            const { from, to } = rawValue as { from: any; to: any }
+            const fromDisplay = resolveValue(key, from, statuses, priorities, users)
+            const toDisplay = resolveValue(key, to, statuses, priorities, users)
+            return { label, value: `${fromDisplay} → ${toDisplay}` }
         }
 
-        return { label, value: displayValue }
+        return {
+            label,
+            value: resolveValue(key, rawValue, statuses, priorities, users)
+        }
     })
 }
 
@@ -152,6 +192,8 @@ export default function CustomerDetailPage() {
     const isAdmin = session?.user.role === 'admin'
 
     const [modalOpen, setModalOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
     const form = useForm<CustomerFormValues>({
         resolver: zodResolver(customerSchema),
@@ -162,7 +204,8 @@ export default function CustomerDetailPage() {
             travelTime: '',
             statusId: '1',
             priorityId: '1',
-            assignedTo: ''
+            assignedTo: '',
+            referralId: ''
         }
     })
 
@@ -206,6 +249,17 @@ export default function CustomerDetailPage() {
         enabled: isAdmin
     })
 
+    const { data: referralOptions = [] } = useQuery<SelectOption[]>({
+        queryKey: ['referrals'],
+        queryFn: () => fetch('/api/referrals').then(r => r.json()),
+        select: (data: any[]) =>
+            data.map((r: any) => ({
+                id: r.id,
+                name: r.code
+            })),
+        enabled: isAdmin
+    })
+
     const { data: logs = [] } = useQuery<LogEntry[]>({
         queryKey: ['logs', id],
         queryFn: async () => {
@@ -223,7 +277,8 @@ export default function CustomerDetailPage() {
                 body: JSON.stringify({
                     ...data,
                     statusId: Number(data.statusId),
-                    priorityId: Number(data.priorityId)
+                    priorityId: Number(data.priorityId),
+                    referralId: data.referralId ? Number(data.referralId) : null
                 })
             })
             if (!res.ok) {
@@ -237,6 +292,7 @@ export default function CustomerDetailPage() {
             setModalOpen(false)
             queryClient.invalidateQueries({ queryKey: ['customer', id] })
             queryClient.invalidateQueries({ queryKey: ['customers'] })
+            queryClient.invalidateQueries({ queryKey: ['logs', id] })
         },
         onError: (error: Error) => toast.error(error.message)
     })
@@ -269,7 +325,8 @@ export default function CustomerDetailPage() {
             travelTime: customer.travelTime,
             statusId: String(customer.statusId),
             priorityId: String(customer.priorityId),
-            assignedTo: customer.assignedTo || ''
+            assignedTo: customer.assignedTo || '',
+            referralId: customer.referralId ? String(customer.referralId) : ''
         })
         setModalOpen(true)
     }
@@ -278,13 +335,10 @@ export default function CustomerDetailPage() {
         updateMutation.mutate(data)
 
     const handleDelete = () => {
-        if (
-            !confirm(
-                'Are you sure you want to delete this customer? This action cannot be undone.'
-            )
-        )
-            return
+        if (deleteConfirmText !== 'confirm') return
         deleteMutation.mutate()
+        setDeleteDialogOpen(false)
+        setDeleteConfirmText('')
     }
 
     if (isLoading) {
@@ -322,7 +376,7 @@ export default function CustomerDetailPage() {
                         <Button
                             size='sm'
                             variant='destructive'
-                            onClick={handleDelete}
+                            onClick={() => setDeleteDialogOpen(true)}
                             disabled={deleteMutation.isPending}>
                             {deleteMutation.isPending ? (
                                 <Loader2
@@ -354,13 +408,23 @@ export default function CustomerDetailPage() {
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
                                 Phone
                             </p>
-                            <p className='text-sm'>{customer.phone}</p>
+                            <div className='flex items-center gap-2'>
+                                <p className='text-sm'>{customer.phone}</p>
+                                <a
+                                    href={`https://wa.me/${customer.phone.replace(/\D/g, '')}`}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                    className='inline-flex items-center gap-1 rounded-md bg-green-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-green-700 transition-colors'>
+                                    <MessageCircle size={12} />
+                                    WhatsApp
+                                </a>
+                            </div>
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
                                 Travel Time
                             </p>
-                            <p className='text-sm'>{customer.travelTime}</p>
+                            <p className='text-sm'>{travelTimeLabels[customer.travelTime] || customer.travelTime}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -647,14 +711,24 @@ export default function CustomerDetailPage() {
                                             <FieldLabel htmlFor='edit-travelTime'>
                                                 Travel Time
                                             </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='edit-travelTime'
-                                                placeholder='e.g. 2 hours, 30 min'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
+                                            <SelectRoot
+                                                value={field.value}
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger
+                                                    id='edit-travelTime'
+                                                    aria-invalid={fieldState.invalid}>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectPopup>
+                                                    <SelectList>
+                                                        <SelectItem value='0-3'>Lo antes posible</SelectItem>
+                                                        <SelectItem value='3-6'>En 3-6 meses</SelectItem>
+                                                        <SelectItem value='6-12'>En 6-12 meses</SelectItem>
+                                                        <SelectItem value='12-18'>En 12-18 meses</SelectItem>
+                                                        <SelectItem value='0'>Solo explorando</SelectItem>
+                                                    </SelectList>
+                                                </SelectPopup>
+                                            </SelectRoot>
                                             {fieldState.invalid && (
                                                 <FieldError
                                                     errors={[
@@ -736,6 +810,34 @@ export default function CustomerDetailPage() {
                                         )}
                                     />
                                 )}
+                                {isAdmin && (
+                                    <Controller
+                                        name='referralId'
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <Field>
+                                                <FieldLabel htmlFor='edit-referralId'>
+                                                    Referral Code
+                                                </FieldLabel>
+                                                <select
+                                                    {...field}
+                                                    id='edit-referralId'
+                                                    className='h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3'>
+                                                    <option value=''>
+                                                        None
+                                                    </option>
+                                                    {referralOptions.map(r => (
+                                                        <option
+                                                            key={r.id}
+                                                            value={r.id}>
+                                                            {r.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                        )}
+                                    />
+                                )}
                             </FieldGroup>
                             <div className='flex justify-end gap-2 pt-2'>
                                 <Button
@@ -758,6 +860,62 @@ export default function CustomerDetailPage() {
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {deleteDialogOpen && (
+                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
+                    <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
+                        <h2 className='mb-1 text-lg font-medium text-destructive'>
+                            Delete Customer
+                        </h2>
+                        <p className='mb-4 text-sm text-muted-foreground'>
+                            This action cannot be undone. This will permanently
+                            delete <strong>{customer?.name}</strong> and all
+                            associated data.
+                        </p>
+                        <div className='mb-4'>
+                            <label className='mb-1 block text-sm font-medium'>
+                                Type <span className='font-mono font-bold text-destructive'>confirm</span> to proceed
+                            </label>
+                            <Input
+                                value={deleteConfirmText}
+                                onChange={e =>
+                                    setDeleteConfirmText(e.target.value)
+                                }
+                                placeholder='confirm'
+                                className='h-9'
+                            />
+                        </div>
+                        <div className='flex justify-end gap-2'>
+                            <Button
+                                type='button'
+                                variant='ghost'
+                                className='cursor-pointer'
+                                onClick={() => {
+                                    setDeleteDialogOpen(false)
+                                    setDeleteConfirmText('')
+                                }}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant='destructive'
+                                disabled={
+                                    deleteConfirmText !== 'confirm' ||
+                                    deleteMutation.isPending
+                                }
+                                onClick={handleDelete}>
+                                {deleteMutation.isPending ? (
+                                    <Loader2
+                                        size={16}
+                                        className='animate-spin'
+                                    />
+                                ) : (
+                                    'Delete'
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

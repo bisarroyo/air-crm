@@ -38,21 +38,48 @@ export async function POST(request: Request) {
         updateData.assignedTo = assignedTo
 
     try {
+        const existingCustomers = await db
+            .select()
+            .from(customers)
+            .where(inArray(customers.id, ids))
+
+        const existingMap = new Map(
+            existingCustomers.map(c => [c.id, c])
+        )
+
         const result = await db
             .update(customers)
             .set(updateData)
             .where(inArray(customers.id, ids))
             .returning({ id: customers.id })
 
-        const changes = JSON.stringify(updateData)
-        await db.insert(logs).values(
-            result.map(r => ({
-                customerId: r.id,
-                action: 'bulk_updated',
-                changes,
-                userId: session.user.id
-            }))
-        )
+        const logEntries = result
+            .map(r => {
+                const existing = existingMap.get(r.id)
+                if (!existing) return null
+
+                const changedFields: Record<string, { from: any; to: any }> = {}
+                for (const [key, newValue] of Object.entries(updateData)) {
+                    const oldValue = (existing as any)[key]
+                    if (String(oldValue) !== String(newValue)) {
+                        changedFields[key] = { from: oldValue, to: newValue }
+                    }
+                }
+
+                if (Object.keys(changedFields).length === 0) return null
+
+                return {
+                    customerId: r.id,
+                    action: 'bulk_updated',
+                    changes: JSON.stringify(changedFields),
+                    userId: session.user.id
+                }
+            })
+            .filter(Boolean)
+
+        if (logEntries.length > 0) {
+            await db.insert(logs).values(logEntries as any[])
+        }
 
         return NextResponse.json({
             success: true,

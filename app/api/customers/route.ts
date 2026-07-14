@@ -70,6 +70,7 @@ export async function GET(request: Request) {
             statusId: customers.statusId,
             priorityId: customers.priorityId,
             assignedTo: customers.assignedTo,
+            referralId: customers.referralId,
             createdAt: customers.createdAt,
             updatedAt: customers.updatedAt,
             statusName: status.status,

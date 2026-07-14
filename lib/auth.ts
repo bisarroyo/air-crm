@@ -2,6 +2,7 @@ import * as authSchema from '@/auth-schema'
 
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db'
+import { referrals } from '@/db/schema'
 
 import { betterAuth } from 'better-auth'
 import { passkey } from '@better-auth/passkey'
@@ -11,7 +12,7 @@ import { reactInvitationEmail } from './email/invitation'
 import { resend } from './email/resend'
 import { reactResetPasswordEmail } from './email/reset-password'
 
-// import { ac, admin, user, agent } from '@/lib/permission'
+import { ac, admin, ref, user } from '@/lib/permissions'
 
 import {
     organization,
@@ -26,12 +27,33 @@ const to = process.env.TEST_EMAIL || ''
 export const auth = betterAuth({
     appName: 'authcrm',
     database: drizzleAdapter(db, {
-        provider: 'sqlite', // or "pg" or "mysql"
+        provider: 'sqlite',
         schema: authSchema
     }),
+    databaseHooks: {
+        user: {
+            create: {
+                async after(user) {
+                    if (user.role === 'ref') {
+                        const code = user.name
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]/g, '')
+                            .slice(0, 8) + Math.random().toString(36).slice(2, 6)
+                        await db.insert(referrals).values({
+                            code,
+                            userId: user.id,
+                            name: `${user.name} (auto)`
+                        })
+                    }
+                }
+            }
+        }
+    },
     plugins: [
         adminPlugin({
-            defaultRole: 'user'
+            defaultRole: 'user',
+            ac,
+            roles: { admin, ref, user }
         }),
         organization({
             async sendInvitationEmail(data) {

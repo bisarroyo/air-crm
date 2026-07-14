@@ -1,6 +1,7 @@
 'use client'
 
 import {
+    BarChart3,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
@@ -76,7 +77,8 @@ export function Sidebar() {
             label: 'main',
             defaultOpen: true,
             items: [
-                { href: '/', label: 'Dashboard', icon: Gauge }
+                { href: '/', label: 'Dashboard', icon: Gauge },
+                { href: '/reports', label: 'Reports', icon: BarChart3 }
             ]
         },
         {
