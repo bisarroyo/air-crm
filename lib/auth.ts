@@ -121,7 +121,9 @@ export const auth = betterAuth({
     },
     account: {
         accountLinking: {
-            trustedProviders: ['google', 'better-auth']
+            enabled: true,
+            trustedProviders: ['google', 'better-auth'],
+            requireLocalEmailVerified: false
         }
     },
     socialProviders: {
