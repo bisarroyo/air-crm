@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card'
 import { authClient } from '@/lib/auth-client'
 import { getCallbackURL } from '@/lib/shared'
-import { cn } from '@/lib/utils'
+import { cn } from 'cn'
 
 export default function SignIn() {
     const router = useRouter()

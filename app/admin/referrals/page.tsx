@@ -11,6 +11,13 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
+import {
     Field,
     FieldError,
     FieldGroup,
@@ -265,20 +272,21 @@ export default function ReferralsPage() {
                 </CardContent>
             </Card>
 
-            {dialogOpen && (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                    <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                        <h2 className='mb-1 text-lg font-medium'>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className='sm:max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle>
                             {editingId ? 'Edit' : 'Create'} Referral Code
-                        </h2>
-                        <p className='mb-4 text-sm text-muted-foreground'>
+                        </DialogTitle>
+                        <DialogDescription>
                             {editingId
                                 ? 'Update the referral code and assigned user.'
                                 : 'Create a new referral code and link it to a user.'}
-                        </p>
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className='grid gap-4'>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className='grid gap-4'>
                             <FieldGroup>
                                 <Controller
                                     name='code'
@@ -385,9 +393,8 @@ export default function ReferralsPage() {
                                 </Button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

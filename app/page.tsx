@@ -21,21 +21,27 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/components/ui/card'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
     Select,
     SelectContent,
     SelectGroup,
     SelectItem,
-    SelectLabel,
-    SelectSeparator,
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
@@ -192,12 +198,9 @@ export default function Home() {
         queryFn: async () => {
             const params = new URLSearchParams()
             if (search) params.set('search', search)
-            if (filterStatusId)
-                params.set('statusId', filterStatusId)
-            if (filterPriorityId)
-                params.set('priorityId', filterPriorityId)
-            if (filterAssignedTo)
-                params.set('assignedTo', filterAssignedTo)
+            if (filterStatusId) params.set('statusId', filterStatusId)
+            if (filterPriorityId) params.set('priorityId', filterPriorityId)
+            if (filterAssignedTo) params.set('assignedTo', filterAssignedTo)
             params.set('page', String(page))
             params.set('pageSize', String(pageSize))
 
@@ -209,9 +212,9 @@ export default function Home() {
 
     const { data: statuses = [] } = useQuery({
         queryKey: ['statuses'],
-        queryFn: () => fetch('/api/status').then(r => r.json()),
+        queryFn: () => fetch('/api/status').then((r) => r.json()),
         select: (data: StatusOption[]) =>
-            data.map(s => ({
+            data.map((s) => ({
                 id: s.id,
                 name: s.status,
                 color: s.color || '#6b7280'
@@ -220,9 +223,9 @@ export default function Home() {
 
     const { data: priorities = [] } = useQuery({
         queryKey: ['priorities'],
-        queryFn: () => fetch('/api/priority').then(r => r.json()),
+        queryFn: () => fetch('/api/priority').then((r) => r.json()),
         select: (data: PriorityOption[]) =>
-            data.map(p => ({
+            data.map((p) => ({
                 id: p.id,
                 name: p.priority,
                 color: p.color || '#6b7280'
@@ -231,9 +234,9 @@ export default function Home() {
 
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
-        queryFn: () => fetch('/api/users').then(r => r.json()),
+        queryFn: () => fetch('/api/users').then((r) => r.json()),
         select: (data: UserOption[]) =>
-            data.map(u => ({
+            data.map((u) => ({
                 id: u.id,
                 name: u.name || u.email
             })),
@@ -242,9 +245,9 @@ export default function Home() {
 
     const { data: referralOptions = [] } = useQuery({
         queryKey: ['referrals'],
-        queryFn: () => fetch('/api/referrals').then(r => r.json()),
+        queryFn: () => fetch('/api/referrals').then((r) => r.json()),
         select: (data: ReferralOption[]) =>
-            data.map(r => ({
+            data.map((r) => ({
                 id: r.id,
                 name: r.code
             })),
@@ -289,7 +292,10 @@ export default function Home() {
         mutationFn: async ({
             id,
             ...data
-        }: { id: number; [key: string]: string | number | null | undefined }) => {
+        }: {
+            id: number
+            [key: string]: string | number | null | undefined
+        }) => {
             const res = await fetch(`/api/customers/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -349,7 +355,8 @@ export default function Home() {
                 statusId: Number(data.statusId),
                 priorityId: Number(data.priorityId),
                 assignedTo: data.assignedTo,
-                referralId: isEdit && data.referralId ? Number(data.referralId) : null
+                referralId:
+                    isEdit && data.referralId ? Number(data.referralId) : null
             }
 
             const res = await fetch(url, {
@@ -405,10 +412,8 @@ export default function Home() {
     const onSubmit = (data: CustomerFormValues) => saveMutation.mutate(data)
 
     const toggleSelect = (id: number) => {
-        setSelectedIds(prev =>
-            prev.includes(id)
-                ? prev.filter(i => i !== id)
-                : [...prev, id]
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
         )
     }
 
@@ -416,7 +421,7 @@ export default function Home() {
         if (selectedIds.length === customers.length) {
             setSelectedIds([])
         } else {
-            setSelectedIds(customers.map(c => c.id))
+            setSelectedIds(customers.map((c) => c.id))
         }
     }
 
@@ -442,13 +447,8 @@ export default function Home() {
     if (!session) {
         return (
             <div className='flex flex-col items-center justify-center py-32 text-center'>
-                <UserPlus
-                    size={48}
-                    className='mb-4 text-muted-foreground'
-                />
-                <h2 className='mb-2 text-xl font-medium'>
-                    Welcome to AIR CRM
-                </h2>
+                <UserPlus size={48} className='mb-4 text-muted-foreground' />
+                <h2 className='mb-2 text-xl font-medium'>Welcome to AIR CRM</h2>
                 <p className='mb-6 text-muted-foreground'>
                     Sign in to manage your customers
                 </p>
@@ -483,12 +483,12 @@ export default function Home() {
                                 size={16}
                                 className='pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground'
                             />
-                            <input
+                            <Input
                                 type='text'
                                 placeholder='Search by name, email, or phone...'
                                 value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                className='h-8 w-full rounded-lg border border-input bg-transparent py-1 pl-8 pr-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 placeholder:text-muted-foreground'
+                                onChange={(e) => setSearch(e.target.value)}
+                                className='h-8 w-full pl-8 pr-8'
                             />
                             {search && (
                                 <button
@@ -498,49 +498,88 @@ export default function Home() {
                                 </button>
                             )}
                         </div>
-                        <select
-                            value={filterStatusId}
-                            onChange={e => {
-                                setFilterStatusId(e.target.value)
+                        <Select
+                            value={
+                                statuses.find(
+                                    (s) => s.id === Number(filterStatusId)
+                                )?.name || ''
+                            }
+                            onValueChange={(val) => {
+                                setFilterStatusId(val ?? '')
                                 setPage(1)
-                            }}
-                            className='h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'>
-                            <option value=''>All Statuses</option>
-                            {statuses.map(s => (
-                                <option key={s.id} value={s.id}>
-                                    {s.name}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={filterPriorityId}
-                            onChange={e => {
-                                setFilterPriorityId(e.target.value)
+                            }}>
+                            <SelectTrigger className='h-8 w-[150px]'>
+                                <SelectValue placeholder='All Statuses' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value=''>
+                                        All Statuses
+                                    </SelectItem>
+                                    {statuses.map((s) => (
+                                        <SelectItem
+                                            key={s.id}
+                                            value={String(s.id)}>
+                                            {s.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                        <Select
+                            value={
+                                priorities.find(
+                                    (p) => p.id === Number(filterPriorityId)
+                                )?.name || ''
+                            }
+                            onValueChange={(val) => {
+                                setFilterPriorityId(val ?? '')
                                 setPage(1)
-                            }}
-                            className='h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'>
-                            <option value=''>All Priorities</option>
-                            {priorities.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
+                            }}>
+                            <SelectTrigger className='h-8 w-[150px]'>
+                                <SelectValue placeholder='All Priorities' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value=''>
+                                        All Priorities
+                                    </SelectItem>
+                                    {priorities.map((p) => (
+                                        <SelectItem
+                                            key={p.id}
+                                            value={String(p.id)}>
+                                            {p.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                         {isAdmin && (
-                            <select
-                                value={filterAssignedTo}
-                                onChange={e => {
-                                    setFilterAssignedTo(e.target.value)
+                            <Select
+                                value={
+                                    users.find((u) => u.id === filterAssignedTo)
+                                        ?.name || ''
+                                }
+                                onValueChange={(val) => {
+                                    setFilterAssignedTo(val ?? '')
                                     setPage(1)
-                                }}
-                                className='h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'>
-                                <option value=''>All Users</option>
-                                {users.map(u => (
-                                    <option key={u.id} value={u.id}>
-                                        {u.name}
-                                    </option>
-                                ))}
-                            </select>
+                                }}>
+                                <SelectTrigger className='h-8 w-[150px]'>
+                                    <SelectValue placeholder='All Users' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value=''>
+                                            All Users
+                                        </SelectItem>
+                                        {users.map((u) => (
+                                            <SelectItem key={u.id} value={u.id}>
+                                                {u.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                         )}
                     </div>
 
@@ -553,57 +592,109 @@ export default function Home() {
                             <label className='text-sm text-muted-foreground'>
                                 Status:
                             </label>
-                            <select
-                                value={bulkStatusId}
-                                onChange={e =>
-                                    setBulkStatusId(e.target.value)
+                            <Select
+                                value={
+                                    statuses
+                                        .find(
+                                            (s) => s.id === Number(bulkStatusId)
+                                        )
+                                        ?.name.toString() || ''
                                 }
-                                className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                <option value=''>No change</option>
-                                {statuses.map(s => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name}
-                                    </option>
-                                ))}
-                            </select>
+                                onValueChange={(val) =>
+                                    setBulkStatusId(val ?? '')
+                                }>
+                                <SelectTrigger
+                                    size='sm'
+                                    className='h-7 text-xs'>
+                                    <SelectValue placeholder='No change' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value=''>
+                                            No change
+                                        </SelectItem>
+                                        {statuses.map((s) => (
+                                            <SelectItem
+                                                key={s.id}
+                                                value={String(s.id)}>
+                                                {s.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                             <label className='text-sm text-muted-foreground'>
                                 Priority:
                             </label>
-                            <select
-                                value={bulkPriorityId}
-                                onChange={e =>
-                                    setBulkPriorityId(e.target.value)
+                            <Select
+                                value={
+                                    priorities
+                                        .find(
+                                            (p) =>
+                                                p.id === Number(bulkPriorityId)
+                                        )
+                                        ?.name.toString() || ''
                                 }
-                                className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                <option value=''>No change</option>
-                                {priorities.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.name}
-                                    </option>
-                                ))}
-                            </select>
+                                onValueChange={(val) => {
+                                    setBulkPriorityId(val ?? '')
+                                }}>
+                                <SelectTrigger
+                                    size='sm'
+                                    className='h-7 text-xs'>
+                                    <SelectValue placeholder='No change' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value=''>
+                                            No change
+                                        </SelectItem>
+                                        {priorities.map((p) => (
+                                            <SelectItem
+                                                key={p.id}
+                                                value={String(p.id)}>
+                                                {p.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                             {isAdmin && (
                                 <>
                                     <label className='text-sm text-muted-foreground'>
                                         Assign to:
                                     </label>
-                                    <select
-                                        value={bulkAssignedTo}
-                                        onChange={e =>
-                                            setBulkAssignedTo(
-                                                e.target.value
-                                            )
+                                    <Select
+                                        value={
+                                            users
+                                                .find(
+                                                    (u) =>
+                                                        u.id === bulkAssignedTo
+                                                )
+                                                ?.name.toString() || ''
                                         }
-                                        className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3'>
-                                        <option value=''>No change</option>
-                                        {users.map(u => (
-                                            <option
-                                                key={u.id}
-                                                value={u.id}>
-                                                {u.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onValueChange={(val) =>
+                                            setBulkAssignedTo(val ?? '')
+                                        }>
+                                        <SelectTrigger
+                                            size='sm'
+                                            className='h-7 text-xs'>
+                                            <SelectValue placeholder='No change' />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectItem value=''>
+                                                    No change
+                                                </SelectItem>
+                                                {users.map((u) => (
+                                                    <SelectItem
+                                                        key={u.id}
+                                                        value={u.id}>
+                                                        {u.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
                                 </>
                             )}
                             <Button
@@ -622,18 +713,13 @@ export default function Home() {
                                     bulkMutation.mutate({
                                         ids: selectedIds,
                                         ...(bulkStatusId && {
-                                            statusId: Number(
-                                                bulkStatusId
-                                            )
+                                            statusId: Number(bulkStatusId)
                                         }),
                                         ...(bulkPriorityId && {
-                                            priorityId: Number(
-                                                bulkPriorityId
-                                            )
+                                            priorityId: Number(bulkPriorityId)
                                         }),
                                         ...(bulkAssignedTo && {
-                                            assignedTo:
-                                                bulkAssignedTo
+                                            assignedTo: bulkAssignedTo
                                         })
                                     })
                                 }}
@@ -652,9 +738,8 @@ export default function Home() {
                                 size='xs'
                                 variant='outline'
                                 onClick={() => {
-                                    const selected = customers.filter(
-                                        c =>
-                                            selectedIds.includes(c.id)
+                                    const selected = customers.filter((c) =>
+                                        selectedIds.includes(c.id)
                                     )
                                     const headers = [
                                         'Name',
@@ -669,7 +754,7 @@ export default function Home() {
                                         '\uFEFF' +
                                         [
                                             headers.join(','),
-                                            ...selected.map(c =>
+                                            ...selected.map((c) =>
                                                 [
                                                     c.name,
                                                     c.email,
@@ -677,10 +762,9 @@ export default function Home() {
                                                     c.travelTime,
                                                     c.statusName || '',
                                                     c.priorityName || '',
-                                                    c.assignedUserName ||
-                                                        ''
+                                                    c.assignedUserName || ''
                                                 ]
-                                                    .map(f =>
+                                                    .map((f) =>
                                                         f.includes(',')
                                                             ? `"${f}"`
                                                             : f
@@ -691,10 +775,8 @@ export default function Home() {
                                     const blob = new Blob([csv], {
                                         type: 'text/csv;charset=utf-8;'
                                     })
-                                    const url =
-                                        URL.createObjectURL(blob)
-                                    const a =
-                                        document.createElement('a')
+                                    const url = URL.createObjectURL(blob)
+                                    const a = document.createElement('a')
                                     a.href = url
                                     a.download = 'contacts.csv'
                                     a.click()
@@ -706,30 +788,22 @@ export default function Home() {
                                 size='xs'
                                 variant='outline'
                                 onClick={() => {
-                                    const selected = customers.filter(
-                                        c =>
-                                            selectedIds.includes(c.id)
+                                    const selected = customers.filter((c) =>
+                                        selectedIds.includes(c.id)
                                     )
-                                    const rows = selected.map(c => {
-                                        const firstName =
-                                            c.name.split(' ')[0]
-                                        const phone =
-                                            c.phone.replace(/\s/g, '')
+                                    const rows = selected.map((c) => {
+                                        const firstName = c.name.split(' ')[0]
+                                        const phone = c.phone.replace(/\s/g, '')
                                         return `${firstName},${phone}`
                                     })
                                     const csv =
                                         '\uFEFF' +
-                                        [
-                                            'First Name,Phone',
-                                            ...rows
-                                        ].join('\n')
+                                        ['First Name,Phone', ...rows].join('\n')
                                     const blob = new Blob([csv], {
                                         type: 'text/csv;charset=utf-8;'
                                     })
-                                    const url =
-                                        URL.createObjectURL(blob)
-                                    const a =
-                                        document.createElement('a')
+                                    const url = URL.createObjectURL(blob)
+                                    const a = document.createElement('a')
                                     a.href = url
                                     a.download = 'wa-sender.csv'
                                     a.click()
@@ -774,17 +848,15 @@ export default function Home() {
                                     <thead>
                                         <tr className='border-b text-left text-muted-foreground'>
                                             <th className='w-8 pb-2'>
-                                                <input
-                                                    type='checkbox'
+                                                <Checkbox
                                                     checked={
                                                         selectedIds.length ===
                                                             customers.length &&
                                                         customers.length > 0
                                                     }
-                                                    onChange={
+                                                    onCheckedChange={
                                                         toggleSelectAll
                                                     }
-                                                    className='h-4 w-4 rounded border-input'
                                                 />
                                             </th>
                                             <th className='pb-2 font-medium'>
@@ -816,7 +888,7 @@ export default function Home() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {customers.map(customer => {
+                                        {customers.map((customer) => {
                                             const statusColor =
                                                 customer.statusColor ||
                                                 '#6b7280'
@@ -834,17 +906,15 @@ export default function Home() {
                                                             : ''
                                                     }`}>
                                                     <td className='py-2.5'>
-                                                        <input
-                                                            type='checkbox'
+                                                        <Checkbox
                                                             checked={selectedIds.includes(
                                                                 customer.id
                                                             )}
-                                                            onChange={() =>
+                                                            onCheckedChange={() =>
                                                                 toggleSelect(
                                                                     customer.id
                                                                 )
                                                             }
-                                                            className='h-4 w-4 rounded border-input'
                                                         />
                                                     </td>
                                                     <td className='py-2.5 font-medium'>
@@ -861,14 +931,21 @@ export default function Home() {
                                                         {customer.phone}
                                                     </td>
                                                     <td className='py-2.5'>
-                                                        {travelTimeLabels[customer.travelTime] || customer.travelTime}
+                                                        {travelTimeLabels[
+                                                            customer.travelTime
+                                                        ] ||
+                                                            customer.travelTime}
                                                     </td>
                                                     <td className='py-2.5'>
-<Select
+                                                        <Select
                                                             value={String(
                                                                 customer.statusId
                                                             )}
-                                                            onValueChange={(val: string | null) =>
+                                                            onValueChange={(
+                                                                val:
+                                                                    | string
+                                                                    | null
+                                                            ) =>
                                                                 handleInlineUpdate(
                                                                     customer.id,
                                                                     'statusId',
@@ -891,7 +968,7 @@ export default function Home() {
                                                             <SelectContent>
                                                                 <SelectGroup>
                                                                     {statuses.map(
-                                                                        s => (
+                                                                        (s) => (
                                                                             <SelectItem
                                                                                 key={
                                                                                     s.id
@@ -915,11 +992,15 @@ export default function Home() {
                                                         </Select>
                                                     </td>
                                                     <td className='py-2.5'>
-<Select
+                                                        <Select
                                                             value={String(
                                                                 customer.priorityId
                                                             )}
-                                                            onValueChange={(val: string | null) =>
+                                                            onValueChange={(
+                                                                val:
+                                                                    | string
+                                                                    | null
+                                                            ) =>
                                                                 handleInlineUpdate(
                                                                     customer.id,
                                                                     'priorityId',
@@ -942,7 +1023,7 @@ export default function Home() {
                                                             <SelectContent>
                                                                 <SelectGroup>
                                                                     {priorities.map(
-                                                                        p => (
+                                                                        (p) => (
                                                                             <SelectItem
                                                                                 key={
                                                                                     p.id
@@ -971,11 +1052,16 @@ export default function Home() {
                                                                 value={
                                                                     customer.assignedTo
                                                                 }
-onValueChange={(val: string | null) =>
+                                                                onValueChange={(
+                                                                    val:
+                                                                        | string
+                                                                        | null
+                                                                ) =>
                                                                     handleInlineUpdate(
                                                                         customer.id,
                                                                         'assignedTo',
-                                                                        val || ''
+                                                                        val ||
+                                                                            ''
                                                                     )
                                                                 }>
                                                                 <SelectTrigger className='h-7 max-w-[150px] text-xs'>
@@ -987,7 +1073,9 @@ onValueChange={(val: string | null) =>
                                                                 <SelectContent>
                                                                     <SelectGroup>
                                                                         {users.map(
-                                                                            u => (
+                                                                            (
+                                                                                u
+                                                                            ) => (
                                                                                 <SelectItem
                                                                                     key={
                                                                                         u.id
@@ -1017,7 +1105,9 @@ onValueChange={(val: string | null) =>
                                                                     variant='ghost'
                                                                     className='text-green-600 hover:text-green-700'>
                                                                     <MessageCircle
-                                                                        size={14}
+                                                                        size={
+                                                                            14
+                                                                        }
                                                                     />
                                                                 </Button>
                                                             </a>
@@ -1057,27 +1147,33 @@ onValueChange={(val: string | null) =>
                             <div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
                                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                                     <span>Rows per page:</span>
-                                    <select
-                                        value={pageSize}
-                                        onChange={e => {
-                                            setPageSize(
-                                                Number(e.target.value)
-                                            )
+                                    <Select
+                                        value={String(pageSize)}
+                                        onValueChange={(val) => {
+                                            setPageSize(Number(val ?? 25))
                                             setPage(1)
-                                        }}
-                                        className='h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring'>
-                                        <option value={10}>10</option>
-                                        <option value={25}>25</option>
-                                        <option value={50}>50</option>
-                                        <option value={100}>100</option>
-                                    </select>
+                                        }}>
+                                        <SelectTrigger
+                                            size='sm'
+                                            className='h-7 text-xs'>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                {[10, 25, 50, 100].map((n) => (
+                                                    <SelectItem
+                                                        key={n}
+                                                        value={String(n)}>
+                                                        {n}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
                                     <span>
                                         {(page - 1) * pageSize + 1}–
-                                        {Math.min(
-                                            page * pageSize,
-                                            total
-                                        )}{' '}
-                                        of {total}
+                                        {Math.min(page * pageSize, total)} of{' '}
+                                        {total}
                                     </span>
                                 </div>
                                 <div className='flex items-center gap-1'>
@@ -1085,17 +1181,12 @@ onValueChange={(val: string | null) =>
                                         size='icon-sm'
                                         variant='outline'
                                         disabled={page <= 1}
-                                        onClick={() =>
-                                            setPage(p => p - 1)
-                                        }>
+                                        onClick={() => setPage((p) => p - 1)}>
                                         <ChevronLeft size={14} />
                                     </Button>
                                     {Array.from(
                                         {
-                                            length: Math.min(
-                                                totalPages,
-                                                5
-                                            )
+                                            length: Math.min(totalPages, 5)
                                         },
                                         (_, i) => {
                                             const start = Math.max(
@@ -1106,8 +1197,7 @@ onValueChange={(val: string | null) =>
                                                 )
                                             )
                                             const p = start + i
-                                            if (p > totalPages)
-                                                return null
+                                            if (p > totalPages) return null
                                             return (
                                                 <Button
                                                     key={p}
@@ -1117,9 +1207,7 @@ onValueChange={(val: string | null) =>
                                                             ? 'default'
                                                             : 'outline'
                                                     }
-                                                    onClick={() =>
-                                                        setPage(p)
-                                                    }>
+                                                    onClick={() => setPage(p)}>
                                                     {p}
                                                 </Button>
                                             )
@@ -1129,9 +1217,7 @@ onValueChange={(val: string | null) =>
                                         size='icon-sm'
                                         variant='outline'
                                         disabled={page >= totalPages}
-                                        onClick={() =>
-                                            setPage(p => p + 1)
-                                        }>
+                                        onClick={() => setPage((p) => p + 1)}>
                                         <ChevronRight size={14} />
                                     </Button>
                                 </div>
@@ -1141,291 +1227,315 @@ onValueChange={(val: string | null) =>
                 </CardContent>
             </Card>
 
-            {modalOpen && (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                    <div className='mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                        <h2 className='mb-1 text-lg font-medium'>
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                <DialogContent className='max-h-[90vh] sm:max-w-lg overflow-y-auto'>
+                    <DialogHeader>
+                        <DialogTitle>
                             {editingId ? 'Edit' : 'New'} Customer
-                        </h2>
-                        <p className='mb-4 text-sm text-muted-foreground'>
+                        </DialogTitle>
+                        <DialogDescription>
                             {editingId
                                 ? 'Update customer information.'
                                 : 'Enter the details for the new customer.'}
-                        </p>
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className='grid gap-4'>
-                            <FieldGroup>
-                                <Controller
-                                    name='name'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='name'>
-                                                Name
-                                            </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='name'
-                                                placeholder='Full name'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className='grid gap-4'>
+                        <FieldGroup>
+                            <Controller
+                                name='name'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='name'>
+                                            Name
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id='name'
+                                            placeholder='Full name'
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
                                             />
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='email'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='email'>
-                                                Email
-                                            </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='email'
-                                                type='email'
-                                                placeholder='customer@example.com'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='phone'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='phone'>
-                                                Phone
-                                            </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='phone'
-                                                type='tel'
-                                                placeholder='+1 (555) 000-0000'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='travelTime'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='travelTime'>
-                                                Travel Time
-                                            </FieldLabel>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}>
-                                                <SelectTrigger
-                                                    id='travelTime'
-                                                    aria-invalid={fieldState.invalid}>
-                                                    <SelectValue placeholder='Select...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        <SelectItem value='0-3'>Lo antes posible</SelectItem>
-                                                        <SelectItem value='3-6'>En 3-6 meses</SelectItem>
-                                                        <SelectItem value='6-12'>En 6-12 meses</SelectItem>
-                                                        <SelectItem value='12-18'>En 12-18 meses</SelectItem>
-                                                        <SelectItem value='0'>Solo explorando</SelectItem>
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[
-                                                        fieldState.error
-                                                    ]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='statusId'
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <Field>
-                                            <FieldLabel htmlFor='statusId'>
-                                                Status
-                                            </FieldLabel>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}>
-                                                <SelectTrigger id='statusId'>
-                                                    <SelectValue placeholder='Select...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {statuses.map(s => (
-                                                            <SelectItem
-                                                                key={s.id}
-                                                                value={String(s.id)}>
-                                                                {s.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='priorityId'
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <Field>
-                                            <FieldLabel htmlFor='priorityId'>
-                                                Priority
-                                            </FieldLabel>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}>
-                                                <SelectTrigger id='priorityId'>
-                                                    <SelectValue placeholder='Select...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {priorities.map(p => (
-                                                            <SelectItem
-                                                                key={p.id}
-                                                                value={String(p.id)}>
-                                                                {p.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </Field>
-                                    )}
-                                />
-                                {isAdmin && (
-                                    <Controller
-                                        name='assignedTo'
-                                        control={form.control}
-                                        render={({ field }) => (
-                                            <Field>
-                                                <FieldLabel htmlFor='assignedTo'>
-                                                    Assigned To
-                                                </FieldLabel>
-                                                <Select
-                                                    value={field.value}
-                                                    onValueChange={field.onChange}>
-                                                    <SelectTrigger id='assignedTo'>
-                                                        <SelectValue placeholder='Select...' />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectGroup>
-                                                            {users.map(u => (
-                                                                <SelectItem
-                                                                    key={u.id}
-                                                                    value={u.id}>
-                                                                    {u.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                            </Field>
                                         )}
-                                    />
+                                    </Field>
                                 )}
-                                {isAdmin && editingId && (
-                                    <Controller
-                                        name='referralId'
-                                        control={form.control}
-                                        render={({ field }) => (
-                                            <Field>
-                                                <FieldLabel htmlFor='referralId'>
-                                                    Referral Code
-                                                </FieldLabel>
-                                                <Select
-                                                    value={field.value}
-                                                    onValueChange={field.onChange}>
-                                                    <SelectTrigger id='referralId'>
-                                                        <SelectValue placeholder='Select...' />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectGroup>
-                                                            <SelectItem value=''>
-                                                                None
+                            />
+                            <Controller
+                                name='email'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='email'>
+                                            Email
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id='email'
+                                            type='email'
+                                            placeholder='customer@example.com'
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='phone'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='phone'>
+                                            Phone
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id='phone'
+                                            type='tel'
+                                            placeholder='+1 (555) 000-0000'
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='travelTime'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='travelTime'>
+                                            Travel Time
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                travelTimeLabels[field.value] ||
+                                                field.value
+                                            }
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger
+                                                id='travelTime'
+                                                aria-invalid={
+                                                    fieldState.invalid
+                                                }>
+                                                <SelectValue placeholder='Select...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value='0-3'>
+                                                        Lo antes posible
+                                                    </SelectItem>
+                                                    <SelectItem value='3-6'>
+                                                        En 3-6 meses
+                                                    </SelectItem>
+                                                    <SelectItem value='6-12'>
+                                                        En 6-12 meses
+                                                    </SelectItem>
+                                                    <SelectItem value='12-18'>
+                                                        En 12-18 meses
+                                                    </SelectItem>
+                                                    <SelectItem value='0'>
+                                                        Solo explorando
+                                                    </SelectItem>
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='statusId'
+                                control={form.control}
+                                render={({ field }) => (
+                                    <Field>
+                                        <FieldLabel htmlFor='statusId'>
+                                            Status
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                statuses.find(
+                                                    (s) =>
+                                                        s.id ===
+                                                        Number(field.value)
+                                                )?.name || ''
+                                            }
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger id='statusId'>
+                                                <SelectValue placeholder='Select...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {statuses.map((s) => (
+                                                        <SelectItem
+                                                            key={s.id}
+                                                            value={String(
+                                                                s.id
+                                                            )}>
+                                                            {s.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='priorityId'
+                                control={form.control}
+                                render={({ field }) => (
+                                    <Field>
+                                        <FieldLabel htmlFor='priorityId'>
+                                            Priority
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                priorities
+                                                    .find(
+                                                        (p) =>
+                                                            p.id ===
+                                                            Number(field.value)
+                                                    )
+                                                    ?.name.toString() || ''
+                                            }
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger id='priorityId'>
+                                                <SelectValue placeholder='Select...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {priorities.map((p) => (
+                                                        <SelectItem
+                                                            key={p.id}
+                                                            value={String(
+                                                                p.id
+                                                            )}>
+                                                            {p.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                )}
+                            />
+                            {isAdmin && (
+                                <Controller
+                                    name='assignedTo'
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <Field>
+                                            <FieldLabel htmlFor='assignedTo'>
+                                                Assigned To
+                                            </FieldLabel>
+                                            <Select
+                                                value={
+                                                    users.find(
+                                                        (u) =>
+                                                            u.id === field.value
+                                                    )?.name || ''
+                                                }
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger id='assignedTo'>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {users.map((u) => (
+                                                            <SelectItem
+                                                                key={u.id}
+                                                                value={u.id}>
+                                                                {u.name}
                                                             </SelectItem>
-                                                            {referralOptions.map(r => (
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                    )}
+                                />
+                            )}
+                            {isAdmin && editingId && (
+                                <Controller
+                                    name='referralId'
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <Field>
+                                            <FieldLabel htmlFor='referralId'>
+                                                Referral Code
+                                            </FieldLabel>
+                                            <Select
+                                                value={field.value}
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger id='referralId'>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value=''>
+                                                            None
+                                                        </SelectItem>
+                                                        {referralOptions.map(
+                                                            (r) => (
                                                                 <SelectItem
                                                                     key={r.id}
-                                                                    value={String(r.id)}>
+                                                                    value={String(
+                                                                        r.id
+                                                                    )}>
                                                                     {r.name}
                                                                 </SelectItem>
-                                                            ))}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                            </Field>
-                                        )}
-                                    />
-                                )}
-                            </FieldGroup>
-                            <div className='flex justify-end gap-2 pt-2'>
-                                <Button
-                                    type='button'
-                                    variant='ghost'
-                                    onClick={() => setModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type='submit'
-                                    disabled={saveMutation.isPending}>
-                                    {saveMutation.isPending ? (
-                                        <Loader2
-                                            size={16}
-                                            className='animate-spin'
-                                        />
-                                    ) : editingId ? (
-                                        'Update Customer'
-                                    ) : (
-                                        'Create Customer'
+                                                            )
+                                                        )}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
                                     )}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                                />
+                            )}
+                        </FieldGroup>
+                        <div className='flex justify-end gap-2 pt-2'>
+                            <Button
+                                type='button'
+                                variant='ghost'
+                                onClick={() => setModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                type='submit'
+                                disabled={saveMutation.isPending}>
+                                {saveMutation.isPending ? (
+                                    <Loader2
+                                        size={16}
+                                        className='animate-spin'
+                                    />
+                                ) : editingId ? (
+                                    'Update Customer'
+                                ) : (
+                                    'Create Customer'
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

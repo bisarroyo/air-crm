@@ -19,6 +19,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
     Field,
@@ -612,20 +619,19 @@ export default function AdminUsersPage() {
                     </CardContent>
                 </Card>
 
-                {showCreate && (
-                    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                        <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                            <h2 className='mb-1 text-lg font-medium'>
-                                Create User
-                            </h2>
-                            <p className='mb-4 text-sm text-muted-foreground'>
+                <Dialog open={showCreate} onOpenChange={setShowCreate}>
+                    <DialogContent className='sm:max-w-md'>
+                        <DialogHeader>
+                            <DialogTitle>Create User</DialogTitle>
+                            <DialogDescription>
                                 Create a new user account.
-                            </p>
-                            <form
-                                onSubmit={createForm.handleSubmit((data) =>
-                                    createMutation.mutate(data)
-                                )}
-                                className='grid gap-4'>
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
+                            onSubmit={createForm.handleSubmit((data) =>
+                                createMutation.mutate(data)
+                            )}
+                            className='grid gap-4'>
                                 <FieldGroup>
                                     <Controller
                                         name='name'
@@ -772,20 +778,18 @@ export default function AdminUsersPage() {
                                     </Button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                )}
+                    </DialogContent>
+                </Dialog>
 
-                {editingUser && (
-                    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                        <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                            <h2 className='mb-1 text-lg font-medium'>
-                                Edit User
-                            </h2>
-                            <p className='mb-4 text-sm text-muted-foreground'>
+                <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+                    <DialogContent className='sm:max-w-md'>
+                        <DialogHeader>
+                            <DialogTitle>Edit User</DialogTitle>
+                            <DialogDescription>
                                 Update user details.
-                            </p>
-                            <form
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
                                 onSubmit={editForm.handleSubmit((data) =>
                                     updateMutation.mutate(data)
                                 )}
@@ -905,25 +909,23 @@ export default function AdminUsersPage() {
                                     </Button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                )}
+                    </DialogContent>
+                </Dialog>
 
-                {passwordUser && (
-                    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                        <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                            <h2 className='mb-1 text-lg font-medium'>
-                                Set Password
-                            </h2>
-                            <p className='mb-4 text-sm text-muted-foreground'>
+                <Dialog open={!!passwordUser} onOpenChange={(open) => !open && setPasswordUser(null)}>
+                    <DialogContent className='sm:max-w-md'>
+                        <DialogHeader>
+                            <DialogTitle>Set Password</DialogTitle>
+                            <DialogDescription>
                                 Set a new password for{' '}
-                                <strong>{passwordUser.name}</strong>.
-                            </p>
-                            <form
-                                onSubmit={passwordForm.handleSubmit((data) =>
-                                    passwordMutation.mutate(data)
-                                )}
-                                className='grid gap-4'>
+                                <strong>{passwordUser?.name}</strong>.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
+                            onSubmit={passwordForm.handleSubmit((data) =>
+                                passwordMutation.mutate(data)
+                            )}
+                            className='grid gap-4'>
                                 <FieldGroup>
                                     <Controller
                                         name='newPassword'
@@ -977,23 +979,28 @@ export default function AdminUsersPage() {
                                     </Button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                )}
+                    </DialogContent>
+                </Dialog>
 
-                {banUser && !banUser.banned && (
-                    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                        <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                            <h2 className='mb-1 text-lg font-medium'>
-                                Ban User
-                            </h2>
-                            <p className='mb-4 text-sm text-muted-foreground'>
-                                Ban <strong>{banUser.name}</strong> (
-                                {banUser.email})
-                            </p>
-                            <form
-                                onSubmit={banForm.handleSubmit(handleBan)}
-                                className='grid gap-4'>
+                <Dialog
+                    open={!!banUser && !banUser.banned}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setBanUser(null)
+                            banForm.reset()
+                        }
+                    }}>
+                    <DialogContent className='sm:max-w-md'>
+                        <DialogHeader>
+                            <DialogTitle>Ban User</DialogTitle>
+                            <DialogDescription>
+                                Ban <strong>{banUser?.name}</strong> (
+                                {banUser?.email})
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
+                            onSubmit={banForm.handleSubmit(handleBan)}
+                            className='grid gap-4'>
                                 <FieldGroup>
                                     <Controller
                                         name='reason'
@@ -1085,47 +1092,44 @@ export default function AdminUsersPage() {
                                     </Button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                )}
+                    </DialogContent>
+                </Dialog>
 
-                {deleteUser && (
-                    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                        <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                            <h2 className='mb-1 text-lg font-medium'>
-                                Delete User
-                            </h2>
-                            <p className='mb-4 text-sm text-muted-foreground'>
+                <Dialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
+                    <DialogContent className='sm:max-w-md'>
+                        <DialogHeader>
+                            <DialogTitle>Delete User</DialogTitle>
+                            <DialogDescription>
                                 Are you sure you want to permanently delete{' '}
-                                <strong>{deleteUser.name}</strong> (
-                                {deleteUser.email})? This action cannot be
+                                <strong>{deleteUser?.name}</strong> (
+                                {deleteUser?.email})? This action cannot be
                                 undone.
-                            </p>
-                            <div className='flex justify-end gap-2'>
-                                <Button
-                                    type='button'
-                                    variant='ghost'
-                                    className='cursor-pointer'
-                                    onClick={() => setDeleteUser(null)}>
-                                    Cancel
-                                </Button>
-                                <Button
-                                    onClick={handleDeleteConfirm}
-                                    disabled={deleteMutation.isPending}
-                                    variant='destructive'>
-                                    {deleteMutation.isPending ? (
-                                        <Loader2
-                                            size={16}
-                                            className='animate-spin'
-                                        />
-                                    ) : (
-                                        'Delete'
-                                    )}
-                                </Button>
-                            </div>
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className='flex justify-end gap-2'>
+                            <Button
+                                type='button'
+                                variant='ghost'
+                                className='cursor-pointer'
+                                onClick={() => setDeleteUser(null)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleDeleteConfirm}
+                                disabled={deleteMutation.isPending}
+                                variant='destructive'>
+                                {deleteMutation.isPending ? (
+                                    <Loader2
+                                        size={16}
+                                        className='animate-spin'
+                                    />
+                                ) : (
+                                    'Delete'
+                                )}
+                            </Button>
                         </div>
-                    </div>
-                )}
+                    </DialogContent>
+                </Dialog>
             </div>
         </TooltipProvider>
     )

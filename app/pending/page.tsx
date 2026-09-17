@@ -2,7 +2,7 @@
 import { ShieldX } from 'lucide-react'
 
 import { Button, buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn } from 'cn'
 
 import { authClient } from '@/lib/auth-client'
 

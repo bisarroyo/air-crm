@@ -1,7 +1,7 @@
 'use client'
 import { ModeToggle } from '@/components/ui/mode-toggle'
 import { authClient } from '@/lib/auth-client'
-import { cn } from '@/lib/utils'
+import { cn } from 'cn'
 
 import { useSession } from '@/hooks/use-session'
 
@@ -60,7 +60,7 @@ export function Header() {
                 )}>
                 <section className='max-w-7xl w-full justify-between mx-auto flex-row flex items-center'>
                     <div className='font-headline-md text-2xl font-black tracking-[6px] dark:text-white'>
-                        <Link href={'/'}>AIR</Link>
+                        <Link href={'/'}>CRM</Link>
                     </div>
                     <div className='flex justify-end gap-2'>
                         {session && (

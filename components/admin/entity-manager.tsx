@@ -11,6 +11,13 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
+import {
     Field,
     FieldError,
     FieldGroup,
@@ -166,7 +173,7 @@ export function EntityManager({
             <Card>
                 <CardHeader>
                     <div className='flex items-center justify-between'>
-                        <CardTitle>Manage {title}s</CardTitle>
+                        <CardTitle>Manage {title}</CardTitle>
                         <Button onClick={openCreate} size='sm'>
                             <Plus /> New {title}
                         </Button>
@@ -185,9 +192,7 @@ export function EntityManager({
                             <table className='w-full text-sm'>
                                 <thead>
                                     <tr className='border-b text-left text-muted-foreground'>
-                                        <th className='pb-2 font-medium'>
-                                            ID
-                                        </th>
+                                        <th className='pb-2 font-medium'>ID</th>
                                         <th className='pb-2 font-medium'>
                                             Name
                                         </th>
@@ -212,7 +217,7 @@ export function EntityManager({
                                             </td>
                                         </tr>
                                     )}
-                                    {entities.map(entity => (
+                                    {entities.map((entity) => (
                                         <tr
                                             key={entity.id}
                                             className='border-b last:border-0'>
@@ -281,9 +286,7 @@ export function EntityManager({
                                                         variant='ghost'
                                                         className='text-destructive hover:text-destructive'
                                                         onClick={() =>
-                                                            handleDelete(
-                                                                entity
-                                                            )
+                                                            handleDelete(entity)
                                                         }
                                                         disabled={
                                                             deleteMutation.isPending
@@ -301,19 +304,20 @@ export function EntityManager({
                 </CardContent>
             </Card>
 
-            {dialogOpen && (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                    <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                        <h2 className='mb-1 text-lg font-medium'>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className='sm:max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle>
                             {editingId ? 'Edit' : 'Create'} {title}
-                        </h2>
-                        <p className='mb-4 text-sm text-muted-foreground'>
+                        </DialogTitle>
+                        <DialogDescription>
                             {editingId ? 'Update the' : 'Enter a new'}{' '}
                             {title.toLowerCase()} name and choose a color.
-                        </p>
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className='grid gap-4'>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className='grid gap-4'>
                             <FieldGroup>
                                 <Controller
                                     name={nameField}
@@ -358,8 +362,7 @@ export function EntityManager({
                                                     className='h-8 w-10 cursor-pointer rounded-md border border-input bg-transparent p-0.5'
                                                 />
                                                 <span className='font-mono text-xs text-muted-foreground'>
-                                                    {field.value ||
-                                                        '#6b7280'}
+                                                    {field.value || '#6b7280'}
                                                 </span>
                                             </div>
                                         </Field>
@@ -389,9 +392,8 @@ export function EntityManager({
                                 </Button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </>
     )
 }

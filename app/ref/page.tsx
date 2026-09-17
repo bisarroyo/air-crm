@@ -10,6 +10,13 @@ import { Copy, Check, Plus, Loader2, Link2, Users } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
     SelectItem,
@@ -301,21 +308,20 @@ export default function RefDashboard() {
                 </CardContent>
             </Card>
 
-            {showCreate && (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                    <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                        <h2 className='mb-1 text-lg font-medium'>
-                            Create Lead
-                        </h2>
-                        <p className='mb-4 text-sm text-muted-foreground'>
+            <Dialog open={showCreate} onOpenChange={setShowCreate}>
+                <DialogContent className='sm:max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle>Create Lead</DialogTitle>
+                        <DialogDescription>
                             Add a new lead. Your referral code will be
                             automatically assigned.
-                        </p>
-                        <form
-                            onSubmit={form.handleSubmit((data) =>
-                                createMutation.mutate(data)
-                            )}
-                            className='grid gap-4'>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={form.handleSubmit((data) =>
+                            createMutation.mutate(data)
+                        )}
+                        className='grid gap-4'>
                             <FieldGroup>
                                 <Controller
                                     name='name'
@@ -442,9 +448,8 @@ export default function RefDashboard() {
                                 </Button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

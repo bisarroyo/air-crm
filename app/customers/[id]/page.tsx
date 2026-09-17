@@ -20,6 +20,13 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
+import {
     Field,
     FieldError,
     FieldGroup,
@@ -153,7 +160,10 @@ function formatChanges(
 ) {
     const data = JSON.parse(changes) as Record<
         string,
-        | { from: string | number | null | undefined; to: string | number | null | undefined }
+        | {
+              from: string | number | null | undefined
+              to: string | number | null | undefined
+          }
         | string
         | number
         | null
@@ -251,14 +261,17 @@ export default function CustomerDetailPage() {
     const { data: priorities = [] } = useQuery({
         queryKey: ['priorities'],
         queryFn: () => fetch('/api/priority').then((r) => r.json()),
-        select: (data: Array<{ id: number; priority: string; color: string }>) =>
-            data.map((p) => ({ id: p.id, name: p.priority }))
+        select: (
+            data: Array<{ id: number; priority: string; color: string }>
+        ) => data.map((p) => ({ id: p.id, name: p.priority }))
     }) as { data: SelectOption[] | undefined }
 
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
         queryFn: () => fetch('/api/users').then((r) => r.json()),
-        select: (data: Array<{ id: string; name: string | null; email: string }>) =>
+        select: (
+            data: Array<{ id: string; name: string | null; email: string }>
+        ) =>
             data.map((u) => ({
                 id: u.id,
                 name: u.name || u.email
@@ -620,367 +633,364 @@ export default function CustomerDetailPage() {
                 </Card>
             </div>
 
-            {modalOpen && (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                    <div className='mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                        <h2 className='mb-1 text-lg font-medium'>
-                            Edit Customer
-                        </h2>
-                        <p className='mb-4 text-sm text-muted-foreground'>
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                <DialogContent className='max-h-[90vh] sm:max-w-lg overflow-y-auto'>
+                    <DialogHeader>
+                        <DialogTitle>Edit Customer</DialogTitle>
+                        <DialogDescription>
                             Update customer information.
-                        </p>
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className='grid gap-4'>
-                            <FieldGroup>
-                                <Controller
-                                    name='name'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='edit-name'>
-                                                Name
-                                            </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='edit-name'
-                                                placeholder='Full name'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[fieldState.error]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='email'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='edit-email'>
-                                                Email
-                                            </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='edit-email'
-                                                type='email'
-                                                placeholder='customer@example.com'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[fieldState.error]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='phone'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='edit-phone'>
-                                                Phone
-                                            </FieldLabel>
-                                            <Input
-                                                {...field}
-                                                id='edit-phone'
-                                                type='tel'
-                                                placeholder='+1 (555) 000-0000'
-                                                aria-invalid={
-                                                    fieldState.invalid
-                                                }
-                                            />
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[fieldState.error]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='travelTime'
-                                    control={form.control}
-                                    render={({ field, fieldState }) => (
-                                        <Field
-                                            data-invalid={fieldState.invalid}>
-                                            <FieldLabel htmlFor='edit-travelTime'>
-                                                Travel Time
-                                            </FieldLabel>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}>
-                                                <SelectTrigger
-                                                    id='edit-travelTime'
-                                                    aria-invalid={
-                                                        fieldState.invalid
-                                                    }>
-                                                    <SelectValue placeholder='Select...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        <SelectItem value='0-3'>
-                                                            Lo antes posible
-                                                        </SelectItem>
-                                                        <SelectItem value='3-6'>
-                                                            En 3-6 meses
-                                                        </SelectItem>
-                                                        <SelectItem value='6-12'>
-                                                            En 6-12 meses
-                                                        </SelectItem>
-                                                        <SelectItem value='12-18'>
-                                                            En 12-18 meses
-                                                        </SelectItem>
-                                                        <SelectItem value='0'>
-                                                            Solo explorando
-                                                        </SelectItem>
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            {fieldState.invalid && (
-                                                <FieldError
-                                                    errors={[fieldState.error]}
-                                                />
-                                            )}
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='statusId'
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <Field>
-                                            <FieldLabel htmlFor='edit-statusId'>
-                                                Status
-                                            </FieldLabel>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}>
-                                                <SelectTrigger id='edit-statusId'>
-                                                    <SelectValue placeholder='Select...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {statuses.map((s) => (
-                                                            <SelectItem
-                                                                key={s.id}
-                                                                value={String(
-                                                                    s.id
-                                                                )}>
-                                                                {s.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </Field>
-                                    )}
-                                />
-                                <Controller
-                                    name='priorityId'
-                                    control={form.control}
-                                    render={({ field }) => (
-                                        <Field>
-                                            <FieldLabel htmlFor='edit-priorityId'>
-                                                Priority
-                                            </FieldLabel>
-                                            <Select
-                                                value={field.value}
-                                                onValueChange={field.onChange}>
-                                                <SelectTrigger id='edit-priorityId'>
-                                                    <SelectValue placeholder='Select...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {priorities.map((p) => (
-                                                            <SelectItem
-                                                                key={p.id}
-                                                                value={String(
-                                                                    p.id
-                                                                )}>
-                                                                {p.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </Field>
-                                    )}
-                                />
-                                {isAdmin && (
-                                    <Controller
-                                        name='assignedTo'
-                                        control={form.control}
-                                        render={({ field }) => (
-                                            <Field>
-                                                <FieldLabel htmlFor='edit-assignedTo'>
-                                                    Assigned To
-                                                </FieldLabel>
-                                                <Select
-                                                    value={field.value}
-                                                    onValueChange={
-                                                        field.onChange
-                                                    }>
-                                                    <SelectTrigger id='edit-assignedTo'>
-                                                        <SelectValue placeholder='Select...' />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectGroup>
-                                                            {users.map((u) => (
-                                                                <SelectItem
-                                                                    key={u.id}
-                                                                    value={
-                                                                        u.id
-                                                                    }>
-                                                                    {u.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                            </Field>
-                                        )}
-                                    />
-                                )}
-                                {isAdmin && (
-                                    <Controller
-                                        name='referralId'
-                                        control={form.control}
-                                        render={({ field }) => (
-                                            <Field>
-                                                <FieldLabel htmlFor='edit-referralId'>
-                                                    Referral Code
-                                                </FieldLabel>
-                                                <Select
-                                                    value={field.value}
-                                                    onValueChange={
-                                                        field.onChange
-                                                    }>
-                                                    <SelectTrigger id='edit-referralId'>
-                                                        <SelectValue placeholder='Select...' />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectGroup>
-                                                            <SelectItem value=''>
-                                                                None
-                                                            </SelectItem>
-                                                            {referralOptions.map(
-                                                                (r) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            r.id
-                                                                        }
-                                                                        value={String(
-                                                                            r.id
-                                                                        )}>
-                                                                        {r.name}
-                                                                    </SelectItem>
-                                                                )
-                                                            )}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                            </Field>
-                                        )}
-                                    />
-                                )}
-                            </FieldGroup>
-                            <div className='flex justify-end gap-2 pt-2'>
-                                <Button
-                                    type='button'
-                                    variant='ghost'
-                                    onClick={() => setModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type='submit'
-                                    disabled={updateMutation.isPending}>
-                                    {updateMutation.isPending ? (
-                                        <Loader2
-                                            size={16}
-                                            className='animate-spin'
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className='grid gap-4'>
+                        <FieldGroup>
+                            <Controller
+                                name='name'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='edit-name'>
+                                            Name
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id='edit-name'
+                                            placeholder='Full name'
+                                            aria-invalid={fieldState.invalid}
                                         />
-                                    ) : (
-                                        'Update Customer'
-                                    )}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {deleteDialogOpen && (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-                    <div className='mx-4 w-full max-w-md rounded-xl bg-card p-6 shadow-lg ring-1 ring-foreground/10'>
-                        <h2 className='mb-1 text-lg font-medium text-destructive'>
-                            Delete Customer
-                        </h2>
-                        <p className='mb-4 text-sm text-muted-foreground'>
-                            This action cannot be undone. This will permanently
-                            delete <strong>{customer?.name}</strong> and all
-                            associated data.
-                        </p>
-                        <div className='mb-4'>
-                            <label className='mb-1 block text-sm font-medium'>
-                                Type{' '}
-                                <span className='font-mono font-bold text-destructive'>
-                                    confirm
-                                </span>{' '}
-                                to proceed
-                            </label>
-                            <Input
-                                value={deleteConfirmText}
-                                onChange={(e) =>
-                                    setDeleteConfirmText(e.target.value)
-                                }
-                                placeholder='confirm'
-                                className='h-9'
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
                             />
-                        </div>
-                        <div className='flex justify-end gap-2'>
+                            <Controller
+                                name='email'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='edit-email'>
+                                            Email
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id='edit-email'
+                                            type='email'
+                                            placeholder='customer@example.com'
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='phone'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='edit-phone'>
+                                            Phone
+                                        </FieldLabel>
+                                        <Input
+                                            {...field}
+                                            id='edit-phone'
+                                            type='tel'
+                                            placeholder='+1 (555) 000-0000'
+                                            aria-invalid={fieldState.invalid}
+                                        />
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='travelTime'
+                                control={form.control}
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid}>
+                                        <FieldLabel htmlFor='edit-travelTime'>
+                                            Travel Time
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                travelTimeLabels[field.value] ||
+                                                field.value
+                                            }
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger
+                                                id='edit-travelTime'
+                                                aria-invalid={
+                                                    fieldState.invalid
+                                                }>
+                                                <SelectValue placeholder='Select...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value='0-3'>
+                                                        Lo antes posible
+                                                    </SelectItem>
+                                                    <SelectItem value='3-6'>
+                                                        En 3-6 meses
+                                                    </SelectItem>
+                                                    <SelectItem value='6-12'>
+                                                        En 6-12 meses
+                                                    </SelectItem>
+                                                    <SelectItem value='12-18'>
+                                                        En 12-18 meses
+                                                    </SelectItem>
+                                                    <SelectItem value='0'>
+                                                        Solo explorando
+                                                    </SelectItem>
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                        {fieldState.invalid && (
+                                            <FieldError
+                                                errors={[fieldState.error]}
+                                            />
+                                        )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='statusId'
+                                control={form.control}
+                                render={({ field }) => (
+                                    <Field>
+                                        <FieldLabel htmlFor='edit-statusId'>
+                                            Status
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                statuses.find(
+                                                    (s) =>
+                                                        s.id ===
+                                                        Number(field.value)
+                                                )?.name || ''
+                                            }
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger id='edit-statusId'>
+                                                <SelectValue placeholder='Select...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {statuses.map((s) => (
+                                                        <SelectItem
+                                                            key={s.id}
+                                                            value={String(
+                                                                s.id
+                                                            )}>
+                                                            {s.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='priorityId'
+                                control={form.control}
+                                render={({ field }) => (
+                                    <Field>
+                                        <FieldLabel htmlFor='edit-priorityId'>
+                                            Priority
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                priorities.find(
+                                                    (p) =>
+                                                        p.id ===
+                                                        Number(field.value)
+                                                )?.name || ''
+                                            }
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger id='edit-priorityId'>
+                                                <SelectValue placeholder='Select...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {priorities.map((p) => (
+                                                        <SelectItem
+                                                            key={p.id}
+                                                            value={String(
+                                                                p.id
+                                                            )}>
+                                                            {p.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                )}
+                            />
+                            {isAdmin && (
+                                <Controller
+                                    name='assignedTo'
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <Field>
+                                            <FieldLabel htmlFor='edit-assignedTo'>
+                                                Assigned To
+                                            </FieldLabel>
+                                            <Select
+                                                value={
+                                                    users.find(
+                                                        (u) =>
+                                                            u.id === field.value
+                                                    )?.name || ''
+                                                }
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger id='edit-assignedTo'>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {users.map((u) => (
+                                                            <SelectItem
+                                                                key={u.id}
+                                                                value={u.id}>
+                                                                {u.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                    )}
+                                />
+                            )}
+                            {isAdmin && (
+                                <Controller
+                                    name='referralId'
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <Field>
+                                            <FieldLabel htmlFor='edit-referralId'>
+                                                Referral Code
+                                            </FieldLabel>
+                                            <Select
+                                                value={field.value}
+                                                onValueChange={field.onChange}>
+                                                <SelectTrigger id='edit-referralId'>
+                                                    <SelectValue placeholder='Select...' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value=''>
+                                                            None
+                                                        </SelectItem>
+                                                        {referralOptions.map(
+                                                            (r) => (
+                                                                <SelectItem
+                                                                    key={r.id}
+                                                                    value={String(
+                                                                        r.id
+                                                                    )}>
+                                                                    {r.name}
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                    )}
+                                />
+                            )}
+                        </FieldGroup>
+                        <div className='flex justify-end gap-2 pt-2'>
                             <Button
                                 type='button'
                                 variant='ghost'
-                                className='cursor-pointer'
-                                onClick={() => {
-                                    setDeleteDialogOpen(false)
-                                    setDeleteConfirmText('')
-                                }}>
+                                onClick={() => setModalOpen(false)}>
                                 Cancel
                             </Button>
                             <Button
-                                variant='destructive'
-                                disabled={
-                                    deleteConfirmText !== 'confirm' ||
-                                    deleteMutation.isPending
-                                }
-                                onClick={handleDelete}>
-                                {deleteMutation.isPending ? (
+                                type='submit'
+                                disabled={updateMutation.isPending}>
+                                {updateMutation.isPending ? (
                                     <Loader2
                                         size={16}
                                         className='animate-spin'
                                     />
                                 ) : (
-                                    'Delete'
+                                    'Update Customer'
                                 )}
                             </Button>
                         </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className='sm:max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle className='text-destructive'>
+                            Delete Customer
+                        </DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. This will permanently
+                            delete <strong>{customer?.name}</strong> and all
+                            associated data.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className='mb-4'>
+                        <label className='mb-1 block text-sm font-medium'>
+                            Type{' '}
+                            <span className='font-mono font-bold text-destructive'>
+                                confirm
+                            </span>{' '}
+                            to proceed
+                        </label>
+                        <Input
+                            value={deleteConfirmText}
+                            onChange={(e) =>
+                                setDeleteConfirmText(e.target.value)
+                            }
+                            placeholder='confirm'
+                            className='h-9'
+                        />
                     </div>
-                </div>
-            )}
+                    <div className='flex justify-end gap-2'>
+                        <Button
+                            type='button'
+                            variant='ghost'
+                            className='cursor-pointer'
+                            onClick={() => {
+                                setDeleteDialogOpen(false)
+                                setDeleteConfirmText('')
+                            }}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant='destructive'
+                            disabled={
+                                deleteConfirmText !== 'confirm' ||
+                                deleteMutation.isPending
+                            }
+                            onClick={handleDelete}>
+                            {deleteMutation.isPending ? (
+                                <Loader2 size={16} className='animate-spin' />
+                            ) : (
+                                'Delete'
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
