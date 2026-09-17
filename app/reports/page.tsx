@@ -59,12 +59,18 @@ interface ReferralOption {
     name: string | null
 }
 
+interface TagOption {
+    id: number
+    tag: string
+}
+
 interface ReportData {
     byStatus: { name: string; value: number }[]
     byPriority: { name: string; value: number }[]
     byTravelTime: { name: string; value: number }[]
     byMonth: { month: string; value: number }[]
     byReferral: { name: string; value: number }[]
+    byTag: { name: string; value: number }[]
     total: number
     thisMonth: number
     lastMonth: number
@@ -73,6 +79,7 @@ interface ReportData {
 export default function ReportsPage() {
     const [statusIds, setStatusIds] = useState<string[]>([])
     const [referralCode, setReferralCode] = useState('')
+    const [tagId, setTagId] = useState('')
     const [dateFrom, setDateFrom] = useState('')
     const [dateTo, setDateTo] = useState('')
 
@@ -95,14 +102,25 @@ export default function ReportsPage() {
         }
     })
 
+    const { data: tags = [] } = useQuery<TagOption[]>({
+        queryKey: ['tags'],
+        queryFn: async () => {
+            const res = await fetch('/api/tags')
+            if (!res.ok) throw new Error('Failed to fetch')
+            const data = await res.json()
+            return data.filter((t: { isActive: number }) => t.isActive)
+        }
+    })
+
     const params = new URLSearchParams()
     if (statusIds.length > 0) params.set('statusIds', statusIds.join(','))
     if (referralCode) params.set('referralCode', referralCode)
+    if (tagId) params.set('tagIds', tagId)
     if (dateFrom) params.set('dateFrom', dateFrom)
     if (dateTo) params.set('dateTo', dateTo)
 
     const { data: report, isLoading } = useQuery<ReportData>({
-        queryKey: ['reports', statusIds, referralCode, dateFrom, dateTo],
+        queryKey: ['reports', statusIds, referralCode, tagId, dateFrom, dateTo],
         queryFn: async () => {
             const res = await fetch(`/api/reports?${params.toString()}`)
             if (!res.ok) throw new Error('Failed to fetch reports')
@@ -123,12 +141,13 @@ export default function ReportsPage() {
     const clearFilters = () => {
         setStatusIds([])
         setReferralCode('')
+        setTagId('')
         setDateFrom('')
         setDateTo('')
     }
 
     const hasFilters =
-        statusIds.length > 0 || referralCode || dateFrom || dateTo
+        statusIds.length > 0 || referralCode || tagId || dateFrom || dateTo
 
     return (
         <div className='container mx-auto p-6 space-y-6'>
@@ -146,7 +165,7 @@ export default function ReportsPage() {
                     <CardTitle className='text-base'>Filters</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className='grid gap-4 md:grid-cols-4'>
+                    <div className='grid gap-4 md:grid-cols-5'>
                         <div>
                             <Label className='text-xs mb-1 block'>Status</Label>
                             <Select
@@ -167,6 +186,32 @@ export default function ReportsPage() {
                                                 key={s.id}
                                                 value={String(s.id)}>
                                                 {s.status}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label className='text-xs mb-1 block'>Tag</Label>
+                            <Select
+                                value={tagId}
+                                onValueChange={(val) =>
+                                    setTagId(val === '' ? '' : String(val))
+                                }>
+                                <SelectTrigger>
+                                    <SelectValue placeholder='All tags' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value=''>
+                                            All tags
+                                        </SelectItem>
+                                        {tags.map((t) => (
+                                            <SelectItem
+                                                key={t.id}
+                                                value={String(t.id)}>
+                                                {t.tag}
                                             </SelectItem>
                                         ))}
                                     </SelectGroup>
@@ -557,6 +602,53 @@ export default function ReportsPage() {
                                             <Bar
                                                 dataKey='value'
                                                 fill='#8b5cf6'
+                                                radius={[0, 4, 4, 0]}
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {report.byTag.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className='text-base'>
+                                        Leads by Tag
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer
+                                        width='100%'
+                                        height={280}>
+                                        <BarChart
+                                            data={report.byTag}
+                                            layout='vertical'>
+                                            <CartesianGrid
+                                                strokeDasharray='3 3'
+                                                className='stroke-border'
+                                            />
+                                            <XAxis
+                                                type='number'
+                                                className='text-xs'
+                                            />
+                                            <YAxis
+                                                dataKey='name'
+                                                type='category'
+                                                className='text-xs'
+                                                width={100}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{
+                                                    backgroundColor:
+                                                        'var(--card)',
+                                                    border: '1px solid var(--border)',
+                                                    borderRadius: '8px'
+                                                }}
+                                            />
+                                            <Bar
+                                                dataKey='value'
+                                                fill='#06b6d4'
                                                 radius={[0, 4, 4, 0]}
                                             />
                                         </BarChart>

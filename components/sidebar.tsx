@@ -5,12 +5,14 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
+    FileUp,
     Flag,
     Gauge,
     Layers,
     Link2,
     Settings,
     ShieldCheck,
+    Tag,
     User,
     UserCog,
     Users
@@ -87,7 +89,8 @@ export function Sidebar() {
             icon: Users,
             defaultOpen: true,
             items: [
-                { href: '/', label: 'All Leads', icon: Users }
+                { href: '/', label: 'All Leads', icon: Users },
+                { href: '/leads/import', label: 'Import', icon: FileUp }
             ]
         },
         {
@@ -108,7 +111,8 @@ export function Sidebar() {
                         { href: '/admin/users', label: 'Users', icon: UserCog },
                         { href: '/admin/status', label: 'Status', icon: Flag },
                         { href: '/admin/priority', label: 'Priority', icon: Layers },
-                        { href: '/admin/referrals', label: 'Referrals', icon: Link2 }
+                        { href: '/admin/referrals', label: 'Referrals', icon: Link2 },
+                        { href: '/admin/tags', label: 'Tags', icon: Tag }
                     ]
                 } as MenuSection
             ]
@@ -161,7 +165,7 @@ export function Sidebar() {
                                                     )}
                                                     title={item.label}
                                                 >
-                                                    <Icon size={18} />
+                                                    <Icon size={20} />
                                                 </Link>
                                             )
                                         })}
@@ -202,7 +206,7 @@ export function Sidebar() {
                                                                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                                             )}
                                                         >
-                                                            <Icon size={16} />
+                                                            <Icon size={18} />
                                                             {item.label}
                                                         </Link>
                                                     )

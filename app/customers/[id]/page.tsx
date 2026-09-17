@@ -41,6 +41,7 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
+import { TagPill, TagSelect, type TagOption } from '@/components/tags'
 import { useSession } from '@/hooks/use-session'
 
 interface CustomerDetail {
@@ -64,6 +65,7 @@ interface CustomerDetail {
     assignedUserName: string | null
     assignedUserEmail: string | null
     assignedUserImage: string | null
+    tags: TagOption[]
 }
 
 interface SelectOption {
@@ -123,7 +125,8 @@ const FIELD_LABELS: Record<string, string> = {
     priorityId: 'Priority',
     assignedTo: 'Assigned To',
     referralId: 'Referral',
-    referralCode: 'Referral Code'
+    referralCode: 'Referral Code',
+    tags: 'Tags'
 }
 
 function resolveValue(
@@ -221,6 +224,7 @@ export default function CustomerDetailPage() {
     const [modalOpen, setModalOpen] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deleteConfirmText, setDeleteConfirmText] = useState('')
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
 
     const form = useForm<CustomerFormValues>({
         resolver: zodResolver(customerSchema),
@@ -290,6 +294,25 @@ export default function CustomerDetailPage() {
         enabled: isAdmin
     }) as { data: SelectOption[] | undefined }
 
+    const { data: tagOptions = [] } = useQuery({
+        queryKey: ['tags'],
+        queryFn: () => fetch('/api/tags').then((r) => r.json()),
+        select: (data: Array<{
+            id: number
+            tag: string
+            color: string
+            isActive: number
+        }>) =>
+            data
+                .filter((t) => t.isActive)
+                .map((t) => ({
+                    id: t.id,
+                    name: t.tag,
+                    color: t.color || '#6b7280',
+                    isActive: t.isActive
+                }))
+    }) as { data: TagOption[] | undefined }
+
     const { data: logs = [] } = useQuery<LogEntry[]>({
         queryKey: ['logs', id],
         queryFn: async () => {
@@ -308,7 +331,8 @@ export default function CustomerDetailPage() {
                     ...data,
                     statusId: Number(data.statusId),
                     priorityId: Number(data.priorityId),
-                    referralId: data.referralId ? Number(data.referralId) : null
+                    referralId: data.referralId ? Number(data.referralId) : null,
+                    tagIds: selectedTagIds
                 })
             })
             if (!res.ok) {
@@ -358,6 +382,9 @@ export default function CustomerDetailPage() {
             assignedTo: customer.assignedTo || '',
             referralId: customer.referralId ? String(customer.referralId) : ''
         })
+        setSelectedTagIds(
+            customer.tags.filter((t) => t.isActive).map((t) => t.id)
+        )
         setModalOpen(true)
     }
 
@@ -545,6 +572,26 @@ export default function CustomerDetailPage() {
                                       })
                                     : '—'}
                             </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tags</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className='flex flex-wrap gap-1.5'>
+                            {customer.tags.filter((t) => t.isActive).length >
+                            0 ? (
+                                customer.tags
+                                    .filter((t) => t.isActive)
+                                    .map((t) => <TagPill key={t.id} tag={t} />)
+                            ) : (
+                                <span className='text-sm text-muted-foreground'>
+                                    None
+                                </span>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -910,6 +957,20 @@ export default function CustomerDetailPage() {
                                     )}
                                 />
                             )}
+                            <Field>
+                                <FieldLabel>Tags</FieldLabel>
+                                <TagSelect
+                                    options={tagOptions}
+                                    selected={selectedTagIds}
+                                    onToggle={(id) =>
+                                        setSelectedTagIds((prev) =>
+                                            prev.includes(id)
+                                                ? prev.filter((i) => i !== id)
+                                                : [...prev, id]
+                                        )
+                                    }
+                                />
+                            </Field>
                         </FieldGroup>
                         <div className='flex justify-end gap-2 pt-2'>
                             <Button

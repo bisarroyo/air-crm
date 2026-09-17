@@ -6,11 +6,13 @@ import {
     ChevronLeft,
     ChevronRight,
     ExternalLink,
+    FileUp,
     Loader2,
     MessageCircle,
     Pencil,
     Plus,
     Search,
+    SlidersHorizontal,
     UserPlus,
     X
 } from 'lucide-react'
@@ -45,6 +47,7 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
+import { TagPill, TagSelect, type TagOption } from '@/components/tags'
 import { useSession } from '@/hooks/use-session'
 
 interface StatusOption {
@@ -100,6 +103,7 @@ interface CustomerRow {
     assignedUserName: string | null
     assignedUserEmail: string | null
     assignedUserImage: string | null
+    tags: TagOption[]
 }
 
 interface CustomersResponse {
@@ -154,6 +158,7 @@ export default function Home() {
     const [filterStatusId, setFilterStatusId] = useState('')
     const [filterPriorityId, setFilterPriorityId] = useState('')
     const [filterAssignedTo, setFilterAssignedTo] = useState('')
+    const [filterTagId, setFilterTagId] = useState('')
     const initialFilterRef = useRef(false)
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(25)
@@ -164,10 +169,20 @@ export default function Home() {
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [modalOpen, setModalOpen] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+
+    const [classifyModalOpen, setClassifyModalOpen] = useState(false)
+    const [classifyingId, setClassifyingId] = useState<number | null>(null)
+    const [classifyStatusId, setClassifyStatusId] = useState('1')
+    const [classifyPriorityId, setClassifyPriorityId] = useState('1')
+    const [classifyReferralId, setClassifyReferralId] = useState('')
+    const [classifyAssignedTo, setClassifyAssignedTo] = useState('')
+    const [classifyTagIds, setClassifyTagIds] = useState<number[]>([])
 
     const [bulkStatusId, setBulkStatusId] = useState('')
     const [bulkPriorityId, setBulkPriorityId] = useState('')
     const [bulkAssignedTo, setBulkAssignedTo] = useState('')
+    const [bulkTagId, setBulkTagId] = useState('')
 
     const form = useForm<CustomerFormValues>({
         resolver: zodResolver(customerSchema),
@@ -189,6 +204,7 @@ export default function Home() {
         filterStatusId,
         filterPriorityId,
         filterAssignedTo,
+        filterTagId,
         page,
         pageSize
     ] as const
@@ -201,6 +217,7 @@ export default function Home() {
             if (filterStatusId) params.set('statusId', filterStatusId)
             if (filterPriorityId) params.set('priorityId', filterPriorityId)
             if (filterAssignedTo) params.set('assignedTo', filterAssignedTo)
+            if (filterTagId) params.set('tagIds', filterTagId)
             params.set('page', String(page))
             params.set('pageSize', String(pageSize))
 
@@ -254,6 +271,25 @@ export default function Home() {
         enabled: isAdmin
     })
 
+    const { data: tagOptions = [] } = useQuery({
+        queryKey: ['tags'],
+        queryFn: () => fetch('/api/tags').then((r) => r.json()),
+        select: (data: Array<{
+            id: number
+            tag: string
+            color: string
+            isActive: number
+        }>) =>
+            data
+                .filter((t) => t.isActive)
+                .map((t) => ({
+                    id: t.id,
+                    name: t.tag,
+                    color: t.color || '#6b7280',
+                    isActive: t.isActive
+                }))
+    }) as { data: TagOption[] | undefined }
+
     useEffect(() => {
         if (!initialFilterRef.current && session?.user.id) {
             setFilterAssignedTo(session.user.id)
@@ -267,7 +303,7 @@ export default function Home() {
         return () => {
             if (debounceRef.current) clearTimeout(debounceRef.current)
         }
-    }, [search, filterStatusId, filterPriorityId, filterAssignedTo])
+    }, [search, filterStatusId, filterPriorityId, filterAssignedTo, filterTagId])
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -278,6 +314,8 @@ export default function Home() {
             setBulkPriorityId('')
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setBulkAssignedTo('')
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setBulkTagId('')
         }
     }, [selectedIds])
 
@@ -311,12 +349,62 @@ export default function Home() {
         onError: (error: Error) => toast.error(error.message)
     })
 
+    const classifyMutation = useMutation({
+        mutationFn: async () => {
+            if (classifyingId === null) {
+                throw new Error('No customer selected')
+            }
+            const body: Record<string, string | number | null | number[]> = {
+                statusId: Number(classifyStatusId),
+                priorityId: Number(classifyPriorityId),
+                tagIds: classifyTagIds
+            }
+            if (isAdmin) {
+                body.assignedTo = classifyAssignedTo || session?.user.id
+                body.referralId = classifyReferralId
+                    ? Number(classifyReferralId)
+                    : null
+            }
+            const res = await fetch(`/api/customers/${classifyingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            if (!res.ok) {
+                const err = await res.json()
+                throw new Error(err.error || 'Failed to update')
+            }
+            return res.json()
+        },
+        onSuccess: () => {
+            toast.success('Classification updated successfully')
+            setClassifyModalOpen(false)
+            invalidate()
+        },
+        onError: (error: Error) => toast.error(error.message)
+    })
+
+    const openClassify = (customer: CustomerRow) => {
+        setClassifyingId(customer.id)
+        setClassifyStatusId(String(customer.statusId))
+        setClassifyPriorityId(String(customer.priorityId))
+        setClassifyReferralId(
+            customer.referralId ? String(customer.referralId) : ''
+        )
+        setClassifyAssignedTo(customer.assignedTo || '')
+        setClassifyTagIds(
+            customer.tags.filter((t) => t.isActive).map((t) => t.id)
+        )
+        setClassifyModalOpen(true)
+    }
+
     const bulkMutation = useMutation({
         mutationFn: async (data: {
             ids: number[]
             statusId?: number
             priorityId?: number
             assignedTo?: string
+            tagIds?: number[]
         }) => {
             const res = await fetch('/api/customers/bulk', {
                 method: 'POST',
@@ -335,6 +423,7 @@ export default function Home() {
             setBulkStatusId('')
             setBulkPriorityId('')
             setBulkAssignedTo('')
+            setBulkTagId('')
             invalidate()
         },
         onError: (error: Error) => toast.error(error.message)
@@ -356,7 +445,8 @@ export default function Home() {
                 priorityId: Number(data.priorityId),
                 assignedTo: data.assignedTo,
                 referralId:
-                    isEdit && data.referralId ? Number(data.referralId) : null
+                    isEdit && data.referralId ? Number(data.referralId) : null,
+                tagIds: selectedTagIds
             }
 
             const res = await fetch(url, {
@@ -391,6 +481,7 @@ export default function Home() {
             priorityId: '1',
             assignedTo: session?.user.id || ''
         })
+        setSelectedTagIds([])
         setModalOpen(true)
     }
 
@@ -406,10 +497,25 @@ export default function Home() {
             assignedTo: customer.assignedTo || '',
             referralId: customer.referralId ? String(customer.referralId) : ''
         })
+        setSelectedTagIds(
+            customer.tags.filter((t) => t.isActive).map((t) => t.id)
+        )
         setModalOpen(true)
     }
 
     const onSubmit = (data: CustomerFormValues) => saveMutation.mutate(data)
+
+    const toggleTag = (id: number) => {
+        setSelectedTagIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        )
+    }
+
+    const toggleClassifyTag = (id: number) => {
+        setClassifyTagIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        )
+    }
 
     const toggleSelect = (id: number) => {
         setSelectedIds((prev) =>
@@ -471,9 +577,16 @@ export default function Home() {
                                 {total !== 1 ? 's' : ''}
                             </p>
                         </div>
-                        <Button onClick={openCreate} size='sm'>
-                            <Plus /> New Customer
-                        </Button>
+                        <div className='flex items-center gap-2'>
+                            <Link href='/leads/import'>
+                                <Button variant='outline' size='sm'>
+                                    <FileUp size={16} /> Import CSV
+                                </Button>
+                            </Link>
+                            <Button onClick={openCreate} size='sm'>
+                                <Plus /> New Customer
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -581,6 +694,32 @@ export default function Home() {
                                 </SelectContent>
                             </Select>
                         )}
+                        <Select
+                            value={
+                                tagOptions.find(
+                                    (t) => t.id === Number(filterTagId)
+                                )?.name || ''
+                            }
+                            onValueChange={(val) => {
+                                setFilterTagId(val ?? '')
+                                setPage(1)
+                            }}>
+                            <SelectTrigger className='h-8 w-[150px]'>
+                                <SelectValue placeholder='All Tags' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value=''>All Tags</SelectItem>
+                                    {tagOptions.map((t) => (
+                                        <SelectItem
+                                            key={t.id}
+                                            value={String(t.id)}>
+                                            {t.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {selectedIds.length > 0 && (
@@ -697,13 +836,44 @@ export default function Home() {
                                     </Select>
                                 </>
                             )}
+                            <label className='text-sm text-muted-foreground'>
+                                Tag:
+                            </label>
+                            <Select
+                                value={
+                                    tagOptions.find(
+                                        (t) => t.id === Number(bulkTagId)
+                                    )?.name.toString() || ''
+                                }
+                                onValueChange={(val) => setBulkTagId(val ?? '')}>
+                                <SelectTrigger
+                                    size='sm'
+                                    className='h-7 text-xs'>
+                                    <SelectValue placeholder='No change' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value=''>
+                                            No change
+                                        </SelectItem>
+                                        {tagOptions.map((t) => (
+                                            <SelectItem
+                                                key={t.id}
+                                                value={String(t.id)}>
+                                                {t.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                             <Button
                                 size='xs'
                                 onClick={() => {
                                     if (
                                         !bulkStatusId &&
                                         !bulkPriorityId &&
-                                        !bulkAssignedTo
+                                        !bulkAssignedTo &&
+                                        !bulkTagId
                                     ) {
                                         toast.error(
                                             'Select at least one change'
@@ -720,6 +890,9 @@ export default function Home() {
                                         }),
                                         ...(bulkAssignedTo && {
                                             assignedTo: bulkAssignedTo
+                                        }),
+                                        ...(bulkTagId && {
+                                            tagIds: [Number(bulkTagId)]
                                         })
                                     })
                                 }}
@@ -820,6 +993,7 @@ export default function Home() {
                                     setBulkStatusId('')
                                     setBulkPriorityId('')
                                     setBulkAssignedTo('')
+                                    setBulkTagId('')
                                 }}>
                                 Clear
                             </Button>
@@ -836,7 +1010,10 @@ export default function Home() {
                     ) : customers.length === 0 ? (
                         <div className='py-16 text-center'>
                             <p className='text-muted-foreground'>
-                                {search || filterStatusId || filterPriorityId
+                                {search ||
+                                filterStatusId ||
+                                filterPriorityId ||
+                                filterTagId
                                     ? 'No customers match your filters'
                                     : 'No customers yet. Create your first one!'}
                             </p>
@@ -876,6 +1053,9 @@ export default function Home() {
                                             </th>
                                             <th className='pb-2 font-medium'>
                                                 Priority
+                                            </th>
+                                            <th className='pb-2 font-medium'>
+                                                Tags
                                             </th>
                                             {isAdmin && (
                                                 <th className='pb-2 font-medium'>
@@ -1046,6 +1226,23 @@ export default function Home() {
                                                             </SelectContent>
                                                         </Select>
                                                     </td>
+                                                    <td className='py-2.5'>
+                                                        <div className='flex max-w-[220px] flex-wrap gap-1'>
+                                                            {customer.tags
+                                                                .filter(
+                                                                    (t) =>
+                                                                        t.isActive
+                                                                )
+                                                                .map((t) => (
+                                                                    <TagPill
+                                                                        key={
+                                                                            t.id
+                                                                        }
+                                                                        tag={t}
+                                                                    />
+                                                                ))}
+                                                        </div>
+                                                    </td>
                                                     {isAdmin && (
                                                         <td className='py-2.5'>
                                                             <Select
@@ -1123,6 +1320,19 @@ export default function Home() {
                                                                     />
                                                                 </Button>
                                                             </Link>
+                                                            <Button
+                                                                size='icon-sm'
+                                                                variant='ghost'
+                                                                title='Edit status, priority, and referral'
+                                                                onClick={() =>
+                                                                    openClassify(
+                                                                        customer
+                                                                    )
+                                                                }>
+                                                                <SlidersHorizontal
+                                                                    size={14}
+                                                                />
+                                                            </Button>
                                                             <Button
                                                                 size='icon-sm'
                                                                 variant='ghost'
@@ -1510,6 +1720,14 @@ export default function Home() {
                                     )}
                                 />
                             )}
+                            <Field>
+                                <FieldLabel>Tags</FieldLabel>
+                                <TagSelect
+                                    options={tagOptions}
+                                    selected={selectedTagIds}
+                                    onToggle={toggleTag}
+                                />
+                            </Field>
                         </FieldGroup>
                         <div className='flex justify-end gap-2 pt-2'>
                             <Button
@@ -1534,6 +1752,180 @@ export default function Home() {
                             </Button>
                         </div>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={classifyModalOpen}
+                onOpenChange={setClassifyModalOpen}>
+                <DialogContent className='sm:max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle>Edit classification</DialogTitle>
+                        <DialogDescription>
+                            Update the status, priority, referral, and tags for
+                            this lead.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <FieldGroup>
+                        <Field>
+                            <FieldLabel htmlFor='classify-status'>
+                                Status
+                            </FieldLabel>
+                            <Select
+                                value={
+                                    statuses.find(
+                                        (s) =>
+                                            s.id === Number(classifyStatusId)
+                                    )?.name || ''
+                                }
+                                onValueChange={(val) =>
+                                    setClassifyStatusId(val ?? '1')
+                                }>
+                                <SelectTrigger id='classify-status'>
+                                    <SelectValue placeholder='Select...' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {statuses.map((s) => (
+                                            <SelectItem
+                                                key={s.id}
+                                                value={String(s.id)}>
+                                                <ColorDot color={s.color} />
+                                                {s.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor='classify-priority'>
+                                Priority
+                            </FieldLabel>
+                            <Select
+                                value={
+                                    priorities.find(
+                                        (p) =>
+                                            p.id === Number(classifyPriorityId)
+                                    )?.name.toString() || ''
+                                }
+                                onValueChange={(val) =>
+                                    setClassifyPriorityId(val ?? '1')
+                                }>
+                                <SelectTrigger id='classify-priority'>
+                                    <SelectValue placeholder='Select...' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {priorities.map((p) => (
+                                            <SelectItem
+                                                key={p.id}
+                                                value={String(p.id)}>
+                                                <ColorDot color={p.color} />
+                                                {p.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                        {isAdmin && (
+                            <>
+                                <Field>
+                                    <FieldLabel htmlFor='classify-referral'>
+                                        Referral
+                                    </FieldLabel>
+                                    <Select
+                                        value={
+                                            referralOptions.find(
+                                                (r) =>
+                                                    r.id ===
+                                                    Number(classifyReferralId)
+                                            )?.name || ''
+                                        }
+                                        onValueChange={(val) =>
+                                            setClassifyReferralId(val ?? '')
+                                        }>
+                                        <SelectTrigger id='classify-referral'>
+                                            <SelectValue placeholder='Select...' />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectItem value=''>
+                                                    None
+                                                </SelectItem>
+                                                {referralOptions.map((r) => (
+                                                    <SelectItem
+                                                        key={r.id}
+                                                        value={String(r.id)}>
+                                                        {r.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor='classify-assigned'>
+                                        Assigned To
+                                    </FieldLabel>
+                                    <Select
+                                        value={
+                                            users.find(
+                                                (u) =>
+                                                    u.id === classifyAssignedTo
+                                            )?.name || ''
+                                        }
+                                        onValueChange={(val) =>
+                                            setClassifyAssignedTo(val ?? '')
+                                        }>
+                                        <SelectTrigger id='classify-assigned'>
+                                            <SelectValue placeholder='Select...' />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                {users.map((u) => (
+                                                    <SelectItem
+                                                        key={u.id}
+                                                        value={u.id}>
+                                                        {u.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+</SelectContent>
+                                        </Select>
+                                    </Field>
+                                </>
+                            )}
+                            <Field>
+                                <FieldLabel>Tags</FieldLabel>
+                                <TagSelect
+                                    options={tagOptions}
+                                    selected={classifyTagIds}
+                                    onToggle={toggleClassifyTag}
+                                />
+                            </Field>
+                        </FieldGroup>
+                        <div className='flex justify-end gap-2 pt-2'>
+                            <Button
+                                type='button'
+                                variant='ghost'
+                                onClick={() => setClassifyModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => classifyMutation.mutate()}
+                                disabled={classifyMutation.isPending}>
+                                {classifyMutation.isPending ? (
+                                    <Loader2
+                                        size={16}
+                                        className='animate-spin'
+                                    />
+                                ) : (
+                                    'Save Changes'
+                                )}
+                            </Button>
+                        </div>
                 </DialogContent>
             </Dialog>
         </div>

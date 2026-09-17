@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { eq, sql, and, gte, lte, inArray } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
-import { customers, status, priority, referrals } from '@/db/schema'
+import {
+    customers,
+    status,
+    priority,
+    referrals,
+    customerTags,
+    tags
+} from '@/db/schema'
 
 export async function GET(request: Request) {
     const session = await auth.api.getSession({
@@ -16,13 +24,22 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const statusIds = searchParams.get('statusIds')?.split(',').map(Number).filter(Boolean)
     const referralCode = searchParams.get('referralCode')
+    const tagIds = searchParams.get('tagIds')?.split(',').map(Number).filter(Boolean)
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
 
-    const conditions = []
+    const conditions: SQL[] = []
 
     if (statusIds && statusIds.length > 0) {
         conditions.push(inArray(customers.statusId, statusIds))
+    }
+
+    if (tagIds && tagIds.length > 0) {
+        const tagSubquery = db
+            .select({ customerId: customerTags.customerId })
+            .from(customerTags)
+            .where(inArray(customerTags.tagId, tagIds))
+        conditions.push(inArray(customers.id, tagSubquery))
     }
 
     if (referralCode) {
@@ -40,6 +57,7 @@ export async function GET(request: Request) {
                 byTravelTime: [],
                 byMonth: [],
                 byReferral: [],
+                byTag: [],
                 total: 0,
                 thisMonth: 0,
                 lastMonth: 0
@@ -132,12 +150,37 @@ export async function GET(request: Request) {
         .map(([month, value]) => ({ month, value }))
         .sort((a, b) => a.month.localeCompare(b.month))
 
+    const allTagRows =
+        allCustomers.length > 0
+            ? await db
+                  .select({
+                      customerId: customerTags.customerId,
+                      tagId: tags.id,
+                      tagName: tags.tag,
+                      tagColor: tags.color
+                  })
+                  .from(customerTags)
+                  .innerJoin(tags, eq(customerTags.tagId, tags.id))
+                  .where(
+                      inArray(
+                          customerTags.customerId,
+                          allCustomers.map((c) => c.id)
+                      )
+                  )
+            : []
+
+    const byTag: Record<string, number> = {}
+    for (const tr of allTagRows) {
+        byTag[tr.tagName] = (byTag[tr.tagName] || 0) + 1
+    }
+
     return NextResponse.json({
         byStatus: toChartArray(byStatus),
         byPriority: toChartArray(byPriority),
         byTravelTime: toChartArray(byTravelTime),
         byMonth: monthArray,
         byReferral: toChartArray(byReferral),
+        byTag: toChartArray(byTag),
         total: allCustomers.length,
         thisMonth: thisMonthCount,
         lastMonth: lastMonthCount

@@ -76,6 +76,22 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
                 </Link>
+                <Link href='/admin/tags'>
+                    <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
+                        <CardHeader>
+                            <CardTitle>Tags</CardTitle>
+                            <CardDescription>
+                                Manage lead tags
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className='text-sm text-muted-foreground'>
+                                Create, edit, activate, or deactivate tags to
+                                classify your leads.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </div>
     )

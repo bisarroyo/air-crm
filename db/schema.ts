@@ -3,7 +3,8 @@ import {
     sqliteTable,
     integer,
     text,
-    uniqueIndex
+    uniqueIndex,
+    primaryKey
 } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 import { user } from '@/auth-schema'
@@ -70,6 +71,41 @@ export const referralsRelations = relations(referrals, ({ one, many }) => ({
     customers: many(customers)
 }))
 
+export const tags = sqliteTable('tags', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    tag: text('tag').notNull().unique(),
+    color: text('color').default('#6b7280'),
+    isActive: integer('is_active').notNull().default(1)
+})
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+    customerTags: many(customerTags)
+}))
+
+export const customerTags = sqliteTable(
+    'customer_tags',
+    {
+        customerId: integer('customer_id')
+            .notNull()
+            .references(() => customers.id, { onDelete: 'cascade' }),
+        tagId: integer('tag_id')
+            .notNull()
+            .references(() => tags.id, { onDelete: 'cascade' })
+    },
+    (table) => [primaryKey({ columns: [table.customerId, table.tagId] })]
+)
+
+export const customerTagsRelations = relations(customerTags, ({ one }) => ({
+    customer: one(customers, {
+        fields: [customerTags.customerId],
+        references: [customers.id]
+    }),
+    tag: one(tags, {
+        fields: [customerTags.tagId],
+        references: [tags.id]
+    })
+}))
+
 export const customers = sqliteTable('customers', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),
@@ -102,5 +138,6 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
         fields: [customers.referralId],
         references: [referrals.id]
     }),
-    logs: many(logs)
+    logs: many(logs),
+    customerTags: many(customerTags)
 }))

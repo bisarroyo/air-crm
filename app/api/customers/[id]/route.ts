@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
-import { customers, status, priority, logs, referrals } from '@/db/schema'
+import {
+    customers,
+    status,
+    priority,
+    logs,
+    customerTags,
+    tags
+} from '@/db/schema'
 import { user } from '@/auth-schema'
+import { getTagNamesByIds, resolveExistingTagIds } from '@/lib/tags'
 
 export async function GET(
     _request: Request,
@@ -54,7 +62,27 @@ export async function GET(
         )
     }
 
-    return NextResponse.json(row)
+    const tagRows = await db
+        .select({
+            customerId: customerTags.customerId,
+            tagId: tags.id,
+            tagName: tags.tag,
+            tagColor: tags.color,
+            tagIsActive: tags.isActive
+        })
+        .from(customerTags)
+        .innerJoin(tags, eq(customerTags.tagId, tags.id))
+        .where(eq(customerTags.customerId, Number(id)))
+
+    return NextResponse.json({
+        ...row,
+        tags: tagRows.map((t) => ({
+            id: t.tagId,
+            name: t.tagName,
+            color: t.tagColor || '#6b7280',
+            isActive: t.tagIsActive
+        }))
+    })
 }
 
 export async function PUT(
@@ -86,7 +114,9 @@ export async function PUT(
             : Number(body.referralId)
     }
 
-    if (Object.keys(updateData).length === 0) {
+    const hasTagChange = body.tagIds !== undefined
+
+    if (Object.keys(updateData).length === 0 && !hasTagChange) {
         return NextResponse.json(
             { error: 'No fields to update' },
             { status: 400 }
@@ -107,27 +137,84 @@ export async function PUT(
             )
         }
 
-        const [updated] = await db
-            .update(customers)
-            .set(updateData)
-            .where(eq(customers.id, Number(id)))
-            .returning()
+        let updatedContact = existing
+        if (Object.keys(updateData).length > 0) {
+            const [updated] = await db
+                .update(customers)
+                .set(updateData)
+                .where(eq(customers.id, Number(id)))
+                .returning()
 
-        if (!updated) {
-            return NextResponse.json(
-                { error: 'Customer not found' },
-                { status: 404 }
-            )
+            if (!updated) {
+                return NextResponse.json(
+                    { error: 'Customer not found' },
+                    { status: 404 }
+                )
+            }
+            updatedContact = updated
         }
 
         const changedFields: Record<
             string,
-            { from: string | number | Date | null | undefined; to: string | number | Date | null | undefined }
+            {
+                from: string | number | Date | null | undefined
+                to: string | number | Date | null | undefined
+            } | { from: string[]; to: string[] }
         > = {}
         for (const [key, newValue] of Object.entries(updateData)) {
             const oldValue = existing[key as keyof typeof existing]
             if (String(oldValue) !== String(newValue)) {
                 changedFields[key] = { from: oldValue, to: newValue }
+            }
+        }
+
+        if (hasTagChange) {
+            const existingTagRows = await db
+                .select({ tagId: customerTags.tagId })
+                .from(customerTags)
+                .where(eq(customerTags.customerId, Number(id)))
+            const existingTagIds = existingTagRows.map((t) => t.tagId)
+            const desiredTagIds = await resolveExistingTagIds(body.tagIds)
+
+            const removed = existingTagIds.filter(
+                (tid) => !desiredTagIds.includes(tid)
+            )
+            const added = desiredTagIds.filter(
+                (tid) => !existingTagIds.includes(tid)
+            )
+
+            if (removed.length > 0) {
+                await db
+                    .delete(customerTags)
+                    .where(
+                        and(
+                            eq(customerTags.customerId, Number(id)),
+                            inArray(customerTags.tagId, removed)
+                        )
+                    )
+            }
+            if (added.length > 0) {
+                await db.insert(customerTags).values(
+                    added.map((tagId) => ({
+                        customerId: Number(id),
+                        tagId
+                    }))
+                )
+            }
+
+            if (added.length > 0 || removed.length > 0) {
+                const nameMap = await getTagNamesByIds([
+                    ...existingTagIds,
+                    ...desiredTagIds
+                ])
+                const names = (ids: number[]) =>
+                    ids
+                        .map((tid) => nameMap.get(tid))
+                        .filter((n): n is string => Boolean(n))
+                changedFields.tags = {
+                    from: names(existingTagIds),
+                    to: names(desiredTagIds)
+                }
             }
         }
 
@@ -140,7 +227,7 @@ export async function PUT(
             })
         }
 
-        return NextResponse.json(updated)
+        return NextResponse.json(updatedContact)
     } catch (error: unknown) {
         const err = error as Error
         return NextResponse.json(
