@@ -10,7 +10,6 @@ import {
     Trash2,
     UserRound
 } from 'lucide-react'
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -370,6 +369,14 @@ export default function CustomerDetailPage() {
         onError: (error: Error) => toast.error(error.message)
     })
 
+    const handleBack = () => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back()
+        } else {
+            router.push('/')
+        }
+    }
+
     const openEdit = () => {
         if (!customer) return
         form.reset({
@@ -413,11 +420,13 @@ export default function CustomerDetailPage() {
     return (
         <div className='container mx-auto p-6'>
             <div className='mb-6 flex items-center gap-4'>
-                <Link href='/'>
-                    <Button variant='ghost' size='icon-sm'>
-                        <ArrowLeft size={16} />
-                    </Button>
-                </Link>
+                <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label='Go back'
+                    onClick={handleBack}>
+                    <ArrowLeft size={16} />
+                </Button>
                 <div className='flex-1'>
                     <h1 className='text-xl font-medium'>{customer.name}</h1>
                     <p className='text-sm text-muted-foreground'>

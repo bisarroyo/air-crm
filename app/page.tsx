@@ -17,7 +17,8 @@ import {
     X
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -150,18 +151,46 @@ function ColorDot({ color }: { color: string }) {
 }
 
 export default function Home() {
+    return (
+        <Suspense
+            fallback={
+                <div className='flex min-h-[70vh] items-center justify-center'>
+                    <Loader2
+                        size={24}
+                        className='animate-spin text-muted-foreground'
+                    />
+                </div>
+            }>
+            <HomeContent />
+        </Suspense>
+    )
+}
+
+function HomeContent() {
     const queryClient = useQueryClient()
+    const router = useRouter()
+    const searchParams = useSearchParams()
     const { session, isPending: sessionLoading } = useSession()
     const isAdmin = session?.user.role === 'admin'
 
-    const [search, setSearch] = useState('')
-    const [filterStatusId, setFilterStatusId] = useState('')
-    const [filterPriorityId, setFilterPriorityId] = useState('')
-    const [filterAssignedTo, setFilterAssignedTo] = useState('')
-    const [filterTagId, setFilterTagId] = useState('')
+    const [search, setSearch] = useState(searchParams.get('search') ?? '')
+    const [filterStatusId, setFilterStatusId] = useState(
+        searchParams.get('statusId') ?? '1'
+    )
+    const [filterPriorityId, setFilterPriorityId] = useState(
+        searchParams.get('priorityId') ?? ''
+    )
+    const [filterAssignedTo, setFilterAssignedTo] = useState(
+        searchParams.get('assignedTo') ?? ''
+    )
+    const [filterTagId, setFilterTagId] = useState(
+        searchParams.get('tagId') ?? ''
+    )
     const initialFilterRef = useRef(false)
-    const [page, setPage] = useState(1)
-    const [pageSize, setPageSize] = useState(25)
+    const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
+    const [pageSize, setPageSize] = useState(
+        Number(searchParams.get('pageSize')) || 25
+    )
     const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
         undefined
     )
@@ -291,11 +320,13 @@ export default function Home() {
     }) as { data: TagOption[] | undefined }
 
     useEffect(() => {
-        if (!initialFilterRef.current && session?.user.id) {
+        if (initialFilterRef.current || !session?.user.id) return
+        if (searchParams.get('assignedTo') === null) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFilterAssignedTo(session.user.id)
-            initialFilterRef.current = true
         }
-    }, [session?.user.id])
+        initialFilterRef.current = true
+    }, [session?.user.id, searchParams])
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -304,6 +335,28 @@ export default function Home() {
             if (debounceRef.current) clearTimeout(debounceRef.current)
         }
     }, [search, filterStatusId, filterPriorityId, filterAssignedTo, filterTagId])
+
+    useEffect(() => {
+        const url = new URLSearchParams()
+        if (search) url.set('search', search)
+        if (filterStatusId) url.set('statusId', filterStatusId)
+        if (filterPriorityId) url.set('priorityId', filterPriorityId)
+        if (filterAssignedTo) url.set('assignedTo', filterAssignedTo)
+        if (filterTagId) url.set('tagId', filterTagId)
+        if (page > 1) url.set('page', String(page))
+        if (pageSize !== 25) url.set('pageSize', String(pageSize))
+        const qs = url.toString()
+        router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+    }, [
+        search,
+        filterStatusId,
+        filterPriorityId,
+        filterAssignedTo,
+        filterTagId,
+        page,
+        pageSize,
+        router
+    ])
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
