@@ -16,7 +16,6 @@ import {
     Legend
 } from 'recharts'
 import {
-    Loader2,
     TrendingUp,
     Users,
     Calendar,
@@ -25,6 +24,7 @@ import {
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlobeLoader } from '@/components/ui/globe-loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -272,12 +272,7 @@ export default function ReportsPage() {
             </Card>
 
             {isLoading || !report ? (
-                <div className='flex items-center justify-center py-16'>
-                    <Loader2
-                        size={24}
-                        className='animate-spin text-muted-foreground'
-                    />
-                </div>
+                <GlobeLoader fullScreen={false} className='py-16' />
             ) : (
                 <>
                     <div className='grid gap-4 md:grid-cols-4'>

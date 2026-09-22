@@ -41,7 +41,12 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import { TagPill, TagSelect, type TagOption } from '@/components/tags'
+import { CustomerNotesTasks } from '@/components/customer/notes-tasks'
+import { EventCard } from '@/components/events/events-card'
+import { QuotationCard } from '@/components/cotizaciones/card'
 import { useSession } from '@/hooks/use-session'
+import { GlobeLoader } from '@/components/ui/globe-loader'
+import { COUNTRY_OPTIONS } from '@/lib/countries'
 
 interface CustomerDetail {
     id: number
@@ -49,6 +54,7 @@ interface CustomerDetail {
     phone: string
     email: string
     travelTime: string
+    country: string | null
     statusId: number
     priorityId: number
     assignedTo: string
@@ -95,6 +101,7 @@ const customerSchema = z.object({
     email: z.string().email('Invalid email'),
     phone: z.string().min(1, 'Phone is required'),
     travelTime: z.string().min(1, 'Travel time is required'),
+    country: z.string().optional(),
     statusId: z.string().min(1),
     priorityId: z.string().min(1),
     assignedTo: z.string().optional(),
@@ -120,6 +127,7 @@ const FIELD_LABELS: Record<string, string> = {
     phone: 'Phone',
     travelTime: 'Travel Time',
     travel_time: 'Travel Time',
+    country: 'Country',
     statusId: 'Status',
     priorityId: 'Priority',
     assignedTo: 'Assigned To',
@@ -232,6 +240,7 @@ export default function CustomerDetailPage() {
             email: '',
             phone: '',
             travelTime: '',
+            country: '',
             statusId: '1',
             priorityId: '1',
             assignedTo: '',
@@ -246,7 +255,7 @@ export default function CustomerDetailPage() {
             if (!res.ok) {
                 if (res.status === 404) {
                     toast.error('Customer not found')
-                    router.push('/')
+                    router.push('/leads')
                 }
                 throw new Error('Failed to fetch')
             }
@@ -296,12 +305,14 @@ export default function CustomerDetailPage() {
     const { data: tagOptions = [] } = useQuery({
         queryKey: ['tags'],
         queryFn: () => fetch('/api/tags').then((r) => r.json()),
-        select: (data: Array<{
-            id: number
-            tag: string
-            color: string
-            isActive: number
-        }>) =>
+        select: (
+            data: Array<{
+                id: number
+                tag: string
+                color: string
+                isActive: number
+            }>
+        ) =>
             data
                 .filter((t) => t.isActive)
                 .map((t) => ({
@@ -330,7 +341,9 @@ export default function CustomerDetailPage() {
                     ...data,
                     statusId: Number(data.statusId),
                     priorityId: Number(data.priorityId),
-                    referralId: data.referralId ? Number(data.referralId) : null,
+                    referralId: data.referralId
+                        ? Number(data.referralId)
+                        : null,
                     tagIds: selectedTagIds
                 })
             })
@@ -364,7 +377,7 @@ export default function CustomerDetailPage() {
         onSuccess: () => {
             toast.success('Customer deleted')
             queryClient.invalidateQueries({ queryKey: ['customers'] })
-            router.push('/')
+            router.push('/leads')
         },
         onError: (error: Error) => toast.error(error.message)
     })
@@ -373,7 +386,7 @@ export default function CustomerDetailPage() {
         if (typeof window !== 'undefined' && window.history.length > 1) {
             router.back()
         } else {
-            router.push('/')
+            router.push('/leads')
         }
     }
 
@@ -384,6 +397,7 @@ export default function CustomerDetailPage() {
             email: customer.email,
             phone: customer.phone,
             travelTime: customer.travelTime,
+            country: customer.country || '',
             statusId: String(customer.statusId),
             priorityId: String(customer.priorityId),
             assignedTo: customer.assignedTo || '',
@@ -405,14 +419,7 @@ export default function CustomerDetailPage() {
     }
 
     if (isLoading) {
-        return (
-            <div className='flex items-center justify-center py-32'>
-                <Loader2
-                    size={24}
-                    className='animate-spin text-muted-foreground'
-                />
-            </div>
-        )
+        return <GlobeLoader fullScreen={false} className='py-32' />
     }
 
     if (!customer) return null
@@ -489,6 +496,14 @@ export default function CustomerDetailPage() {
                             <p className='text-sm'>
                                 {travelTimeLabels[customer.travelTime] ||
                                     customer.travelTime}
+                            </p>
+                        </div>
+                        <div>
+                            <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
+                                Country
+                            </p>
+                            <p className='text-sm'>
+                                {customer.country || 'No especificado'}
                             </p>
                         </div>
                     </CardContent>
@@ -604,6 +619,18 @@ export default function CustomerDetailPage() {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+
+            <div className='grid gap-6 md:grid-cols-2'>
+                <div className='md:col-span-2 mt-6'>
+                    <QuotationCard customerId={customer.id} />
+                </div>
+                <div className='md:col-span-2'>
+                    <CustomerNotesTasks customerId={customer.id} />
+                </div>
+                <div className='md:col-span-2'>
+                    <EventCard customerId={customer.id} />
+                </div>
             </div>
 
             <div className='mt-6'>
@@ -815,6 +842,37 @@ export default function CustomerDetailPage() {
                                                 errors={[fieldState.error]}
                                             />
                                         )}
+                                    </Field>
+                                )}
+                            />
+                            <Controller
+                                name='country'
+                                control={form.control}
+                                render={({ field }) => (
+                                    <Field>
+                                        <FieldLabel htmlFor='edit-country'>
+                                            Country
+                                        </FieldLabel>
+                                        <Select
+                                            value={field.value || ''}
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger id='edit-country'>
+                                                <SelectValue placeholder='No especificado' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {COUNTRY_OPTIONS.map(
+                                                        (country) => (
+                                                            <SelectItem
+                                                                key={country}
+                                                                value={country}>
+                                                                {country}
+                                                            </SelectItem>
+                                                        )
+                                                    )}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
                                     </Field>
                                 )}
                             />

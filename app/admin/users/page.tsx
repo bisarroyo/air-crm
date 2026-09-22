@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlobeLoader } from '@/components/ui/globe-loader'
 import {
     Dialog,
     DialogContent,
@@ -348,12 +349,11 @@ export default function AdminUsersPage() {
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
-                            <div className='flex items-center justify-center py-8'>
-                                <Loader2
-                                    size={20}
-                                    className='animate-spin text-muted-foreground'
-                                />
-                            </div>
+                            <GlobeLoader
+                                fullScreen={false}
+                                className='py-8'
+                                size={100}
+                            />
                         ) : (
                             <>
                                 <div className='overflow-x-auto'>

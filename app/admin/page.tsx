@@ -92,6 +92,22 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
                 </Link>
+                <Link href='/admin/quotations'>
+                    <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
+                        <CardHeader>
+                            <CardTitle>Cotizaciones</CardTitle>
+                            <CardDescription>
+                                Catálogo y configuración de cotizaciones
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className='text-sm text-muted-foreground'>
+                                Programas, escuelas, cursos, alojamientos,
+                                extras, descuentos y ajustes de S Travel.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </div>
     )

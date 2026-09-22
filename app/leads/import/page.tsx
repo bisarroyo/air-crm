@@ -27,6 +27,7 @@ import {
     CardHeader,
     CardTitle
 } from '@/components/ui/card'
+import { GlobeLoader } from '@/components/ui/globe-loader'
 import { TagSelect, type TagOption } from '@/components/tags'
 import { useSession } from '@/hooks/use-session'
 import {
@@ -291,14 +292,7 @@ export default function ImportLeadsPage() {
     const validCount = reviewData?.summary.valid ?? 0
 
     if (sessionLoading) {
-        return (
-            <div className='flex items-center justify-center py-32'>
-                <Loader2
-                    size={24}
-                    className='animate-spin text-muted-foreground'
-                />
-            </div>
-        )
+        return <GlobeLoader fullScreen={false} className='py-32' />
     }
 
     if (!session) {
@@ -319,7 +313,7 @@ export default function ImportLeadsPage() {
     return (
         <div className='container mx-auto max-w-5xl p-6'>
             <Link
-                href='/'
+                href='/leads'
                 className='mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground'>
                 <ArrowLeft size={14} /> Back to leads
             </Link>
@@ -340,7 +334,7 @@ export default function ImportLeadsPage() {
                             <AlertDescription>
                                 {importResult.imported} leads imported,{' '}
                                 {importResult.skipped} skipped.{' '}
-                                <Link href='/' className='underline'>
+                                <Link href='/leads' className='underline'>
                                     View customers
                                 </Link>
                             </AlertDescription>

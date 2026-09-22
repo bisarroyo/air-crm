@@ -33,6 +33,7 @@ export async function GET(
             phone: customers.phone,
             email: customers.email,
             travelTime: customers.travelTime,
+            country: customers.country,
             statusId: customers.statusId,
             priorityId: customers.priorityId,
             assignedTo: customers.assignedTo,
@@ -104,6 +105,12 @@ export async function PUT(
     if (body.email !== undefined) updateData.email = body.email
     if (body.phone !== undefined) updateData.phone = body.phone
     if (body.travelTime !== undefined) updateData.travelTime = body.travelTime
+    if (body.country !== undefined) {
+        updateData.country =
+            body.country === null || body.country === ''
+                ? null
+                : String(body.country)
+    }
     if (body.statusId !== undefined) updateData.statusId = Number(body.statusId)
     if (body.priorityId !== undefined)
         updateData.priorityId = Number(body.priorityId)

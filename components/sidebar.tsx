@@ -5,6 +5,7 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
+    FileText,
     FileUp,
     Flag,
     Gauge,
@@ -89,7 +90,7 @@ export function Sidebar() {
             icon: Users,
             defaultOpen: true,
             items: [
-                { href: '/', label: 'All Leads', icon: Users },
+                { href: '/leads', label: 'All Leads', icon: Users },
                 { href: '/leads/import', label: 'Import', icon: FileUp }
             ]
         },
@@ -112,7 +113,8 @@ export function Sidebar() {
                         { href: '/admin/status', label: 'Status', icon: Flag },
                         { href: '/admin/priority', label: 'Priority', icon: Layers },
                         { href: '/admin/referrals', label: 'Referrals', icon: Link2 },
-                        { href: '/admin/tags', label: 'Tags', icon: Tag }
+                        { href: '/admin/tags', label: 'Tags', icon: Tag },
+                        { href: '/admin/quotations', label: 'Cotizaciones', icon: FileText }
                     ]
                 } as MenuSection
             ]

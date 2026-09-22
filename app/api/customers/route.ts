@@ -87,6 +87,7 @@ export async function GET(request: Request) {
             phone: customers.phone,
             email: customers.email,
             travelTime: customers.travelTime,
+            country: customers.country,
             statusId: customers.statusId,
             priorityId: customers.priorityId,
             assignedTo: customers.assignedTo,
@@ -181,6 +182,7 @@ export async function POST(request: Request) {
                 email: body.email,
                 phone: body.phone,
                 travelTime: body.travelTime,
+                country: body.country || null,
                 statusId: body.statusId || 1,
                 priorityId: body.priorityId || 1,
                 assignedTo:
@@ -208,7 +210,8 @@ export async function POST(request: Request) {
                 name: body.name,
                 email: body.email,
                 phone: body.phone,
-                travelTime: body.travelTime
+                travelTime: body.travelTime,
+                country: body.country || null
             }),
             userId: session.user.id
         })
