@@ -9,7 +9,9 @@ import {
     FileUp,
     CalendarClock,
     Loader2,
+    Mail,
     MessageCircle,
+    MessageSquareText,
     Pencil,
     Plus,
     Search,
@@ -630,6 +632,68 @@ function HomeContent() {
                             </p>
                         </div>
                         <div className='flex items-center gap-2'>
+                            <Button
+                                variant='outline'
+                                size='sm'
+                                title='Copiar nombre y teléfono de los leads visibles'
+                                onClick={async () => {
+                                    const lines = customers
+                                        .map(
+                                            (c) =>
+                                                `${c.name}, ${c.phone}`
+                                        )
+                                        .filter((line) => line.trim())
+                                    if (lines.length === 0) {
+                                        toast.error(
+                                            'No hay leads para copiar'
+                                        )
+                                        return
+                                    }
+                                    try {
+                                        await navigator.clipboard.writeText(
+                                            lines.join('\n')
+                                        )
+                                        toast.success(
+                                            `${lines.length} contactos copiados al portapapeles`
+                                        )
+                                    } catch {
+                                        toast.error(
+                                            'No se pudo copiar los contactos'
+                                        )
+                                    }
+                                }}>
+                                <MessageSquareText size={16} /> Copy WA Sender
+                            </Button>
+                            <Button
+                                variant='outline'
+                                size='sm'
+                                title='Copiar los correos de los leads visibles'
+                                onClick={async () => {
+                                    const emails = customers
+                                        .map((c) => c.email)
+                                        .filter(Boolean)
+                                        .join(', ')
+                                    if (!emails) {
+                                        toast.error(
+                                            'No hay leads para copiar'
+                                        )
+                                        return
+                                    }
+                                    try {
+                                        await navigator.clipboard.writeText(
+                                            emails
+                                        )
+                                        toast.success(
+                                            `${customers.length} correos copiados al portapapeles`
+                                        )
+                                    } catch {
+                                        toast.error(
+                                            'No se pudo copiar los correos'
+                                        )
+                                    }
+                                }}>
+                                <Mail size={16} /> Copy Emails
+                            </Button>
                             <Link href='/leads/import'>
                                 <Button variant='outline' size='sm'>
                                     <FileUp size={16} /> Import CSV
