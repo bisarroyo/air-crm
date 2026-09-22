@@ -23,7 +23,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { TimePicker } from '@/components/ui/time-picker'
-import { type EventType, normalizeMeetingLink } from './shared'
+import {
+    type CustomerEvent,
+    type EventType,
+    normalizeMeetingLink
+} from './shared'
 
 const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: string }> = [
     { value: 'videollamada', label: 'Videollamada' },
@@ -72,52 +76,137 @@ function defaultScheduledAtTime() {
     return `${hours}:${minutes}`
 }
 
+function scheduledAtToLocalParts(value: string | null) {
+    if (!value) return null
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return null
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return {
+        date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+        time: `${pad(d.getHours())}:${pad(d.getMinutes())}`
+    }
+}
+
 function EventForm({
     customerId,
+    event,
     onDone
 }: {
     customerId: number
+    event?: CustomerEvent
     onDone: () => void
 }) {
     const queryClient = useQueryClient()
 
-    const [type, setType] = useState<EventType>('charla')
-    const [title, setTitle] = useState('')
-    const [scheduledDate, setScheduledDate] = useState(defaultScheduledAtDate())
-    const [scheduledTime, setScheduledTime] = useState(defaultScheduledAtTime())
-    const [meetingLink, setMeetingLink] = useState('')
+    const initialParts = event
+        ? scheduledAtToLocalParts(event.scheduledAt)
+        : null
+
+    const [type, setType] = useState<EventType>(event?.type ?? 'charla')
+    const [title, setTitle] = useState(event?.title ?? '')
+    const [scheduledDate, setScheduledDate] = useState(
+        initialParts?.date ?? defaultScheduledAtDate()
+    )
+    const [scheduledTime, setScheduledTime] = useState(
+        initialParts?.time ?? defaultScheduledAtTime()
+    )
+    const [meetingLink, setMeetingLink] = useState(event?.meetingLink ?? '')
+    const isEditing = event != null
+
+    function buildScheduledAt() {
+        if (!scheduledDate || !scheduledTime) return null
+        const dateTime = new Date(`${scheduledDate}T${scheduledTime}`)
+        if (Number.isNaN(dateTime.getTime())) return null
+        return dateTime.toISOString()
+    }
 
     const mutation = useMutation({
         mutationFn: async () => {
-            let scheduledAt: string | null = null
-            if (scheduledDate && scheduledTime) {
-                const dateTime = new Date(`${scheduledDate}T${scheduledTime}`)
-                scheduledAt = dateTime.toISOString()
+            const payload = {
+                type,
+                title,
+                scheduledAt: buildScheduledAt(),
+                meetingLink: normalizeMeetingLink(meetingLink)
             }
-            const res = await fetch(`/api/customers/${customerId}/events`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type,
-                    title,
-                    scheduledAt,
-                    meetingLink: normalizeMeetingLink(meetingLink)
-                })
-            })
+            const res = await fetch(
+                event
+                    ? `/api/customers/${customerId}/events/${event.id}`
+                    : `/api/customers/${customerId}/events`,
+                {
+                    method: event ? 'PATCH' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }
+            )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to create event')
+                throw new Error(err.error || 'Failed to save event')
             }
             return res.json()
         },
-        onSuccess: () => {
-            toast.success('Evento creado')
-            onDone()
-            queryClient.invalidateQueries({
+        onMutate: async () => {
+            await queryClient.cancelQueries({
                 queryKey: ['events', customerId]
             })
+            const previous = queryClient.getQueryData<CustomerEvent[]>([
+                'events',
+                customerId
+            ])
+            const scheduledAt = buildScheduledAt()
+            if (event) {
+                queryClient.setQueryData<CustomerEvent[]>(
+                    ['events', customerId],
+                    (old) =>
+                        old?.map((e) =>
+                            e.id === event.id
+                                ? {
+                                      ...e,
+                                      type,
+                                      title,
+                                      scheduledAt,
+                                      meetingLink:
+                                          normalizeMeetingLink(meetingLink) ||
+                                          null
+                                  }
+                                : e
+                        ) ?? []
+                )
+            } else {
+                const optimisticEvent: CustomerEvent = {
+                    id: -Date.now(),
+                    type,
+                    title,
+                    scheduledAt,
+                    status: 'pending',
+                    meetingLink: normalizeMeetingLink(meetingLink) || null,
+                    createdAt: new Date().toISOString(),
+                    userId: null,
+                    userName: null,
+                    userEmail: null
+                }
+                queryClient.setQueryData<CustomerEvent[]>(
+                    ['events', customerId],
+                    (old) => [optimisticEvent, ...(old ?? [])]
+                )
+            }
+            return { previous }
         },
-        onError: (error: Error) => toast.error(error.message)
+        onSuccess: () => {
+            toast.success(isEditing ? 'Evento actualizado' : 'Evento creado')
+            onDone()
+        },
+        onError: (error: Error, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['events', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['events', customerId] })
+        }
     })
 
     return (
@@ -201,6 +290,8 @@ function EventForm({
                 <Button type='submit' disabled={mutation.isPending}>
                     {mutation.isPending ? (
                         <Loader2 size={16} className='animate-spin' />
+                    ) : isEditing ? (
+                        'Guardar cambios'
                     ) : (
                         'Crear evento'
                     )}
@@ -237,6 +328,43 @@ export function CreateEventDialog({
                 <EventForm
                     key={String(open)}
                     customerId={customerId}
+                    onDone={() => onOpenChange(false)}
+                />
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+export function EditEventDialog({
+    customerId,
+    event,
+    open,
+    onOpenChange
+}: {
+    customerId: number
+    event: CustomerEvent
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className='sm:max-w-md'>
+                <DialogHeader>
+                    <DialogTitle className='flex items-center gap-2'>
+                        <CalendarClock
+                            size={16}
+                            className='text-muted-foreground'
+                        />
+                        Editar evento
+                    </DialogTitle>
+                    <DialogDescription>
+                        Actualiza los detalles del evento.
+                    </DialogDescription>
+                </DialogHeader>
+                <EventForm
+                    key={String(open)}
+                    customerId={customerId}
+                    event={event}
                     onDone={() => onOpenChange(false)}
                 />
             </DialogContent>

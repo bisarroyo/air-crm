@@ -6,6 +6,7 @@ import {
     Bell,
     CalendarClock,
     Loader2,
+    Pencil,
     Plus,
     StickyNote,
     Trash2
@@ -17,6 +18,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlobeLoader } from '@/components/ui/globe-loader'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
     Select,
@@ -108,6 +117,131 @@ function fromDateInputValue(value: string) {
     return Number.isNaN(date.getTime()) ? null : date
 }
 
+function toDateInputValue(value: string | null) {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function NoteEditDialog({
+    customerId,
+    note,
+    open,
+    onOpenChange
+}: {
+    customerId: number
+    note: Note
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}) {
+    const queryClient = useQueryClient()
+    const [text, setText] = useState(note.note)
+
+    const mutation = useMutation({
+        mutationFn: async () => {
+            const res = await fetch(
+                `/api/customers/${customerId}/notes/${note.id}`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note: text.trim() })
+                }
+            )
+            if (!res.ok) {
+                const err = await res.json()
+                throw new Error(err.error || 'Failed to update note')
+            }
+            return res.json()
+        },
+        onMutate: async () => {
+            await queryClient.cancelQueries({
+                queryKey: ['notes', customerId]
+            })
+            const previous = queryClient.getQueryData<Note[]>([
+                'notes',
+                customerId
+            ])
+            queryClient.setQueryData<Note[]>(['notes', customerId], (old) =>
+                old?.map((n) =>
+                    n.id === note.id ? { ...n, note: text.trim() } : n
+                ) ?? []
+            )
+            return { previous }
+        },
+        onSuccess: () => {
+            toast.success('Nota actualizada')
+            onOpenChange(false)
+        },
+        onError: (error: Error, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['notes', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['notes', customerId] })
+        }
+    })
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className='sm:max-w-md'>
+                <DialogHeader>
+                    <DialogTitle className='flex items-center gap-2'>
+                        <StickyNote
+                            size={16}
+                            className='text-muted-foreground'
+                        />
+                        Editar nota
+                    </DialogTitle>
+                    <DialogDescription>
+                        Actualiza el contenido de la nota.
+                    </DialogDescription>
+                </DialogHeader>
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        if (text.trim()) mutation.mutate()
+                    }}
+                    className='grid gap-4'>
+                    <Field>
+                        <FieldLabel>Contenido</FieldLabel>
+                        <textarea
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            rows={4}
+                            autoFocus
+                            className='w-full resize-none rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30'
+                        />
+                    </Field>
+                    <div className='flex justify-end gap-2 pt-2'>
+                        <Button
+                            type='button'
+                            variant='ghost'
+                            onClick={() => onOpenChange(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            type='submit'
+                            disabled={!text.trim() || mutation.isPending}>
+                            {mutation.isPending ? (
+                                <Loader2 size={14} className='animate-spin' />
+                            ) : (
+                                'Guardar cambios'
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 function NoteCard({ customerId }: { customerId: number }) {
     const queryClient = useQueryClient()
     const { session } = useSession()
@@ -115,6 +249,7 @@ function NoteCard({ customerId }: { customerId: number }) {
 
     const [noteText, setNoteText] = useState('')
     const [pendingId, setPendingId] = useState<number | null>(null)
+    const [editingNote, setEditingNote] = useState<Note | null>(null)
 
     const { data: notes = [], isLoading } = useQuery<Note[]>({
         queryKey: ['notes', customerId],
@@ -138,11 +273,43 @@ function NoteCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
+        onMutate: async () => {
+            await queryClient.cancelQueries({
+                queryKey: ['notes', customerId]
+            })
+            const previous = queryClient.getQueryData<Note[]>([
+                'notes',
+                customerId
+            ])
+            const optimistic: Note = {
+                id: -Date.now(),
+                note: noteText.trim(),
+                createdAt: new Date().toISOString(),
+                userId: session?.user?.id ?? null,
+                userName: session?.user?.name ?? null,
+                userEmail: session?.user?.email ?? null
+            }
+            queryClient.setQueryData<Note[]>(['notes', customerId], (old) => [
+                optimistic,
+                ...(old ?? [])
+            ])
+            return { previous }
+        },
         onSuccess: () => {
             setNoteText('')
-            queryClient.invalidateQueries({ queryKey: ['notes', customerId] })
         },
-        onError: (error: Error) => toast.error(error.message)
+        onError: (error: Error, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['notes', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['notes', customerId] })
+        }
     })
 
     const deleteMutation = useMutation({
@@ -157,14 +324,33 @@ function NoteCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
-        onMutate: (noteId) => setPendingId(noteId),
-        onSuccess: () => {
+        onMutate: async (noteId) => {
+            setPendingId(noteId)
+            await queryClient.cancelQueries({
+                queryKey: ['notes', customerId]
+            })
+            const previous = queryClient.getQueryData<Note[]>([
+                'notes',
+                customerId
+            ])
+            queryClient.setQueryData<Note[]>(['notes', customerId], (old) =>
+                old?.filter((n) => n.id !== noteId) ?? []
+            )
+            return { previous }
+        },
+        onError: (error: Error, _variables, context) => {
+            setPendingId(null)
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['notes', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
             setPendingId(null)
             queryClient.invalidateQueries({ queryKey: ['notes', customerId] })
-        },
-        onError: (error: Error) => {
-            setPendingId(null)
-            toast.error(error.message)
         }
     })
 
@@ -247,27 +433,45 @@ function NoteCard({ customerId }: { customerId: number }) {
                                         )}
                                     </span>
                                     {canDelete(note) && (
-                                        <Button
-                                            variant='ghost'
-                                            size='icon-xs'
-                                            aria-label='Eliminar nota'
-                                            onClick={() =>
-                                                deleteMutation.mutate(note.id)
-                                            }
-                                            disabled={
-                                                deleteMutation.isPending &&
-                                                pendingId === note.id
-                                            }>
-                                            {deleteMutation.isPending &&
-                                            pendingId === note.id ? (
-                                                <Loader2
-                                                    size={12}
-                                                    className='animate-spin'
-                                                />
-                                            ) : (
-                                                <Trash2 size={12} />
-                                            )}
-                                        </Button>
+                                        <>
+                                            <Button
+                                                variant='ghost'
+                                                size='icon-xs'
+                                                aria-label='Editar nota'
+                                                title='Editar nota'
+                                                onClick={() =>
+                                                    setEditingNote(note)
+                                                }
+                                                disabled={
+                                                    deleteMutation.isPending &&
+                                                    pendingId === note.id
+                                                }>
+                                                <Pencil size={12} />
+                                            </Button>
+                                            <Button
+                                                variant='ghost'
+                                                size='icon-xs'
+                                                aria-label='Eliminar nota'
+                                                onClick={() =>
+                                                    deleteMutation.mutate(
+                                                        note.id
+                                                    )
+                                                }
+                                                disabled={
+                                                    deleteMutation.isPending &&
+                                                    pendingId === note.id
+                                                }>
+                                                {deleteMutation.isPending &&
+                                                pendingId === note.id ? (
+                                                    <Loader2
+                                                        size={12}
+                                                        className='animate-spin'
+                                                    />
+                                                ) : (
+                                                    <Trash2 size={12} />
+                                                )}
+                                            </Button>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -275,6 +479,16 @@ function NoteCard({ customerId }: { customerId: number }) {
                     </div>
                 )}
             </CardContent>
+            {editingNote && (
+                <NoteEditDialog
+                    customerId={customerId}
+                    note={editingNote}
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) setEditingNote(null)
+                    }}
+                />
+            )}
         </Card>
     )
 }
@@ -343,6 +557,174 @@ function formatDueDate(dueDate: Date) {
     )
 }
 
+function TaskEditDialog({
+    customerId,
+    task,
+    open,
+    onOpenChange
+}: {
+    customerId: number
+    task: Task
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}) {
+    const queryClient = useQueryClient()
+    const [title, setTitle] = useState(task.title)
+    const [dueDate, setDueDate] = useState(toDateInputValue(task.dueDate))
+    const [urgency, setUrgency] = useState<Task['urgency']>(task.urgency)
+
+    const mutation = useMutation({
+        mutationFn: async () => {
+            const date = fromDateInputValue(dueDate)
+            const res = await fetch(
+                `/api/customers/${customerId}/tasks/${task.id}`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        dueDate: date ? date.toISOString() : null,
+                        urgency
+                    })
+                }
+            )
+            if (!res.ok) {
+                const err = await res.json()
+                throw new Error(err.error || 'Failed to update task')
+            }
+            return res.json()
+        },
+        onMutate: async () => {
+            await queryClient.cancelQueries({
+                queryKey: ['tasks', customerId]
+            })
+            const previous = queryClient.getQueryData<Task[]>([
+                'tasks',
+                customerId
+            ])
+            const date = fromDateInputValue(dueDate)
+            queryClient.setQueryData<Task[]>(['tasks', customerId], (old) =>
+                old?.map((t) =>
+                    t.id === task.id
+                        ? {
+                              ...t,
+                              title: title.trim(),
+                              dueDate: date ? date.toISOString() : null,
+                              urgency
+                          }
+                        : t
+                ) ?? []
+            )
+            return { previous }
+        },
+        onSuccess: () => {
+            toast.success('Tarea actualizada')
+            onOpenChange(false)
+        },
+        onError: (error: Error, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['tasks', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks', customerId] })
+        }
+    })
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className='sm:max-w-md'>
+                <DialogHeader>
+                    <DialogTitle className='flex items-center gap-2'>
+                        <CalendarClock
+                            size={16}
+                            className='text-muted-foreground'
+                        />
+                        Editar tarea
+                    </DialogTitle>
+                    <DialogDescription>
+                        Actualiza los detalles de la tarea.
+                    </DialogDescription>
+                </DialogHeader>
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        if (title.trim())
+                            mutation.mutate()
+                    }}
+                    className='grid gap-4'>
+                    <FieldGroup>
+                        <Field>
+                            <FieldLabel>Título</FieldLabel>
+                            <Input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder='Título de la tarea'
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Fecha de vencimiento</FieldLabel>
+                            <DatePicker
+                                value={dueDate}
+                                onChange={setDueDate}
+                                placeholder='Fecha de vencimiento'
+                                aria-label='Fecha de vencimiento'
+                                className='w-full'
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Urgencia</FieldLabel>
+                            <Select
+                                value={urgency}
+                                onValueChange={(value) =>
+                                    setUrgency(value as Task['urgency'])
+                                }>
+                                <SelectTrigger className='w-full'>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value='high'>
+                                            Alta
+                                        </SelectItem>
+                                        <SelectItem value='medium'>
+                                            Media
+                                        </SelectItem>
+                                        <SelectItem value='low'>
+                                            Baja
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                    </FieldGroup>
+                    <div className='flex justify-end gap-2 pt-2'>
+                        <Button
+                            type='button'
+                            variant='ghost'
+                            onClick={() => onOpenChange(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            type='submit'
+                            disabled={!title.trim() || mutation.isPending}>
+                            {mutation.isPending ? (
+                                <Loader2 size={14} className='animate-spin' />
+                            ) : (
+                                'Guardar cambios'
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 function TaskCard({ customerId }: { customerId: number }) {
     const queryClient = useQueryClient()
     const { session } = useSession()
@@ -353,6 +735,7 @@ function TaskCard({ customerId }: { customerId: number }) {
     const [urgency, setUrgency] = useState<Task['urgency']>('medium')
     const [pendingToggleId, setPendingToggleId] = useState<number | null>(null)
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
+    const [editingTask, setEditingTask] = useState<Task | null>(null)
 
     const { data: tasks = [], isLoading } = useQuery<Task[]>({
         queryKey: ['tasks', customerId],
@@ -381,13 +764,51 @@ function TaskCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
+        onMutate: async () => {
+            await queryClient.cancelQueries({
+                queryKey: ['tasks', customerId]
+            })
+            const previous = queryClient.getQueryData<Task[]>([
+                'tasks',
+                customerId
+            ])
+            const date = fromDateInputValue(dueDate)
+            const optimistic: Task = {
+                id: -Date.now(),
+                title: title.trim(),
+                description: null,
+                dueDate: date ? date.toISOString() : null,
+                urgency,
+                isCompleted: false,
+                completedAt: null,
+                createdAt: new Date().toISOString(),
+                userId: session?.user?.id ?? null,
+                userName: session?.user?.name ?? null,
+                userEmail: session?.user?.email ?? null
+            }
+            queryClient.setQueryData<Task[]>(['tasks', customerId], (old) => [
+                optimistic,
+                ...(old ?? [])
+            ])
+            return { previous }
+        },
         onSuccess: () => {
             setTitle('')
             setDueDate('')
             setUrgency('medium')
-            queryClient.invalidateQueries({ queryKey: ['tasks', customerId] })
         },
-        onError: (error: Error) => toast.error(error.message)
+        onError: (error: Error, _variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['tasks', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks', customerId] })
+        }
     })
 
     const toggleMutation = useMutation({
@@ -406,14 +827,43 @@ function TaskCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
-        onMutate: (task) => setPendingToggleId(task.id),
-        onSuccess: () => {
+        onMutate: async (task) => {
+            setPendingToggleId(task.id)
+            await queryClient.cancelQueries({
+                queryKey: ['tasks', customerId]
+            })
+            const previous = queryClient.getQueryData<Task[]>([
+                'tasks',
+                customerId
+            ])
+            queryClient.setQueryData<Task[]>(['tasks', customerId], (old) =>
+                old?.map((t) =>
+                    t.id === task.id
+                        ? {
+                              ...t,
+                              isCompleted: !t.isCompleted,
+                              completedAt: !t.isCompleted
+                                  ? new Date().toISOString()
+                                  : null
+                          }
+                        : t
+                ) ?? []
+            )
+            return { previous }
+        },
+        onError: (error: Error, _variables, context) => {
+            setPendingToggleId(null)
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['tasks', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
             setPendingToggleId(null)
             queryClient.invalidateQueries({ queryKey: ['tasks', customerId] })
-        },
-        onError: (error: Error) => {
-            setPendingToggleId(null)
-            toast.error(error.message)
         }
     })
 
@@ -429,14 +879,33 @@ function TaskCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
-        onMutate: (taskId) => setPendingDeleteId(taskId),
-        onSuccess: () => {
+        onMutate: async (taskId) => {
+            setPendingDeleteId(taskId)
+            await queryClient.cancelQueries({
+                queryKey: ['tasks', customerId]
+            })
+            const previous = queryClient.getQueryData<Task[]>([
+                'tasks',
+                customerId
+            ])
+            queryClient.setQueryData<Task[]>(['tasks', customerId], (old) =>
+                old?.filter((t) => t.id !== taskId) ?? []
+            )
+            return { previous }
+        },
+        onError: (error: Error, _variables, context) => {
+            setPendingDeleteId(null)
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['tasks', customerId],
+                    context.previous
+                )
+            }
+            toast.error(error.message)
+        },
+        onSettled: () => {
             setPendingDeleteId(null)
             queryClient.invalidateQueries({ queryKey: ['tasks', customerId] })
-        },
-        onError: (error: Error) => {
-            setPendingDeleteId(null)
-            toast.error(error.message)
         }
     })
 
@@ -568,31 +1037,50 @@ function TaskCard({ customerId }: { customerId: number }) {
                                                     ?.label || task.urgency}
                                             </span>
                                             {canDelete(task) && (
-                                                <Button
-                                                    variant='ghost'
-                                                    size='icon-xs'
-                                                    aria-label='Eliminar tarea'
-                                                    onClick={() =>
-                                                        deleteMutation.mutate(
-                                                            task.id
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        deleteMutation.isPending &&
+                                                <>
+                                                    <Button
+                                                        variant='ghost'
+                                                        size='icon-xs'
+                                                        aria-label='Editar tarea'
+                                                        title='Editar tarea'
+                                                        onClick={() =>
+                                                            setEditingTask(
+                                                                task
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            deleteMutation.isPending &&
+                                                            pendingDeleteId ===
+                                                                task.id
+                                                        }>
+                                                        <Pencil size={12} />
+                                                    </Button>
+                                                    <Button
+                                                        variant='ghost'
+                                                        size='icon-xs'
+                                                        aria-label='Eliminar tarea'
+                                                        onClick={() =>
+                                                            deleteMutation.mutate(
+                                                                task.id
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            deleteMutation.isPending &&
+                                                            pendingDeleteId ===
+                                                                task.id
+                                                        }>
+                                                        {deleteMutation.isPending &&
                                                         pendingDeleteId ===
-                                                            task.id
-                                                    }>
-                                                    {deleteMutation.isPending &&
-                                                    pendingDeleteId ===
-                                                        task.id ? (
-                                                        <Loader2
-                                                            size={12}
-                                                            className='animate-spin'
-                                                        />
-                                                    ) : (
-                                                        <Trash2 size={12} />
-                                                    )}
-                                                </Button>
+                                                            task.id ? (
+                                                            <Loader2
+                                                                size={12}
+                                                                className='animate-spin'
+                                                            />
+                                                        ) : (
+                                                            <Trash2 size={12} />
+                                                        )}
+                                                    </Button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -626,6 +1114,16 @@ function TaskCard({ customerId }: { customerId: number }) {
                     </div>
                 )}
             </CardContent>
+            {editingTask && (
+                <TaskEditDialog
+                    customerId={customerId}
+                    task={editingTask}
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) setEditingTask(null)
+                    }}
+                />
+            )}
         </Card>
     )
 }

@@ -5,6 +5,7 @@ import {
     CalendarClock,
     Copy,
     ExternalLink,
+    Pencil,
     Trash2
 } from 'lucide-react'
 import { useState } from 'react'
@@ -31,7 +32,7 @@ import {
     type EventStatus,
     normalizeMeetingLink
 } from './shared'
-import { CreateEventButton } from './event-form'
+import { CreateEventButton, EditEventDialog } from './event-form'
 
 function copyLink(link: string) {
     navigator.clipboard
@@ -43,15 +44,17 @@ function copyLink(link: string) {
 function EventItem({
     event,
     onStatusChange,
+    onEdit,
     onDelete,
     isUpdatingStatus,
-    canDelete
+    canManage
 }: {
     event: CustomerEvent
     onStatusChange: (event: CustomerEvent, status: EventStatus) => void
+    onEdit: (event: CustomerEvent) => void
     onDelete: (event: CustomerEvent) => void
     isUpdatingStatus: boolean
-    canDelete: boolean
+    canManage: boolean
 }) {
     const meta = EVENT_TYPE_META[event.type]
     const Icon = meta.icon
@@ -89,15 +92,26 @@ function EventItem({
                             <Copy size={12} />
                         </Button>
                     )}
-                    {canDelete && (
-                        <Button
-                            variant='ghost'
-                            size='icon-xs'
-                            aria-label='Eliminar evento'
-                            onClick={() => onDelete(event)}
-                            disabled={isUpdatingStatus}>
-                            <Trash2 size={12} />
-                        </Button>
+                    {canManage && (
+                        <>
+                            <Button
+                                variant='ghost'
+                                size='icon-xs'
+                                aria-label='Editar evento'
+                                title='Editar evento'
+                                onClick={() => onEdit(event)}
+                                disabled={isUpdatingStatus}>
+                                <Pencil size={12} />
+                            </Button>
+                            <Button
+                                variant='ghost'
+                                size='icon-xs'
+                                aria-label='Eliminar evento'
+                                onClick={() => onDelete(event)}
+                                disabled={isUpdatingStatus}>
+                                <Trash2 size={12} />
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -166,6 +180,9 @@ export function EventCard({ customerId }: { customerId: number }) {
     const isAdmin = session?.user.role === 'admin'
 
     const [statusPendingId, setStatusPendingId] = useState<number | null>(null)
+    const [editingEvent, setEditingEvent] = useState<CustomerEvent | null>(
+        null
+    )
 
     const { data: events = [], isLoading } = useQuery<CustomerEvent[]>({
         queryKey: ['events', customerId],
@@ -198,14 +215,39 @@ export function EventCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
-        onMutate: ({ event }) => setStatusPendingId(event.id),
-        onSuccess: () => {
-            setStatusPendingId(null)
-            queryClient.invalidateQueries({ queryKey: ['events', customerId] })
+        onMutate: async ({ event, status }) => {
+            setStatusPendingId(event.id)
+            await queryClient.cancelQueries({
+                queryKey: ['events', customerId]
+            })
+            const previous = queryClient.getQueryData<CustomerEvent[]>([
+                'events',
+                customerId
+            ])
+            queryClient.setQueryData<CustomerEvent[]>(
+                ['events', customerId],
+                (old) =>
+                    old?.map((e) =>
+                        e.id === event.id ? { ...e, status } : e
+                    ) ?? []
+            )
+            return { previous }
         },
-        onError: (error: Error) => {
+        onError: (error: Error, _variables, context) => {
             setStatusPendingId(null)
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['events', customerId],
+                    context.previous
+                )
+            }
             toast.error(error.message)
+        },
+        onSettled: () => {
+            setStatusPendingId(null)
+            queryClient.invalidateQueries({
+                queryKey: ['events', customerId]
+            })
         }
     })
 
@@ -221,14 +263,36 @@ export function EventCard({ customerId }: { customerId: number }) {
             }
             return res.json()
         },
-        onMutate: (event) => setStatusPendingId(event.id),
-        onSuccess: () => {
-            setStatusPendingId(null)
-            queryClient.invalidateQueries({ queryKey: ['events', customerId] })
+        onMutate: async (event) => {
+            setStatusPendingId(event.id)
+            await queryClient.cancelQueries({
+                queryKey: ['events', customerId]
+            })
+            const previous = queryClient.getQueryData<CustomerEvent[]>([
+                'events',
+                customerId
+            ])
+            queryClient.setQueryData<CustomerEvent[]>(
+                ['events', customerId],
+                (old) => old?.filter((e) => e.id !== event.id) ?? []
+            )
+            return { previous }
         },
-        onError: (error: Error) => {
+        onError: (error: Error, _variables, context) => {
             setStatusPendingId(null)
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['events', customerId],
+                    context.previous
+                )
+            }
             toast.error(error.message)
+        },
+        onSettled: () => {
+            setStatusPendingId(null)
+            queryClient.invalidateQueries({
+                queryKey: ['events', customerId]
+            })
         }
     })
 
@@ -271,17 +335,28 @@ export function EventCard({ customerId }: { customerId: number }) {
                                         status
                                     })
                                 }
+                                onEdit={setEditingEvent}
                                 onDelete={(ev) => deleteMutation.mutate(ev)}
                                 isUpdatingStatus={
                                     statusMutation.isPending &&
                                     statusPendingId === event.id
                                 }
-                                canDelete={canDelete(event)}
+                                canManage={canDelete(event)}
                             />
                         ))}
                     </div>
                 )}
             </CardContent>
+            {editingEvent && (
+                <EditEventDialog
+                    customerId={customerId}
+                    event={editingEvent}
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) setEditingEvent(null)
+                    }}
+                />
+            )}
         </Card>
     )
 }
