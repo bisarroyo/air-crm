@@ -8,7 +8,11 @@ import {
     parseImportRows,
     validateImportRow
 } from '@/lib/leads-import-validate'
-import type { NormalizedLeadRow } from '@/lib/leads-import'
+import {
+    mergeDefaults,
+    type ImportDefaults,
+    type NormalizedLeadRow
+} from '@/lib/leads-import'
 import { getTagNamesByIds, resolveExistingTagIds } from '@/lib/tags'
 
 export async function POST(request: Request) {
@@ -29,6 +33,15 @@ export async function POST(request: Request) {
         )
     }
 
+    const defaults: ImportDefaults = {
+        statusId: body?.defaultStatusId,
+        priorityId: body?.defaultPriorityId,
+        referralId: body?.defaultReferralId,
+        assignedTo: body?.defaultAssignedTo,
+        country: body?.defaultCountry
+    }
+    const mergedLeads = mergeDefaults(leads, defaults)
+
     const batchTagIds = await resolveExistingTagIds(body?.tagIds)
     const batchTagNames = batchTagIds.length
         ? [...(await getTagNamesByIds(batchTagIds)).values()]
@@ -48,8 +61,8 @@ export async function POST(request: Request) {
         reason?: string
     }[] = []
 
-    for (let i = 0; i < leads.length; i++) {
-        const result = validateImportRow(leads[i], ctx, i + 1)
+    for (let i = 0; i < mergedLeads.length; i++) {
+        const result = validateImportRow(mergedLeads[i], ctx, i + 1)
         const lead = result.lead
 
         if (lead) {
@@ -99,6 +112,7 @@ export async function POST(request: Request) {
                             email: lead.email,
                             phone: lead.phone,
                             travelTime: lead.travelTime,
+                            country: lead.country ?? null,
                             statusId: lead.statusId ?? 1,
                             priorityId: lead.priorityId ?? 1,
                             referralId: lead.referralId ?? null,
@@ -123,6 +137,7 @@ export async function POST(request: Request) {
                             email: lead.email,
                             phone: lead.phone,
                             travelTime: lead.travelTime,
+                            country: lead.country ?? null,
                             statusId: lead.statusId ?? 1,
                             priorityId: lead.priorityId ?? 1,
                             referralId: lead.referralId ?? null,

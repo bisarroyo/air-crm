@@ -6,7 +6,11 @@ import {
     parseImportRows,
     validateImportRow
 } from '@/lib/leads-import-validate'
-import type { ImportReviewResult } from '@/lib/leads-import'
+import {
+    mergeDefaults,
+    type ImportDefaults,
+    type ImportReviewResult
+} from '@/lib/leads-import'
 
 export async function POST(request: Request) {
     const session = await auth.api.getSession({
@@ -26,6 +30,15 @@ export async function POST(request: Request) {
         )
     }
 
+    const defaults: ImportDefaults = {
+        statusId: body?.defaultStatusId,
+        priorityId: body?.defaultPriorityId,
+        referralId: body?.defaultReferralId,
+        assignedTo: body?.defaultAssignedTo,
+        country: body?.defaultCountry
+    }
+    const mergedLeads = mergeDefaults(leads, defaults)
+
     const ctx = await buildImportContext(
         session.user.id,
         session.user.role
@@ -34,8 +47,8 @@ export async function POST(request: Request) {
     const seenEmails = new Map<string, number>()
     const results: ImportReviewResult[] = []
 
-    for (let i = 0; i < leads.length; i++) {
-        const result = validateImportRow(leads[i], ctx, i + 1)
+    for (let i = 0; i < mergedLeads.length; i++) {
+        const result = validateImportRow(mergedLeads[i], ctx, i + 1)
 
         if (result.lead) {
             const email = result.lead.email

@@ -53,6 +53,7 @@ import { TagPill, TagSelect, type TagOption } from '@/components/tags'
 import { GlobeLoader } from '@/components/ui/globe-loader'
 import { CreateEventDialog } from '@/components/events/event-form'
 import { useSession } from '@/hooks/use-session'
+import { COUNTRY_OPTIONS } from '@/lib/countries'
 
 interface StatusOption {
     id: number
@@ -92,6 +93,7 @@ interface CustomerRow {
     phone: string
     email: string
     travelTime: string
+    country: string | null
     statusId: number
     priorityId: number
     assignedTo: string
@@ -136,6 +138,7 @@ const customerSchema = z.object({
     email: z.string().email('Invalid email'),
     phone: z.string().min(1, 'Phone is required'),
     travelTime: z.string().min(1, 'Travel time is required'),
+    country: z.string().optional(),
     statusId: z.string().min(1),
     priorityId: z.string().min(1),
     assignedTo: z.string().optional(),
@@ -219,6 +222,7 @@ function HomeContent() {
             email: '',
             phone: '',
             travelTime: '',
+            country: '',
             statusId: '1',
             priorityId: '1',
             assignedTo: '',
@@ -493,6 +497,7 @@ function HomeContent() {
                 email: data.email,
                 phone: data.phone,
                 travelTime: data.travelTime,
+                country: data.country,
                 statusId: Number(data.statusId),
                 priorityId: Number(data.priorityId),
                 assignedTo: data.assignedTo,
@@ -529,6 +534,7 @@ function HomeContent() {
             email: '',
             phone: '',
             travelTime: '',
+            country: '',
             statusId: '1',
             priorityId: '1',
             assignedTo: session?.user.id || ''
@@ -544,6 +550,7 @@ function HomeContent() {
             email: customer.email,
             phone: customer.phone,
             travelTime: customer.travelTime,
+            country: customer.country || '',
             statusId: String(customer.statusId),
             priorityId: String(customer.priorityId),
             assignedTo: customer.assignedTo || '',
@@ -1149,10 +1156,48 @@ function HomeContent() {
                                                         </Link>
                                                     </td>
                                                     <td className='py-2.5 text-muted-foreground'>
-                                                        {customer.email}
+                                                        <button
+                                                            type='button'
+                                                            title='Copiar email'
+                                                            className='cursor-pointer text-left hover:underline'
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await navigator.clipboard.writeText(
+                                                                        customer.email
+                                                                    )
+                                                                    toast.success(
+                                                                        'Email copiado al portapapeles'
+                                                                    )
+                                                                } catch {
+                                                                    toast.error(
+                                                                        'No se pudo copiar el email'
+                                                                    )
+                                                                }
+                                                            }}>
+                                                            {customer.email}
+                                                        </button>
                                                     </td>
                                                     <td className='py-2.5'>
-                                                        {customer.phone}
+                                                        <button
+                                                            type='button'
+                                                            title='Copiar teléfono'
+                                                            className='cursor-pointer hover:underline'
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await navigator.clipboard.writeText(
+                                                                        customer.phone
+                                                                    )
+                                                                    toast.success(
+                                                                        'Teléfono copiado al portapapeles'
+                                                                    )
+                                                                } catch {
+                                                                    toast.error(
+                                                                        'No se pudo copiar el teléfono'
+                                                                    )
+                                                                }
+                                                            }}>
+                                                            {customer.phone}
+                                                        </button>
                                                     </td>
                                                     <td className='py-2.5'>
                                                         {travelTimeLabels[
@@ -1338,7 +1383,7 @@ function HomeContent() {
                                                     <td className='py-2.5 text-right'>
                                                         <div className='flex items-center justify-end gap-1'>
                                                             <a
-                                                                href={`https://wa.me/${customer.phone.replace(/\D/g, '')}`}
+                                                                href={`https://web.whatsapp.com/send/?phone=${customer.phone.replace(/\D/g, '')}&text&type=phone_number&app_absent=0`}
                                                                 target='_blank'
                                                                 rel='noopener noreferrer'>
                                                                 <Button
@@ -1628,6 +1673,37 @@ function HomeContent() {
                                 )}
                             />
                             <Controller
+                                name='country'
+                                control={form.control}
+                                render={({ field }) => (
+                                    <Field>
+                                        <FieldLabel htmlFor='country'>
+                                            Country
+                                        </FieldLabel>
+                                        <Select
+                                            value={field.value || ''}
+                                            onValueChange={field.onChange}>
+                                            <SelectTrigger id='country'>
+                                                <SelectValue placeholder='No especificado' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {COUNTRY_OPTIONS.map(
+                                                        (country) => (
+                                                            <SelectItem
+                                                                key={country}
+                                                                value={country}>
+                                                                {country}
+                                                            </SelectItem>
+                                                        )
+                                                    )}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                )}
+                            />
+                            <Controller
                                 name='statusId'
                                 control={form.control}
                                 render={({ field }) => (
@@ -1749,7 +1825,13 @@ function HomeContent() {
                                                 Referral Code
                                             </FieldLabel>
                                             <Select
-                                                value={field.value}
+                                                value={
+                                                    referralOptions.find(
+                                                        (r) =>
+                                                            r.id ===
+                                                            Number(field.value)
+                                                    )?.name || ''
+                                                }
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='referralId'>
                                                     <SelectValue placeholder='Select...' />

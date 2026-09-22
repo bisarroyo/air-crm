@@ -27,9 +27,19 @@ import {
     CardHeader,
     CardTitle
 } from '@/components/ui/card'
+import { Field, FieldLabel } from '@/components/ui/field'
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from '@/components/ui/select'
 import { GlobeLoader } from '@/components/ui/globe-loader'
 import { TagSelect, type TagOption } from '@/components/tags'
 import { useSession } from '@/hooks/use-session'
+import { COUNTRY_OPTIONS } from '@/lib/countries'
 import {
     buildTemplateCsv,
     mapColumnKey,
@@ -73,6 +83,12 @@ interface ReferralOption {
     code: string
 }
 
+interface UserOption {
+    id: string
+    name: string | null
+    email: string
+}
+
 const REQUIRED_COLUMN_LABELS: Record<string, string> = {
     name: 'name',
     email: 'email',
@@ -110,6 +126,11 @@ export default function ImportLeadsPage() {
     const [reviewData, setReviewData] = useState<ReviewResponse | null>(null)
     const [importResult, setImportResult] = useState<ImportResponse | null>(null)
     const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+    const [defaultStatusId, setDefaultStatusId] = useState('')
+    const [defaultPriorityId, setDefaultPriorityId] = useState('')
+    const [defaultReferralId, setDefaultReferralId] = useState('')
+    const [defaultAssignedTo, setDefaultAssignedTo] = useState('')
+    const [defaultCountry, setDefaultCountry] = useState('')
 
     const { data: statuses = [] } = useQuery({
         queryKey: ['statuses'],
@@ -146,12 +167,25 @@ export default function ImportLeadsPage() {
                 }))
     }) as { data: TagOption[] }
 
+    const { data: users = [] } = useQuery({
+        queryKey: ['users'],
+        queryFn: () => fetch('/api/users').then((r) => r.json()),
+        select: (data: UserOption[]) =>
+            data.map((u) => ({
+                id: u.id,
+                name: u.name || u.email
+            })),
+        enabled: isAdmin
+    }) as { data: { id: string; name: string }[] }
+
     const statusLabel = new Map<number, string>()
     for (const s of statuses) statusLabel.set(s.id, s.status)
     const priorityLabel = new Map<number, string>()
     for (const p of priorities) priorityLabel.set(p.id, p.priority)
     const referralCode = new Map<number, string>()
     for (const r of referrals) referralCode.set(r.id, r.code)
+    const userName = new Map<string, string>()
+    for (const u of users) userName.set(u.id, u.name)
 
     const handleFile = (file: File | null) => {
         if (!file) return
@@ -159,6 +193,11 @@ export default function ImportLeadsPage() {
         setReviewData(null)
         setImportResult(null)
         setSelectedTagIds([])
+        setDefaultStatusId('')
+        setDefaultPriorityId('')
+        setDefaultReferralId('')
+        setDefaultAssignedTo('')
+        setDefaultCountry('')
 
         Papa.parse<Record<string, string>>(file, {
             header: true,
@@ -225,7 +264,14 @@ export default function ImportLeadsPage() {
             const res = await fetch('/api/leads/import/review', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ leads: rows })
+                body: JSON.stringify({
+                    leads: rows,
+                    defaultStatusId: defaultStatusId || undefined,
+                    defaultPriorityId: defaultPriorityId || undefined,
+                    defaultReferralId: defaultReferralId || undefined,
+                    defaultAssignedTo: defaultAssignedTo || undefined,
+                    defaultCountry: defaultCountry || undefined
+                })
             })
             if (!res.ok) {
                 const err = await res.json().catch(() => null)
@@ -259,7 +305,15 @@ export default function ImportLeadsPage() {
             const res = await fetch('/api/leads/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ leads: validLeads, tagIds: selectedTagIds })
+                body: JSON.stringify({
+                    leads: validLeads,
+                    tagIds: selectedTagIds,
+                    defaultStatusId: defaultStatusId || undefined,
+                    defaultPriorityId: defaultPriorityId || undefined,
+                    defaultReferralId: defaultReferralId || undefined,
+                    defaultAssignedTo: defaultAssignedTo || undefined,
+                    defaultCountry: defaultCountry || undefined
+                })
             })
             if (!res.ok) {
                 const err = await res.json().catch(() => null)
@@ -349,8 +403,8 @@ export default function ImportLeadsPage() {
                             <span className='font-medium text-foreground'>
                                 {REQUIRED_COLUMNS.join(', ')}
                             </span>
-                            . Optional: statusId, priorityId, referralCode,
-                            assignedTo. The{' '}
+                            . Optional: country, statusId, priorityId,
+                            referralCode, assignedTo. The{' '}
                             <span className='font-medium text-foreground'>
                                 travelTime
                             </span>{' '}
@@ -434,21 +488,226 @@ export default function ImportLeadsPage() {
                                 )}
                             </div>
 
-                            <div className='flex flex-col gap-1.5 rounded-lg border bg-muted/30 p-3'>
+                            <div className='flex flex-col gap-3 rounded-lg border bg-muted/30 p-3'>
                                 <span className='text-sm font-medium'>
-                                    Apply tags to all imported leads
+                                    Apply to all imported leads
                                 </span>
-                                <TagSelect
-                                    options={tagOptions}
-                                    selected={selectedTagIds}
-                                    onToggle={(id) =>
-                                        setSelectedTagIds((prev) =>
-                                            prev.includes(id)
-                                                ? prev.filter((i) => i !== id)
-                                                : [...prev, id]
-                                        )
-                                    }
-                                />
+                                <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+                                    <Field>
+                                        <FieldLabel htmlFor='default-status'>
+                                            Status
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                statuses.find(
+                                                    (s) =>
+                                                        s.id ===
+                                                        Number(defaultStatusId)
+                                                )?.status || ''
+                                            }
+                                            onValueChange={(val) =>
+                                                setDefaultStatusId(val ?? '')
+                                            }>
+                                            <SelectTrigger
+                                                id='default-status'
+                                                className='h-8 w-full'>
+                                                <SelectValue placeholder='No change' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value=''>
+                                                        No change
+                                                    </SelectItem>
+                                                    {statuses.map((s) => (
+                                                        <SelectItem
+                                                            key={s.id}
+                                                            value={String(
+                                                                s.id
+                                                            )}>
+                                                            {s.status}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor='default-priority'>
+                                            Priority
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                priorities.find(
+                                                    (p) =>
+                                                        p.id ===
+                                                        Number(
+                                                            defaultPriorityId
+                                                        )
+                                                )?.priority || ''
+                                            }
+                                            onValueChange={(val) =>
+                                                setDefaultPriorityId(val ?? '')
+                                            }>
+                                            <SelectTrigger
+                                                id='default-priority'
+                                                className='h-8 w-full'>
+                                                <SelectValue placeholder='No change' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value=''>
+                                                        No change
+                                                    </SelectItem>
+                                                    {priorities.map((p) => (
+                                                        <SelectItem
+                                                            key={p.id}
+                                                            value={String(
+                                                                p.id
+                                                            )}>
+                                                            {p.priority}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor='default-country'>
+                                            Country
+                                        </FieldLabel>
+                                        <Select
+                                            value={defaultCountry}
+                                            onValueChange={(val) =>
+                                                setDefaultCountry(val ?? '')
+                                            }>
+                                            <SelectTrigger
+                                                id='default-country'
+                                                className='h-8 w-full'>
+                                                <SelectValue placeholder='No change' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value=''>
+                                                        No change
+                                                    </SelectItem>
+                                                    {COUNTRY_OPTIONS.map(
+                                                        (country) => (
+                                                            <SelectItem
+                                                                key={country}
+                                                                value={country}>
+                                                                {country}
+                                                            </SelectItem>
+                                                        )
+                                                    )}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    {isAdmin && (
+                                        <Field>
+                                            <FieldLabel htmlFor='default-referral'>
+                                                Referral
+                                            </FieldLabel>
+                                            <Select
+                                                value={
+                                                    referrals.find(
+                                                        (r) =>
+                                                            r.id ===
+                                                            Number(
+                                                                defaultReferralId
+                                                            )
+                                                    )?.code || ''
+                                                }
+                                                onValueChange={(val) =>
+                                                    setDefaultReferralId(
+                                                        val ?? ''
+                                                    )
+                                                }>
+                                                <SelectTrigger
+                                                    id='default-referral'
+                                                    className='h-8 w-full'>
+                                                    <SelectValue placeholder='No change' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value=''>
+                                                            No change
+                                                        </SelectItem>
+                                                        {referrals.map(
+                                                            (r) => (
+                                                                <SelectItem
+                                                                    key={r.id}
+                                                                    value={String(
+                                                                        r.id
+                                                                    )}>
+                                                                    {r.code}
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                    )}
+                                    {isAdmin && (
+                                        <Field>
+                                            <FieldLabel htmlFor='default-assigned'>
+                                                Assigned to
+                                            </FieldLabel>
+                                            <Select
+                                                value={
+                                                    users.find(
+                                                        (u) =>
+                                                            u.id ===
+                                                            defaultAssignedTo
+                                                    )?.name || ''
+                                                }
+                                                onValueChange={(val) =>
+                                                    setDefaultAssignedTo(
+                                                        val ?? ''
+                                                    )
+                                                }>
+                                                <SelectTrigger
+                                                    id='default-assigned'
+                                                    className='h-8 w-full'>
+                                                    <SelectValue placeholder='No change' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value=''>
+                                                            No change
+                                                        </SelectItem>
+                                                        {users.map((u) => (
+                                                            <SelectItem
+                                                                key={u.id}
+                                                                value={u.id}>
+                                                                {u.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </Field>
+                                    )}
+                                </div>
+                                <div className='flex flex-col gap-1.5'>
+                                    <span className='text-sm font-medium'>
+                                        Tags
+                                    </span>
+                                    <TagSelect
+                                        options={tagOptions}
+                                        selected={selectedTagIds}
+                                        onToggle={(id) =>
+                                            setSelectedTagIds((prev) =>
+                                                prev.includes(id)
+                                                    ? prev.filter(
+                                                          (i) => i !== id
+                                                      )
+                                                    : [...prev, id]
+                                            )
+                                        }
+                                    />
+                                </div>
                             </div>
 
                             {!reviewData && (
@@ -475,6 +734,12 @@ export default function ImportLeadsPage() {
                                             setReviewData(null)
                                             setImportResult(null)
                                             setFileName('')
+                                            setSelectedTagIds([])
+                                            setDefaultStatusId('')
+                                            setDefaultPriorityId('')
+                                            setDefaultReferralId('')
+                                            setDefaultAssignedTo('')
+                                            setDefaultCountry('')
                                             if (fileInputRef.current)
                                                 fileInputRef.current.value = ''
                                         }}>
@@ -528,6 +793,9 @@ export default function ImportLeadsPage() {
                                                         Travel time
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
+                                                        Country
+                                                    </th>
+                                                    <th className='px-3 py-2 font-medium'>
                                                         Status
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
@@ -536,6 +804,11 @@ export default function ImportLeadsPage() {
                                                     {isAdmin && (
                                                         <th className='px-3 py-2 font-medium'>
                                                             Referral
+                                                        </th>
+                                                    )}
+                                                    {isAdmin && (
+                                                        <th className='px-3 py-2 font-medium'>
+                                                            Assigned to
                                                         </th>
                                                     )}
                                                     <th className='px-3 py-2 font-medium'>
@@ -574,8 +847,16 @@ export default function ImportLeadsPage() {
                                                                         '—'}
                                                                 </td>
                                                                 <td className='px-3 py-2'>
-                                                                    {lead?.travelTime ||
-                                                                        '—'}
+                                                                    {
+                                                                        lead?.travelTime ||
+                                                                            '—'
+                                                                    }
+                                                                </td>
+                                                                <td className='px-3 py-2'>
+                                                                    {
+                                                                        lead?.country ||
+                                                                            '—'
+                                                                    }
                                                                 </td>
                                                                 <td className='px-3 py-2'>
                                                                     {lead?.statusId
@@ -607,6 +888,16 @@ export default function ImportLeadsPage() {
                                                                               String(
                                                                                   lead.referralId
                                                                               )
+                                                                            : '—'}
+                                                                    </td>
+                                                                )}
+                                                                {isAdmin && (
+                                                                    <td className='px-3 py-2'>
+                                                                        {lead
+                                                                            ?.assignedTo
+                                                                            ? userName.get(
+                                                                                  lead.assignedTo
+                                                                              ) || '—'
                                                                             : '—'}
                                                                     </td>
                                                                 )}

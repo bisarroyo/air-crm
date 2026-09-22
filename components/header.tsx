@@ -1,5 +1,6 @@
 'use client'
 import { ModeToggle } from '@/components/ui/mode-toggle'
+import { ThemePicker } from '@/components/theme-picker'
 import { authClient } from '@/lib/auth-client'
 import { cn } from 'cn'
 
@@ -16,6 +17,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 
+import { Blobatar } from '@blobatar/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { BadgeCheckIcon, LogOutIcon, ShieldCheck, UserX } from 'lucide-react'
 import Link from 'next/link'
@@ -74,21 +76,40 @@ export function Header() {
                                                 variant='ghost'
                                                 size='icon'
                                                 className='rounded-full cursor-pointer'>
-                                                <Avatar>
-                                                    <AvatarImage
-                                                        src={
+                                                {session?.user?.image ? (
+                                                    <Avatar>
+                                                        <AvatarImage
+                                                            src={
+                                                                session.user
+                                                                    .image
+                                                            }
+                                                            alt='User avatar'
+                                                        />
+                                                        <AvatarFallback>
+                                                            {session.user.name
+                                                                ?.slice(0, 2)
+                                                                .toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                ) : (
+                                                    <Blobatar
+                                                        name={
                                                             session?.user
-                                                                .image ||
-                                                            '/avatar-placeholder.png'
+                                                                ?.name ||
+                                                            session?.user
+                                                                ?.email ||
+                                                            'user'
                                                         }
-                                                        alt='shadcn'
+                                                        size={32}
+                                                        background='circle'
+                                                        className='rounded-full'
+                                                        alt={
+                                                            session?.user
+                                                                ?.name ||
+                                                            'User avatar'
+                                                        }
                                                     />
-                                                    <AvatarFallback>
-                                                        {session?.user?.name
-                                                            ?.slice(0, 2)
-                                                            .toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
+                                                )}
                                             </Button>
                                         }
                                     />
@@ -139,6 +160,7 @@ export function Header() {
                             </DropdownMenu>
                         )}
                         <div className='flex items-center gap-3'>
+                            <ThemePicker />
                             <ModeToggle />
                         </div>
                     </div>

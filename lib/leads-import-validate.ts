@@ -101,6 +101,11 @@ export function validateImportRow(
         )
     }
 
+    const country = (raw.country || '').trim()
+    if (country.length > 255) {
+        errors.push('Country cannot exceed 255 characters')
+    }
+
     let statusId = DEFAULT_STATUS_ID
     if (raw.statusId !== undefined && raw.statusId !== null && raw.statusId !== '') {
         const parsed = Number(raw.statusId)
@@ -171,6 +176,7 @@ export function validateImportRow(
         email,
         phone,
         travelTime,
+        country: country || undefined,
         statusId,
         priorityId,
         referralId,

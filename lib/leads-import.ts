@@ -1,3 +1,5 @@
+import { COUNTRY_OPTIONS } from '@/lib/countries'
+
 export const IMPORT_MAX_ROWS = 500
 
 export const TRAVEL_TIME_VALUES = ['0-3', '3-6', '6-12', '12-18', '0'] as const
@@ -43,6 +45,7 @@ export type LeadImportKey =
     | 'email'
     | 'phone'
     | 'travelTime'
+    | 'country'
     | 'statusId'
     | 'priorityId'
     | 'referralCode'
@@ -63,6 +66,9 @@ const HEADER_ALIASES: Record<string, LeadImportKey> = {
     travel_time: 'travelTime',
     traveltime: 'travelTime',
     tiempo_de_viaje: 'travelTime',
+    country: 'country',
+    pais: 'country',
+    nacionalidad: 'country',
     status_id: 'statusId',
     statusid: 'statusId',
     estado: 'statusId',
@@ -87,6 +93,7 @@ export const REQUIRED_COLUMNS: LeadImportKey[] = [
 ]
 
 export const OPTIONAL_COLUMNS: LeadImportKey[] = [
+    'country',
     'statusId',
     'priorityId',
     'referralCode',
@@ -125,6 +132,7 @@ export interface RawImportRow {
     email?: string
     phone?: string
     travelTime?: string
+    country?: string
     statusId?: string
     priorityId?: string
     referralCode?: string
@@ -139,6 +147,7 @@ export interface NormalizedLeadRow {
     email: string
     phone: string
     travelTime: string
+    country?: string
     statusId?: number
     priorityId?: number
     referralId?: number | null
@@ -154,6 +163,34 @@ export interface ImportReviewResult {
     lead?: NormalizedLeadRow
 }
 
+export type ImportDefaults = Partial<
+    Pick<
+        RawImportRow,
+        'statusId' | 'priorityId' | 'referralId' | 'assignedTo' | 'country'
+    >
+>
+
+export function mergeDefaults(
+    rows: RawImportRow[],
+    defaults: ImportDefaults
+): RawImportRow[] {
+    const clean: RawImportRow = {}
+    for (const [key, value] of Object.entries(defaults)) {
+        if (value !== undefined && value !== null && value !== '') {
+            clean[key] = String(value)
+        }
+    }
+    return rows.map((row) => {
+        const merged: RawImportRow = { ...clean }
+        for (const [key, value] of Object.entries(row)) {
+            if (value !== undefined && value !== null && value !== '') {
+                merged[key] = String(value)
+            }
+        }
+        return merged
+    })
+}
+
 export function toCsvCell(value: string): string {
     return value.includes(',') || value.includes('"') || value.includes('\n')
         ? `"${value.replace(/"/g, '""')}"`
@@ -166,17 +203,21 @@ export function buildTemplateCsv(): string {
         'email',
         'phone',
         'travelTime',
+        'country',
         'statusId',
         'priorityId',
-        'referralCode'
+        'referralCode',
+        'assignedTo'
     ]
     const example = [
         'Juan Pérez',
         'juan@example.com',
         '+52 55 1234 5678',
         '0-3',
+        'Costa Rica',
         '1',
         '1',
+        '',
         ''
     ]
     const travelTimeValues =
@@ -184,14 +225,22 @@ export function buildTemplateCsv(): string {
         TRAVEL_TIME_VALUES.map(
             (v) => `${v} (${TRAVEL_TIME_LABELS[v]})`
         ).join(', ')
+    const countryValues =
+        'Valid values for "country": ' +
+        COUNTRY_OPTIONS.join(', ')
     return (
         '\uFEFF' +
         '# ' +
         travelTimeValues +
         '\n' +
-        [header.map(toCsvCell).join(','), example.map(toCsvCell).join(',')].join(
-            '\n'
-        ) +
+        '# ' +
+        countryValues +
+        '\n' +
+        '# "statusId", "priorityId": database ids. "assignedTo": user id (admins). "referralCode": referral code.\n' +
+        [
+            header.map(toCsvCell).join(','),
+            example.map(toCsvCell).join(',')
+        ].join('\n') +
         '\n'
     )
 }

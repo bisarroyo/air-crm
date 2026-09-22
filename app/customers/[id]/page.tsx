@@ -471,16 +471,54 @@ export default function CustomerDetailPage() {
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
                                 Email
                             </p>
-                            <p className='text-sm'>{customer.email}</p>
+                            <button
+                                type='button'
+                                title='Copiar email'
+                                className='cursor-pointer text-left text-sm hover:underline'
+                                onClick={async () => {
+                                    try {
+                                        await navigator.clipboard.writeText(
+                                            customer.email
+                                        )
+                                        toast.success(
+                                            'Email copiado al portapapeles'
+                                        )
+                                    } catch {
+                                        toast.error(
+                                            'No se pudo copiar el email'
+                                        )
+                                    }
+                                }}>
+                                {customer.email}
+                            </button>
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
                                 Phone
                             </p>
                             <div className='flex items-center gap-2'>
-                                <p className='text-sm'>{customer.phone}</p>
+                                <button
+                                    type='button'
+                                    title='Copiar teléfono'
+                                    className='cursor-pointer text-left text-sm hover:underline'
+                                    onClick={async () => {
+                                        try {
+                                            await navigator.clipboard.writeText(
+                                                customer.phone
+                                            )
+                                            toast.success(
+                                                'Teléfono copiado al portapapeles'
+                                            )
+                                        } catch {
+                                            toast.error(
+                                                'No se pudo copiar el teléfono'
+                                            )
+                                        }
+                                    }}>
+                                    {customer.phone}
+                                </button>
                                 <a
-                                    href={`https://wa.me/${customer.phone.replace(/\D/g, '')}`}
+                                    href={`https://web.whatsapp.com/send/?phone=${customer.phone.replace(/\D/g, '')}&text&type=phone_number&app_absent=0`}
                                     target='_blank'
                                     rel='noopener noreferrer'
                                     className='inline-flex items-center gap-1 rounded-md bg-green-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-green-700 transition-colors'>

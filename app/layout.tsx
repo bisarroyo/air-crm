@@ -23,6 +23,13 @@ export default function RootLayout({
 }>) {
     return (
         <html lang='es' suppressHydrationWarning>
+            <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `try{var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`
+                    }}
+                />
+            </head>
             <body className={poppins.className}>
                 <Providers>
                     <Header />
