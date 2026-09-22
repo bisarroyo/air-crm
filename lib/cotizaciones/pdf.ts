@@ -186,13 +186,14 @@ function costTable(rows: PdfRow[]): Node {
             )
         },
         layout: {
-            hLineWidth: (row: number) => (row === 0 ? 0.6 : 0.2),
-            vLineWidth: () => 0,
+            hLineWidth: () => 0.6,
+            vLineWidth: (i: number) => (i === 0 || i === 2 ? 0.6 : 0),
             hLineColor: () => BORDER,
-            paddingTop: () => 2,
-            paddingBottom: () => 2,
-            paddingLeft: () => 4,
-            paddingRight: () => 4
+            vLineColor: () => BORDER,
+            paddingTop: () => 3,
+            paddingBottom: () => 3,
+            paddingLeft: () => 5,
+            paddingRight: () => 5
         }
     }
 }
@@ -436,7 +437,14 @@ export function buildDocDefinition(
                         bold: true,
                         fill: true
                     },
-                    ...discountRows
+                    ...discountRows,
+                    {
+                        label: 'Total descuentos',
+                        value: `- ${money(totals.discount, currency)}`,
+                        bold: true,
+                        fill: true,
+                        danger: true
+                    }
                 ])
             ],
             margin: [0, 0, 0, 7]
