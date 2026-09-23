@@ -638,10 +638,16 @@ function HomeContent() {
                                 title='Copiar nombre y teléfono de los leads visibles'
                                 onClick={async () => {
                                     const lines = customers
-                                        .map(
-                                            (c) =>
-                                                `${c.name}, ${c.phone}`
-                                        )
+                                        .map((c) => {
+                                            const firstName =
+                                                c.name?.trim().split(/\s+/)[0] ??
+                                                ''
+                                            const capitalized =
+                                                (firstName.charAt(0).toUpperCase() +
+                                                firstName.slice(1).toLowerCase()) ||
+                                                'Sin nombre'
+                                            return `${capitalized}, ${c.phone}`
+                                        })
                                         .filter((line) => line.trim())
                                     if (lines.length === 0) {
                                         toast.error(

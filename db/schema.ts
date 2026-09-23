@@ -314,6 +314,36 @@ export const quotationExtras = sqliteTable('quotation_extras', {
         .$onUpdate(() => new Date())
 })
 
+export const quotationSchoolIncludes = sqliteTable('quotation_school_includes', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    description: text('description'),
+    isActive: integer('is_active').notNull().default(1),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    ),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+        .default(sql`(unixepoch())`)
+        .$onUpdate(() => new Date())
+})
+
+export const quotationSchoolIncludeSchools = sqliteTable(
+    'quotation_school_include_schools',
+    {
+        includeId: integer('include_id')
+            .notNull()
+            .references(() => quotationSchoolIncludes.id, {
+                onDelete: 'cascade'
+            }),
+        schoolId: integer('school_id')
+            .notNull()
+            .references(() => quotationSchools.id, {
+                onDelete: 'cascade'
+            })
+    },
+    (table) => [primaryKey({ columns: [table.includeId, table.schoolId] })]
+)
+
 export const quotationDiscounts = sqliteTable('quotation_discounts', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),

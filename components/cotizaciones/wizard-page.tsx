@@ -31,6 +31,7 @@ import type {
     ExtraRow,
     ProgramRow,
     ScheduleRow,
+    SchoolIncludeRow,
     SchoolRow
 } from './types'
 
@@ -90,6 +91,10 @@ export function WizardPage({
     const schoolsQuery = useQuery<SchoolRow[]>({
         queryKey: ['admin-schools'],
         queryFn: () => getJson('/api/admin/schools'),
+    })
+    const schoolIncludesQuery = useQuery<SchoolIncludeRow[]>({
+        queryKey: ['admin-school-includes'],
+        queryFn: () => getJson('/api/admin/school-includes'),
     })
     const schedulesQuery = useQuery<ScheduleRow[]>({
         queryKey: ['admin-schedules'],
@@ -213,6 +218,7 @@ export function WizardPage({
         settingsQuery.isLoading ||
         programsQuery.isLoading ||
         schoolsQuery.isLoading ||
+        schoolIncludesQuery.isLoading ||
         schedulesQuery.isLoading ||
         coursesQuery.isLoading ||
         accommodationsQuery.isLoading ||
@@ -286,6 +292,7 @@ export function WizardPage({
                                 schools={schoolsQuery.data}
                                 schedules={schedulesQuery.data}
                                 courses={coursesQuery.data}
+                                schoolIncludes={schoolIncludesQuery.data}
                             />
                         </CardContent>
                     </Card>

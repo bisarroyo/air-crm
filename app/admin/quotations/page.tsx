@@ -44,6 +44,11 @@ const SECTIONS = [
         description: 'Descuentos por porcentaje o monto fijo'
     },
     {
+        href: '/admin/quotations/includes',
+        title: 'Incluye de escuelas',
+        description: 'Beneficios del paquete por escuela (certificaciones, fees, etc.)'
+    },
+    {
         href: '/admin/quotations/settings',
         title: 'S Travel Settings',
         description: 'Datos de empresa, logo y condiciones'

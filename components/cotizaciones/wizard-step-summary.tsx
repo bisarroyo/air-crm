@@ -1,6 +1,7 @@
 'use client'
 
 import {
+    quotationIncludes,
     formatMoney,
     type PricingTotals,
     type QuotationDraft
@@ -97,15 +98,15 @@ export function WizardStepSummary({
                         {draft.course.scheduleName || '—'}
                     </p>
                 )}
-                {draft.program?.includes.length ? (
+                {draft.program && quotationIncludes(draft).length > 0 && (
                     <ul className='mt-1 list-inside list-disc'>
-                        {draft.program.includes.map((item) => (
+                        {quotationIncludes(draft).map((item) => (
                             <li key={item} className='text-muted-foreground'>
                                 {item}
                             </li>
                         ))}
                     </ul>
-                ) : null}
+                )}
             </div>
         </div>
     )

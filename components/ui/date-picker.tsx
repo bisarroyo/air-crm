@@ -19,6 +19,19 @@ interface DatePickerProps {
   className?: string
 }
 
+function parseDateValue(value: string): Date | undefined {
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date
+}
+
+function toDateValue(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
 export function DatePicker({
   value,
   onChange,
@@ -27,13 +40,12 @@ export function DatePicker({
   className,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
-  const selectedDate = value ? new Date(value) : undefined
+  const selectedDate = value ? parseDateValue(value) : undefined
 
   function handleSelect(date: Date | undefined) {
     setOpen(false)
     if (date) {
-      const formatted = date.toISOString().split("T")[0]
-      onChange?.(formatted)
+      onChange?.(toDateValue(date))
     } else {
       onChange?.("")
     }

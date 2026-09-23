@@ -3,6 +3,7 @@ import vfsFonts from 'pdfmake/build/vfs_fonts'
 import {
     formatMoneyCompact,
     formatDateLong,
+    quotationIncludes,
     type QuotationData,
     type Currency
 } from './shared'
@@ -296,7 +297,9 @@ export function buildDocDefinition(
                     sectionLabel('Asesor'),
                     labelValueTable([
                         ['Nombre', advisor.name],
-                        ['Email', advisor.email]
+                        ['Email', advisor.email],
+                        ['Teléfono', company.phone || '—'],
+                        ['WhatsApp', company.whatsapp || '—']
                     ])
                 ]
             },
@@ -350,11 +353,11 @@ export function buildDocDefinition(
         })
     }
 
-    if (data.program && data.program.includes.length > 0) {
+    if (data.program && quotationIncludes(data).length > 0) {
         content.push({
             stack: [
                 sectionLabel('Incluye'),
-                ...data.program.includes.map((item) => ({
+                ...quotationIncludes(data).map((item) => ({
                     text: `•  ${item}`,
                     fontSize: 9.5,
                     color: TEXT,
@@ -478,8 +481,6 @@ export function buildDocDefinition(
     })
 
     const contactRows: Array<[string, string]> = [
-        ['Teléfono', company.phone || '—'],
-        ['WhatsApp', company.whatsapp || '—'],
         ['Email', company.email || '—'],
         ['Sitio web', company.website || '—'],
         ['Facebook', company.facebook || '—'],

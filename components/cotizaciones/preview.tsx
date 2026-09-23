@@ -3,6 +3,7 @@
 import {
     formatDateLong,
     formatMoney,
+    quotationIncludes,
     type QuotationData
 } from '@/lib/cotizaciones/shared'
 import { computeDiscountLines } from '@/lib/cotizaciones/pricing'
@@ -158,6 +159,8 @@ export function QuotationPreview({
                             data.advisor.email || company.advisorEmail || '—'
                         }
                     />
+                    <LabelValue label='Teléfono' value={company.phone} />
+                    <LabelValue label='WhatsApp' value={company.whatsapp} />
                 </div>
                 <div>
                     <SectionLabel>Datos del cliente</SectionLabel>
@@ -197,11 +200,11 @@ export function QuotationPreview({
             )}
 
             {/* Incluye */}
-            {data.program && data.program.includes.length > 0 && (
+            {quotationIncludes(data).length > 0 && (
                 <div className='mt-6'>
                     <SectionLabel>Incluye</SectionLabel>
                     <ul className='text-[13px]'>
-                        {data.program.includes.map((item) => (
+                        {quotationIncludes(data).map((item) => (
                             <li key={item} className='py-0.5'>
                                 • {item}
                             </li>
@@ -367,8 +370,6 @@ export function QuotationPreview({
             <div className='mt-6'>
                 <SectionLabel>{company.companyName}</SectionLabel>
                 <div className='grid gap-x-4 text-[13px] sm:grid-cols-2'>
-                    <LabelValue label='Teléfono' value={company.phone} />
-                    <LabelValue label='WhatsApp' value={company.whatsapp} />
                     <LabelValue label='Email' value={company.email} />
                     <LabelValue label='Sitio web' value={company.website} />
                     <LabelValue label='Facebook' value={company.facebook} />

@@ -20,6 +20,12 @@ export interface ScheduleRow extends CatalogOption {
     isActive: number
 }
 
+export interface SchoolIncludeRow extends CatalogOption {
+    description: string | null
+    schoolIds: number[]
+    isActive: number
+}
+
 export interface CourseRow {
     id: number
     programId: number | null
@@ -117,7 +123,10 @@ export function formatDateValue(
 ): string {
     if (!value) return ''
     if (typeof value === 'string') return value.slice(0, 10)
-    return value.toISOString().slice(0, 10)
+    const y = value.getFullYear()
+    const m = String(value.getMonth() + 1).padStart(2, '0')
+    const d = String(value.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
 }
 
 export function discountIsActive(

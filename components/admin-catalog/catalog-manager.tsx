@@ -54,6 +54,10 @@ function DisplayValue({
     row?: Row
 }) {
     if (value === null || value === undefined || value === '') return '—'
+    if (field.type === 'multi-select') {
+        if (!Array.isArray(value) || value.length === 0) return '—'
+        return `${value.length} escuela${value.length === 1 ? '' : 's'}`
+    }
     if (field.format === 'euros' || field.format === 'cents') {
         const currency = (row?.currency as Currency) || 'EUR'
         if (field.key === 'value' && row?.type === 'percent') {
@@ -78,7 +82,9 @@ export function CatalogManager({ config }: { config: CatalogConfig }) {
     const queryClient = useQueryClient()
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<Row | null>(null)
-    const [form, setForm] = useState<Record<string, string | number | boolean>>({})
+    const [form, setForm] = useState<
+        Record<string, string | number | boolean | number[]>
+    >({})
 
     const { data: rows = [], isLoading } = useQuery<Row[]>({
         queryKey: ['catalog', config.entity],
@@ -95,9 +101,11 @@ export function CatalogManager({ config }: { config: CatalogConfig }) {
         })
 
     function openCreate() {
-        const next: Record<string, string | number | boolean> = {}
+        const next: Record<string, string | number | boolean | number[]> = {}
         for (const field of config.fields) {
-            if (field.default !== undefined) {
+            if (field.type === 'multi-select') {
+                next[field.key] = []
+            } else if (field.default !== undefined) {
                 next[field.key] =
                     field.type === 'switch'
                         ? Boolean(field.default)
@@ -112,10 +120,14 @@ export function CatalogManager({ config }: { config: CatalogConfig }) {
     }
 
     function openEdit(row: Row) {
-        const next: Record<string, string | number | boolean> = {}
+        const next: Record<string, string | number | boolean | number[]> = {}
         for (const field of config.fields) {
             const raw = row[field.key]
-            if (field.type === 'switch') {
+            if (field.type === 'multi-select') {
+                next[field.key] = Array.isArray(raw)
+                    ? raw.map(Number)
+                    : []
+            } else if (field.type === 'switch') {
                 next[field.key] = raw === 1 || raw === true
             } else if (raw === null || raw === undefined) {
                 next[field.key] = ''
@@ -137,8 +149,15 @@ export function CatalogManager({ config }: { config: CatalogConfig }) {
                 const raw = form[field.key]
                 if (field.type === 'switch') {
                     body[field.key] = raw ? 1 : 0
-                } else if (field.type === 'select' && field.numeric) {
-                    body[field.key] = raw ? Number(raw) : null
+                } else if (field.type === 'multi-select') {
+                    body[field.key] = Array.isArray(raw)
+                        ? raw.map(Number)
+                        : []
+                } else if (field.type === 'number') {
+                    body[field.key] =
+                        raw === '' || raw === null || raw === undefined
+                            ? null
+                            : Number(raw)
                 } else if (raw === '' || raw === undefined) {
                     body[field.key] = null
                 } else {
@@ -146,9 +165,23 @@ export function CatalogManager({ config }: { config: CatalogConfig }) {
                 }
             }
 
-            const required = config.fields.find(
-                (field) => field.required && !body[field.key]
-            )
+            const required = config.fields.find((field) => {
+                if (!field.required) return false
+                const value = body[field.key]
+                if (field.type === 'multi-select') {
+                    return !Array.isArray(value) || value.length === 0
+                }
+                if (field.type === 'number') {
+                    return (
+                        value === null ||
+                        value === undefined ||
+                        value === '' ||
+                        Number.isNaN(Number(value))
+                    )
+                }
+                if (value === 0) return false
+                return !value
+            })
             if (required) {
                 throw new Error(`${required.label} es requerido`)
             }
@@ -348,8 +381,8 @@ function CatalogFieldControl({
     onChange
 }: {
     field: CatalogField
-    value: string | number | boolean | undefined
-    onChange: (value: string | number | boolean) => void
+    value: string | number | boolean | number[] | undefined
+    onChange: (value: string | number | boolean | number[]) => void
 }) {
     const { data: options = [] } = useQuery<Array<{ id: number; name: string }>>(
         {
@@ -455,6 +488,42 @@ function CatalogFieldControl({
             )
             break
         }
+        case 'multi-select': {
+            const selected = Array.isArray(value) ? value : []
+            control = (
+                <div className='max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-input p-2'>
+                    {options.length === 0 && (
+                        <p className='text-xs text-muted-foreground'>
+                            No hay opciones disponibles.
+                        </p>
+                    )}
+                    {options.map((option) => {
+                        const id = Number(option.id)
+                        const checked = selected.includes(id)
+                        return (
+                            <label
+                                key={option.id}
+                                className='flex cursor-pointer items-center gap-2 text-sm'>
+                                <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(next) => {
+                                        onChange(
+                                            next
+                                                ? [...selected, id]
+                                                : selected.filter(
+                                                      (value) => value !== id
+                                                  )
+                                        )
+                                    }}
+                                />
+                                <span>{String(option.name)}</span>
+                            </label>
+                        )
+                    })}
+                </div>
+            )
+            break
+        }
         case 'date':
             control = (
                 <Input
@@ -490,7 +559,12 @@ function CatalogFieldControl({
     }
 
     return (
-        <Field className={field.type === 'textarea' ? 'sm:col-span-2' : ''}>
+        <Field
+            className={
+                field.type === 'textarea' || field.type === 'multi-select'
+                    ? 'sm:col-span-2'
+                    : ''
+            }>
             <FieldLabel>
                 {field.label}
                 {field.required && ' *'}

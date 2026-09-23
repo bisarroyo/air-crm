@@ -32,6 +32,7 @@ import type {
     ExtraRow,
     ProgramRow,
     ScheduleRow,
+    SchoolIncludeRow,
     SchoolRow
 } from './types'
 
@@ -57,6 +58,7 @@ export interface WizardEditorProps {
     schools?: SchoolRow[]
     schedules?: ScheduleRow[]
     courses?: CourseRow[]
+    schoolIncludes?: SchoolIncludeRow[]
     accommodations?: AccommodationRow[]
     extras?: ExtraRow[]
     discounts?: DiscountRow[]
@@ -74,6 +76,7 @@ export function WizardEditor({
     schools,
     schedules,
     courses,
+    schoolIncludes,
     accommodations,
     extras,
     discounts
@@ -187,14 +190,15 @@ export function WizardEditor({
             <div className='mt-4'>
                 {step === 0 && <WizardStepClient draft={draft} setDraft={setDraft} />}
                 {step === 1 && (
-                    <WizardStepProgram
-                        draft={draft}
-                        setDraft={setDraft}
-                        programs={programs}
-                        schools={schools}
-                        schedules={schedules}
-                        courses={courses}
-                    />
+                <WizardStepProgram
+                    draft={draft}
+                    setDraft={setDraft}
+                    programs={programs}
+                    schools={schools}
+                    schedules={schedules}
+                    courses={courses}
+                    schoolIncludes={schoolIncludes}
+                />
                 )}
                 {step === 2 && (
                     <WizardStepAccommodation

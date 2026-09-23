@@ -3,7 +3,6 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 
 import { Field, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import {
     Select,
     SelectContent,
@@ -12,7 +11,11 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
-import { formatMoney, type QuotationDraft } from '@/lib/cotizaciones/shared'
+import {
+    formatMoney,
+    type QuotationDraft,
+    type QuotationSchoolIncludeLine
+} from '@/lib/cotizaciones/shared'
 import {
     parseIncludes,
     toActive,
@@ -20,6 +23,7 @@ import {
     type CourseRow,
     type ProgramRow,
     type ScheduleRow,
+    type SchoolIncludeRow,
     type SchoolRow
 } from './types'
 
@@ -33,7 +37,8 @@ export function WizardStepProgram({
     programs,
     schools,
     schedules,
-    courses
+    courses,
+    schoolIncludes
 }: {
     draft: QuotationDraft
     setDraft: Dispatch<SetStateAction<QuotationDraft>>
@@ -41,6 +46,7 @@ export function WizardStepProgram({
     schools?: SchoolRow[]
     schedules?: ScheduleRow[]
     courses?: CourseRow[]
+    schoolIncludes?: SchoolIncludeRow[]
 }) {
     const [selection, setSelection] = useState(() => {
         const courseId = draft.course?.id ?? null
@@ -85,6 +91,19 @@ export function WizardStepProgram({
         visibleCourses.find((course) => course.id === selection.courseId) ||
         null
 
+    function includesForSchool(
+        schoolId: number | null | undefined
+    ): QuotationSchoolIncludeLine[] {
+        const id = Number(schoolId ?? -1)
+        return toActive(schoolIncludes)
+            .filter((row) => row.schoolIds.includes(id))
+            .map((row) => ({
+                id: row.id,
+                name: row.name,
+                description: row.description ?? ''
+            }))
+    }
+
     function selectProgram(value: string | null) {
         const id = value ? Number(value) : null
         setSelection({ programId: id, schoolId: null, courseId: null })
@@ -98,14 +117,19 @@ export function WizardStepProgram({
                       includes: parseIncludes(program.includes)
                   }
                 : null,
-            course: null
+            course: null,
+            schoolIncludes: []
         }))
     }
 
     function selectSchool(value: string | null) {
         const id = value ? Number(value) : null
         setSelection((prev) => ({ ...prev, schoolId: id, courseId: null }))
-        setDraft((prev) => ({ ...prev, course: null }))
+        setDraft((prev) => ({
+            ...prev,
+            course: null,
+            schoolIncludes: []
+        }))
     }
 
     function selectCourse(value: string | null) {
@@ -114,7 +138,11 @@ export function WizardStepProgram({
         const courseRow =
             visibleCourses.find((course) => course.id === id) || null
         if (!courseRow || !draft.program) {
-            setDraft((prev) => ({ ...prev, course: null }))
+            setDraft((prev) => ({
+                ...prev,
+                course: null,
+                schoolIncludes: []
+            }))
             return
         }
         const school = availableSchools.find(
@@ -135,7 +163,8 @@ export function WizardStepProgram({
                 weeks: courseRow.weeks,
                 hoursPerWeek: courseRow.hoursPerWeek,
                 price: courseRow.price
-            }
+            },
+            schoolIncludes: includesForSchool(courseRow.schoolId)
         }))
     }
 

@@ -6,6 +6,7 @@ export type CatalogFieldType =
     | 'number'
     | 'switch'
     | 'select'
+    | 'multi-select'
     | 'date'
     | 'image'
 
@@ -416,6 +417,42 @@ export const CATALOG_DEFS: Record<string, CatalogConfig> = {
                 key: 'endsAt',
                 label: 'Fecha de vencimiento',
                 type: 'date'
+            },
+            {
+                key: 'isActive',
+                label: 'Activo',
+                type: 'switch',
+                default: true
+            }
+        ]
+    },
+    schoolIncludes: {
+        entity: 'school-includes',
+        title: 'Incluye de escuelas',
+        singular: 'Incluye',
+        fields: [
+            {
+                key: 'name',
+                label: 'Nombre',
+                type: 'text',
+                required: true,
+                placeholder: 'Certificación al finalizar el curso',
+                showInTable: true
+            },
+            {
+                key: 'description',
+                label: 'Descripción',
+                type: 'textarea'
+            },
+            {
+                key: 'schoolIds',
+                label: 'Escuelas',
+                type: 'multi-select',
+                optionsApi: 'admin/schools',
+                optionLabelKey: 'name',
+                required: true,
+                helper: 'Selecciona una o varias escuelas a las que aplica este beneficio.',
+                showInTable: true
             },
             {
                 key: 'isActive',

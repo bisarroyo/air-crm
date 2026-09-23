@@ -65,6 +65,12 @@ export interface QuotationDiscountLine {
     endsAt: string | Date | null
 }
 
+export interface QuotationSchoolIncludeLine {
+    id: number | null
+    name: string
+    description: string
+}
+
 export interface QuotationAccommodation {
     included: boolean
     id: number | null
@@ -108,6 +114,7 @@ export interface QuotationDraft {
         hoursPerWeek: number
         price: number
     } | null
+    schoolIncludes: QuotationSchoolIncludeLine[]
     accommodation: QuotationAccommodation
     extras: QuotationExtraLine[]
     discounts: QuotationDiscountLine[]
@@ -223,7 +230,7 @@ export function formatDateShort(value: Date | string | null | undefined): string
             year: 'numeric'
         })
     } catch {
-        return date.toISOString().slice(0, 10)
+        return toDateInputValue(date)
     }
 }
 
@@ -238,7 +245,7 @@ export function formatDateLong(value: Date | string | null | undefined): string 
             year: 'numeric'
         })
     } catch {
-        return date.toISOString().slice(0, 10)
+        return toDateInputValue(date)
     }
 }
 
@@ -332,6 +339,20 @@ export function validateDraftPure(
     return null
 }
 
+/**
+ * Beneficios que se muestran en la sección "Incluye": los del programa más
+ * los del paquete de la escuela seleccionada (certificaciones, fees, etc.).
+ */
+export function quotationIncludes(
+    draft: Pick<QuotationDraft, 'program' | 'schoolIncludes'>
+): string[] {
+    const programIncludes = draft.program?.includes ?? []
+    const schoolIncludes = (draft.schoolIncludes ?? [])
+        .map((item) => item.name.trim())
+        .filter(Boolean)
+    return [...programIncludes, ...schoolIncludes]
+}
+
 export function defaultDraft(
     client: {
         name: string
@@ -365,6 +386,7 @@ export function defaultDraft(
         validUntil: toDateInputValue(validUntil),
         program: null,
         course: null,
+        schoolIncludes: [],
         accommodation: {
             included: false,
             id: null,
@@ -392,6 +414,9 @@ export function toDraft(data: QuotationData): QuotationDraft {
             ? { ...data.program, includes: [...data.program.includes] }
             : null,
         course: data.course ? { ...data.course } : null,
+        schoolIncludes: data.schoolIncludes
+            ? data.schoolIncludes.map((item) => ({ ...item }))
+            : [],
         accommodation: {
             ...data.accommodation,
             name: data.accommodation.name || ''
