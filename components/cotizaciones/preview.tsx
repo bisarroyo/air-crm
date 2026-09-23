@@ -204,11 +204,13 @@ export function QuotationPreview({
                 <div className='mt-6'>
                     <SectionLabel>Incluye</SectionLabel>
                     <ul className='text-[13px]'>
-                        {quotationIncludes(data).map((item) => (
-                            <li key={item} className='py-0.5'>
-                                • {item}
-                            </li>
-                        ))}
+                        <div className='grid gap-x-4 text-[13px] sm:grid-cols-2'>
+                            {quotationIncludes(data).map((item) => (
+                                <li key={item} className='py-0.5'>
+                                    • {item}
+                                </li>
+                            ))}
+                        </div>
                     </ul>
                 </div>
             )}
