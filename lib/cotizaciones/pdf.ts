@@ -292,15 +292,49 @@ export function buildDocDefinition(
     content.push({
         columns: [
             {
-                width: '38%',
+                width: '44%',
                 stack: [
                     sectionLabel('Asesor'),
-                    labelValueTable([
-                        ['Nombre', advisor.name],
-                        ['Email', advisor.email],
-                        ['Teléfono', company.phone || '—'],
-                        ['WhatsApp', company.whatsapp || '—']
-                    ])
+                    {
+                        layout: noBorderLayout,
+                        table: {
+                            widths: ['30%', '70%'],
+                            body: [
+                                ['Nombre', advisor.name].map(
+                                    (v, i) =>
+                                        ({
+                                            text: v,
+                                            color: i === 0 ? MUTED : TEXT,
+                                            fontSize: i === 0 ? 9 : 9.5
+                                        })
+                                ),
+                                ['Email', advisor.email].map(
+                                    (v, i) =>
+                                        ({
+                                            text: v,
+                                            color: i === 0 ? MUTED : TEXT,
+                                            fontSize: i === 0 ? 9 : 9.5
+                                        })
+                                ),
+                                ['Teléfono', company.phone || '—'].map(
+                                    (v, i) =>
+                                        ({
+                                            text: v,
+                                            color: i === 0 ? MUTED : TEXT,
+                                            fontSize: i === 0 ? 9 : 9.5
+                                        })
+                                ),
+                                ['WhatsApp', company.whatsapp || '—'].map(
+                                    (v, i) =>
+                                        ({
+                                            text: v,
+                                            color: i === 0 ? MUTED : TEXT,
+                                            fontSize: i === 0 ? 9 : 9.5
+                                        })
+                                )
+                            ]
+                        }
+                    }
                 ]
             },
             {

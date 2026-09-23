@@ -188,10 +188,10 @@ export function QuotationPreview({
                         value={data.course.schoolName}
                     />
                     <LabelValue label='Curso' value={data.course.name} />
-                    <LabelValue
+                    {/* <LabelValue
                         label='Horario'
                         value={data.course.scheduleName}
-                    />
+                    /> */}
                     <LabelValue
                         label='Duración'
                         value={`${data.course.weeks} semanas · ${data.course.hoursPerWeek} horas/semana`}
@@ -371,7 +371,6 @@ export function QuotationPreview({
                 <SectionLabel>{company.companyName}</SectionLabel>
                 <div className='grid gap-x-4 text-[13px] sm:grid-cols-2'>
                     <LabelValue label='Email' value={company.email} />
-                    <LabelValue label='Sitio web' value={company.website} />
                     <LabelValue label='Facebook' value={company.facebook} />
                     <LabelValue label='Instagram' value={company.instagram} />
                     <LabelValue label='Dirección' value={company.address} />
