@@ -406,50 +406,15 @@ export function buildDocDefinition(
         stack: [
             sectionLabel('Alojamiento'),
             data.accommodation.included
-                ? {
-                      columns: [
-                          {
-                              width: '50%',
-                              stack: [
-                                  costTable([
-                                      {
-                                          label: 'Tipo',
-                                          value: data.accommodation.name
-                                      },
-                                      {
-                                          label: 'Semanas',
-                                          value: String(
-                                              data.accommodation.weeks
-                                          )
-                                      }
-                                  ])
-                              ]
-                          },
-                          {
-                              width: '50%',
-                              stack: [
-                                  costTable([
-                                      {
-                                          label: 'Precio semanal',
-                                          value: money(
-                                              data.accommodation.pricePerWeek,
-                                              currency
-                                          )
-                                      },
-                                      {
-                                          label: 'Total',
-                                          value: money(
-                                              totals.accommodation,
-                                              currency
-                                          ),
-                                          bold: true
-                                      }
-                                  ])
-                              ]
-                          }
+                ? labelValueTable([
+                      ['Tipo', data.accommodation.name],
+                      ['Semanas', String(data.accommodation.weeks)],
+                      [
+                          'Precio semanal',
+                          money(data.accommodation.pricePerWeek, currency)
                       ],
-                      columnGap: 16
-                  }
+                      ['Total', money(totals.accommodation, currency)]
+                  ])
                 : {
                       text: 'No incluye alojamiento',
                       fontSize: 9.5,
@@ -551,6 +516,7 @@ export function buildDocDefinition(
 
     const contactRows: Array<[string, string]> = [
         ['Email', company.email || '—'],
+        ['Sitio web', company.website || '—'],
         ['Facebook', company.facebook || '—'],
         ['Instagram', company.instagram || '—'],
         ['Dirección', company.address || '—']
