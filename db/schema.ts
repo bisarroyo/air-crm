@@ -490,6 +490,9 @@ export const customers = sqliteTable('customers', {
     createdAt: integer('created_at', { mode: 'timestamp' }).default(
         sql`(unixepoch())`
     ),
+    // No default: Turso rejects ADD COLUMN with a non-constant default,
+    // so insert paths set this explicitly.
+    statusChangedAt: integer('status_changed_at', { mode: 'timestamp' }),
     updatedAt: integer('updated_at', { mode: 'timestamp' })
         .default(sql`(unixepoch())`)
         .$onUpdate(() => new Date())

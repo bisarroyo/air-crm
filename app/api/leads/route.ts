@@ -36,13 +36,16 @@ export async function POST(request: Request) {
 
         if (validateCurrentCustomer.length > 0) {
             const existing = validateCurrentCustomer[0]
-            const updateData: Record<string, string | number | null> = {
+            const updateData: Record<string, string | number | Date | null> = {
                 name: body.name,
                 phone: body.phone,
                 travelTime: body.travel_time,
                 statusId: 1,
                 priorityId: 1,
                 referralId: referralId || null
+            }
+            if (existing.statusId !== 1) {
+                updateData.statusChangedAt = new Date()
             }
             await db
                 .update(customers)
@@ -84,7 +87,8 @@ export async function POST(request: Request) {
                 statusId: 1,
                 priorityId: 1,
                 referralId: referralId || null,
-                assignedTo: '0vd84cJDrYloFlFJRdErhuztO9J9jwaI'
+                assignedTo: '0vd84cJDrYloFlFJRdErhuztO9J9jwaI',
+                statusChangedAt: new Date()
             })
             .returning()
 

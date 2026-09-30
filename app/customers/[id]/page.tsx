@@ -11,7 +11,7 @@ import {
     UserRound
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -301,6 +301,15 @@ export default function CustomerDetailPage() {
             })),
         enabled: isAdmin
     }) as { data: SelectOption[] | undefined }
+
+    const referralItems = useMemo(
+        () =>
+            referralOptions.reduce<Record<string, string>>((acc, r) => {
+                acc[String(r.id)] = r.name
+                return acc
+            }, {}),
+        [referralOptions]
+    )
 
     const { data: tagOptions = [] } = useQuery({
         queryKey: ['tags'],
@@ -1035,6 +1044,7 @@ export default function CustomerDetailPage() {
                                             </FieldLabel>
                                             <Select
                                                 value={field.value}
+                                                items={referralItems}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='edit-referralId'>
                                                     <SelectValue placeholder='Select...' />

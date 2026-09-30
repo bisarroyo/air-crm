@@ -26,6 +26,7 @@ import {
 import { useSession } from '@/hooks/use-session'
 import {
     EVENT_STATUS_META,
+    EVENT_STATUS_OPTIONS,
     EVENT_TYPE_META,
     formatScheduledAt,
     type CustomerEvent,
@@ -155,6 +156,7 @@ function EventItem({
                 </span>
                 <Select
                     value={event.status}
+                    items={EVENT_STATUS_OPTIONS}
                     onValueChange={(v) =>
                         onStatusChange(event, v as EventStatus)
                     }>
@@ -163,9 +165,13 @@ function EventItem({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectGroup>
-                            <SelectItem value='pending'>Pendiente</SelectItem>
-                            <SelectItem value='attended'>Asistió</SelectItem>
-                            <SelectItem value='no_show'>No asistió</SelectItem>
+                            {EVENT_STATUS_OPTIONS.map((option) => (
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
                         </SelectGroup>
                     </SelectContent>
                 </Select>

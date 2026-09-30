@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { GlobeLoader } from '@/components/ui/globe-loader'
 import { EventCalendar } from '@/components/dashboard/calendar'
 import { TasksPanel } from '@/components/dashboard/tasks-panel'
+import { LeadStatusCards, type LeadStatusCount } from '@/components/dashboard/lead-status-cards'
 import { dayKey, startOfToday, type DashboardEvent, type DashboardTask } from '@/components/dashboard/shared'
 
 function StatCard({
@@ -74,6 +75,20 @@ export default function DashboardPage() {
             if (!res.ok) throw new Error('Failed to fetch tasks')
             return res.json()
         }
+    })
+
+    const {
+        data: statusCounts = [],
+        isError: statusesError
+    } = useQuery<LeadStatusCount[]>({
+        queryKey: ['dashboard-lead-statuses'],
+        queryFn: async () => {
+            const res = await fetch('/api/dashboard/lead-statuses')
+            if (!res.ok) throw new Error('Failed to fetch lead statuses')
+            const json = await res.json()
+            return json.counts
+        },
+        retry: false
     })
 
     const counts = useMemo(() => {
@@ -138,6 +153,11 @@ export default function DashboardPage() {
                         </div>
                         <TasksPanel tasks={tasks} />
                     </div>
+
+                    <LeadStatusCards
+                        counts={statusCounts}
+                        isError={statusesError}
+                    />
                 </div>
             )}
         </div>

@@ -188,7 +188,8 @@ export async function POST(request: Request) {
                 assignedTo:
                     body.assignedTo ||
                     session.user.id ||
-                    '0vd84cJDrYloFlFJRdErhuztO9J9jwaI'
+                    '0vd84cJDrYloFlFJRdErhuztO9J9jwaI',
+                statusChangedAt: new Date()
             })
             .returning()
 

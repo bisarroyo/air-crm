@@ -55,6 +55,14 @@ export const EVENT_STATUS_META: Record<
     }
 }
 
+export const EVENT_STATUS_OPTIONS: Array<{
+    value: EventStatus
+    label: string
+}> = (Object.keys(EVENT_STATUS_META) as EventStatus[]).map((status) => ({
+    value: status,
+    label: EVENT_STATUS_META[status].label
+}))
+
 export function toDateTimeLocalValue(date: Date) {
     const pad = (n: number) => String(n).padStart(2, '0')
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(

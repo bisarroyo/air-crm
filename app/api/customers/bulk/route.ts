@@ -95,6 +95,18 @@ export async function POST(request: Request) {
             .where(inArray(customers.id, ids))
             .returning({ id: customers.id })
 
+        if (statusId !== undefined) {
+            const movedIds = existingCustomers
+                .filter((c) => c.statusId !== Number(statusId))
+                .map((c) => c.id)
+            if (movedIds.length > 0) {
+                await db
+                    .update(customers)
+                    .set({ statusChangedAt: new Date() })
+                    .where(inArray(customers.id, movedIds))
+            }
+        }
+
         const logEntries = result.map(r => {
                 const existing = existingMap.get(r.id)
                 if (!existing) return null

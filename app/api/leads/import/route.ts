@@ -116,7 +116,8 @@ export async function POST(request: Request) {
                             statusId: lead.statusId ?? 1,
                             priorityId: lead.priorityId ?? 1,
                             referralId: lead.referralId ?? null,
-                            assignedTo: lead.assignedTo || session.user.id
+                            assignedTo: lead.assignedTo || session.user.id,
+                            statusChangedAt: new Date()
                         })
                         .returning({ id: customers.id })
 

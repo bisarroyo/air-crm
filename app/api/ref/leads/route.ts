@@ -99,7 +99,8 @@ export async function POST(request: Request) {
             statusId: 1,
             priorityId: 1,
             referralId: referral.id,
-            assignedTo: session.user.id
+            assignedTo: session.user.id,
+            statusChangedAt: new Date()
         })
         .returning()
 

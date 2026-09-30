@@ -99,7 +99,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const updateData: Record<string, string | number | null> = {}
+    const updateData: Record<string, string | number | Date | null> = {}
 
     if (body.name !== undefined) updateData.name = body.name
     if (body.email !== undefined) updateData.email = body.email
@@ -146,6 +146,12 @@ export async function PUT(
 
         let updatedContact = existing
         if (Object.keys(updateData).length > 0) {
+            if (
+                updateData.statusId !== undefined &&
+                Number(updateData.statusId) !== existing.statusId
+            ) {
+                updateData.statusChangedAt = new Date()
+            }
             const [updated] = await db
                 .update(customers)
                 .set(updateData)
