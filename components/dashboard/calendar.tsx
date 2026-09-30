@@ -37,9 +37,16 @@ export function EventCalendar({ events }: { events: DashboardEvent[] }) {
 
     const cells = useMemo(() => {
         const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
+        const daysInMonth = new Date(
+            cursor.getFullYear(),
+            cursor.getMonth() + 1,
+            0
+        ).getDate()
+        const leading = (first.getDay() + 6) % 7
         const start = new Date(first)
-        start.setDate(first.getDate() - first.getDay())
-        return Array.from({ length: 42 }, (_, i) => {
+        start.setDate(first.getDate() - leading)
+        const total = Math.ceil((leading + daysInMonth) / 7) * 7
+        return Array.from({ length: total }, (_, i) => {
             const d = new Date(start)
             d.setDate(start.getDate() + i)
             return d
