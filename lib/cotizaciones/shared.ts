@@ -353,6 +353,55 @@ export function quotationIncludes(
     return [...programIncludes, ...schoolIncludes]
 }
 
+/**
+ * Reparte los elementos en columnas con la misma cantidad de items en cada una
+ * (sobra una fila para la primera columna cuando el total es impar). Se usa en
+ * "Incluye" y en los datos de contacto, tanto en el PDF como en la vista previa,
+ * para que ambas secciones se vean exactamente igual.
+ */
+export function splitEvenly<T>(items: T[], columnCount = 2): T[][] {
+    const count = Math.max(1, columnCount)
+    const columns: T[][] = Array.from({ length: count }, () => [])
+    const perColumn = Math.ceil(items.length / count)
+
+    items.forEach((item, index) => {
+        const target = Math.min(Math.floor(index / perColumn), count - 1)
+        columns[target].push(item)
+    })
+
+    return columns
+}
+
+/** Columnas del cuadro de alojamiento: tipo, semanas, precio semanal y total. */
+export function accommodationSummary(
+    accommodation: QuotationAccommodation,
+    total: number,
+    currency: Currency
+): Array<{ label: string; value: string }> {
+    return [
+        { label: 'Tipo de alojamiento', value: accommodation.name || '—' },
+        { label: 'Semanas', value: String(accommodation.weeks) },
+        {
+            label: 'Precio semanal',
+            value: formatMoneyCompact(accommodation.pricePerWeek, currency)
+        },
+        { label: 'Total', value: formatMoneyCompact(total, currency) }
+    ]
+}
+
+/** Datos de contacto de la empresa mostrados al pie de la cotización. */
+export function companyContactRows(
+    company: QuotationCompany
+): Array<{ label: string; value: string }> {
+    return [
+        { label: 'Email', value: company.email || '—' },
+        { label: 'Sitio web', value: company.website || '—' },
+        { label: 'Facebook', value: company.facebook || '—' },
+        { label: 'Instagram', value: company.instagram || '—' },
+        { label: 'Dirección', value: company.address || '—' }
+    ]
+}
+
 export function defaultDraft(
     client: {
         name: string

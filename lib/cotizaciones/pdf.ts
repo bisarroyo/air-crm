@@ -4,9 +4,13 @@ import {
     formatMoneyCompact,
     formatDateLong,
     quotationIncludes,
+    splitEvenly,
+    accommodationSummary,
+    companyContactRows,
     type QuotationData,
     type Currency
 } from './shared'
+import { computeDiscountLines } from './pricing'
 
 const PRIMARY = '#0F766E'
 const PRIMARY_DARK = '#134E4A'
@@ -199,6 +203,78 @@ function costTable(rows: PdfRow[]): Node {
     }
 }
 
+const ACCOMMODATION_WIDTHS = ['*', 58, 88, 88]
+const ACCOMMODATION_ALIGN = ['left', 'center', 'right', 'right'] as const
+
+function accommodationBox(
+    rows: Array<{ label: string; value: string }>
+): Node {
+    return {
+        table: {
+            widths: ACCOMMODATION_WIDTHS,
+            body: [
+                rows.map((row) => ({
+                    text: row.label,
+                    fontSize: 8.5,
+                    bold: true,
+                    color: MUTED,
+                    fillColor: LIGHT
+                })),
+                rows.map((row, index) => ({
+                    text: row.value,
+                    fontSize: index === rows.length - 1 ? 10.5 : 9.5,
+                    bold: index === rows.length - 1,
+                    color: TEXT,
+                    alignment: ACCOMMODATION_ALIGN[index] ?? 'left'
+                }))
+            ]
+        },
+        layout: {
+            hLineWidth: () => 0.6,
+            vLineWidth: () => 0.6,
+            hLineColor: () => BORDER,
+            vLineColor: () => BORDER,
+            paddingTop: () => 4,
+            paddingBottom: () => 4,
+            paddingLeft: () => 5,
+            paddingRight: () => 5
+        }
+    }
+}
+
+/** Lista con viñetas repartida en columnas parejas (misma regla que la vista previa). */
+function bulletColumns(items: string[]): Node {
+    const columns = splitEvenly(items, 2)
+    const hasTwo = columns.filter((column) => column.length > 0).length > 1
+
+    return {
+        columns: columns.map((column) => ({
+            width: hasTwo ? '50%' : '*',
+            stack: column.map((item) => ({
+                text: `•  ${item}`,
+                fontSize: 9.5,
+                color: TEXT,
+                margin: [0, 1, 0, 1]
+            }))
+        })),
+        columnGap: 12
+    }
+}
+
+/** Filas label/value repartidas en columnas parejas. */
+function labelValueColumns(rows: Array<{ label: string; value: string }>): Node {
+    const columns = splitEvenly(rows, 2)
+    const hasTwo = columns.filter((column) => column.length > 0).length > 1
+
+    return {
+        columns: columns.map((column) => ({
+            width: hasTwo ? '50%' : '*',
+            stack: [labelValueTable(column.map((row) => [row.label, row.value]))]
+        })),
+        columnGap: 12
+    }
+}
+
 export function buildDocDefinition(
     data: QuotationData,
     number: string
@@ -387,17 +463,11 @@ export function buildDocDefinition(
         })
     }
 
-    if (data.program && quotationIncludes(data).length > 0) {
+    const includes = quotationIncludes(data)
+
+    if (includes.length > 0) {
         content.push({
-            stack: [
-                sectionLabel('Incluye'),
-                ...quotationIncludes(data).map((item) => ({
-                    text: `•  ${item}`,
-                    fontSize: 9.5,
-                    color: TEXT,
-                    margin: [0, 1, 0, 1]
-                }))
-            ],
+            stack: [sectionLabel('Incluye'), bulletColumns(includes)],
             margin: [0, 0, 0, 7]
         })
     }
@@ -406,15 +476,13 @@ export function buildDocDefinition(
         stack: [
             sectionLabel('Alojamiento'),
             data.accommodation.included
-                ? labelValueTable([
-                      ['Tipo', data.accommodation.name],
-                      ['Semanas', String(data.accommodation.weeks)],
-                      [
-                          'Precio semanal',
-                          money(data.accommodation.pricePerWeek, currency)
-                      ],
-                      ['Total', money(totals.accommodation, currency)]
-                  ])
+                ? accommodationBox(
+                      accommodationSummary(
+                          data.accommodation,
+                          totals.accommodation,
+                          currency
+                      )
+                  )
                 : {
                       text: 'No incluye alojamiento',
                       fontSize: 9.5,
@@ -443,8 +511,10 @@ export function buildDocDefinition(
         margin: [0, 0, 0, 7]
     })
 
-    if (data.discounts.length > 0) {
-        const discountRows: PdfRow[] = data.discounts.flatMap((discount) => [
+    const discountLines = computeDiscountLines(data)
+
+    if (discountLines.length > 0) {
+        const discountRows: PdfRow[] = discountLines.flatMap((discount) => [
             {
                 label: discount.name,
                 value: `- ${money(discount.amount, currency)}`,
@@ -495,7 +565,7 @@ export function buildDocDefinition(
         { label: 'Subtotal', value: money(totals.subtotal, currency), bold: true }
     ]
 
-    if (data.discounts.length > 0) {
+    if (discountLines.length > 0) {
         summary.push({
             label: 'Descuento',
             value: `- ${money(totals.discount, currency)}`,
@@ -514,25 +584,10 @@ export function buildDocDefinition(
         margin: [0, 0, 0, 8]
     })
 
-    const contactRows: Array<[string, string]> = [
-        ['Email', company.email || '—'],
-        ['Sitio web', company.website || '—'],
-        ['Facebook', company.facebook || '—'],
-        ['Instagram', company.instagram || '—'],
-        ['Dirección', company.address || '—']
-    ]
-
-    const half = Math.ceil(contactRows.length / 2)
-
     content.push({
-        stack: [sectionLabel(companyName),
-            {
-                columns: [
-                    { width: '50%', stack: [labelValueTable(contactRows.slice(0, half))] },
-                    { width: '50%', stack: [labelValueTable(contactRows.slice(half))] }
-                ],
-                columnGap: 12
-            }
+        stack: [
+            sectionLabel(companyName),
+            labelValueColumns(companyContactRows(company))
         ],
         margin: [0, 0, 0, 3]
     })
