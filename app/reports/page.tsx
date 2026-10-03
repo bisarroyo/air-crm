@@ -12,8 +12,7 @@ import {
     ResponsiveContainer,
     PieChart,
     Pie,
-    Cell,
-    Legend
+    Cell
 } from 'recharts'
 import {
     TrendingUp,
@@ -87,7 +86,7 @@ export default function ReportsPage() {
         queryKey: ['statuses'],
         queryFn: async () => {
             const res = await fetch('/api/status')
-            if (!res.ok) throw new Error('Failed to fetch')
+            if (!res.ok) throw new Error('No se pudo cargar')
             const data = await res.json()
             return data.filter((s: { isActive: number }) => s.isActive)
         }
@@ -97,7 +96,7 @@ export default function ReportsPage() {
         queryKey: ['referrals'],
         queryFn: async () => {
             const res = await fetch('/api/referrals')
-            if (!res.ok) throw new Error('Failed to fetch')
+            if (!res.ok) throw new Error('No se pudo cargar')
             return res.json()
         }
     })
@@ -106,7 +105,7 @@ export default function ReportsPage() {
         queryKey: ['tags'],
         queryFn: async () => {
             const res = await fetch('/api/tags')
-            if (!res.ok) throw new Error('Failed to fetch')
+            if (!res.ok) throw new Error('No se pudo cargar')
             const data = await res.json()
             return data.filter((t: { isActive: number }) => t.isActive)
         }
@@ -123,7 +122,7 @@ export default function ReportsPage() {
         queryKey: ['reports', statusIds, referralCode, tagId, dateFrom, dateTo],
         queryFn: async () => {
             const res = await fetch(`/api/reports?${params.toString()}`)
-            if (!res.ok) throw new Error('Failed to fetch reports')
+            if (!res.ok) throw new Error('No se pudieron cargar los reportes')
             return res.json()
         }
     })
@@ -149,37 +148,49 @@ export default function ReportsPage() {
     const hasFilters =
         statusIds.length > 0 || referralCode || tagId || dateFrom || dateTo
 
+    // Los <SelectItem> de estado/etiqueta/referido llegan de forma asíncrona,
+    // así que base-ui puede mostrar el value crudo (el id) en vez de la
+    // etiqueta. Se le pasa el texto explícito al <SelectValue>.
+    const statusLabel =
+        statuses.find((s) => String(s.id) === statusIds[0])?.status ??
+        'Todos los estados'
+    const tagLabel = tags.find((t) => String(t.id) === tagId)?.tag ?? 'Todas las etiquetas'
+    const referralLabel =
+        referrals.find((r) => r.code === referralCode)?.code ?? 'Todos los referidos'
+
     return (
         <div className='container mx-auto p-6 space-y-6'>
             <div className='flex items-center justify-between'>
-                <h1 className='text-2xl font-medium'>Reports</h1>
+                <h1 className='text-2xl font-medium'>Reportes</h1>
                 {hasFilters && (
                     <Button variant='ghost' size='sm' onClick={clearFilters}>
-                        Clear Filters
+                        Limpiar filtros
                     </Button>
                 )}
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle className='text-base'>Filters</CardTitle>
+                    <CardTitle className='text-base'>Filtros</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className='grid gap-4 md:grid-cols-5'>
                         <div>
-                            <Label className='text-xs mb-1 block'>Status</Label>
+                            <Label className='text-xs mb-1 block'>Estado</Label>
                             <Select
                                 value={statusIds.length > 0 ? statusIds[0] : ''}
                                 onValueChange={(val) =>
                                     setStatusIds(val ? [String(val)] : [])
                                 }>
                                 <SelectTrigger>
-                                    <SelectValue placeholder='All statuses' />
+                                    <SelectValue placeholder='Todos los estados'>
+                                        {statusLabel}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            All statuses
+                                            Todos los estados
                                         </SelectItem>
                                         {statuses.map((s) => (
                                             <SelectItem
@@ -193,19 +204,21 @@ export default function ReportsPage() {
                             </Select>
                         </div>
                         <div>
-                            <Label className='text-xs mb-1 block'>Tag</Label>
+                            <Label className='text-xs mb-1 block'>Etiqueta</Label>
                             <Select
                                 value={tagId}
                                 onValueChange={(val) =>
                                     setTagId(val === '' ? '' : String(val))
                                 }>
                                 <SelectTrigger>
-                                    <SelectValue placeholder='All tags' />
+                                    <SelectValue placeholder='Todas las etiquetas'>
+                                        {tagLabel}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            All tags
+                                            Todas las etiquetas
                                         </SelectItem>
                                         {tags.map((t) => (
                                             <SelectItem
@@ -220,7 +233,7 @@ export default function ReportsPage() {
                         </div>
                         <div>
                             <Label className='text-xs mb-1 block'>
-                                Referral Code
+                                Código de referido
                             </Label>
                             <Select
                                 value={referralCode}
@@ -230,12 +243,14 @@ export default function ReportsPage() {
                                     )
                                 }>
                                 <SelectTrigger>
-                                    <SelectValue placeholder='All referrals' />
+                                    <SelectValue placeholder='Todos los referidos'>
+                                        {referralLabel}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            All referrals
+                                            Todos los referidos
                                         </SelectItem>
                                         {referrals.map((r) => (
                                             <SelectItem
@@ -250,7 +265,7 @@ export default function ReportsPage() {
                             </Select>
                         </div>
                         <div>
-                            <Label className='text-xs mb-1 block'>From</Label>
+                            <Label className='text-xs mb-1 block'>Desde</Label>
                             <Input
                                 type='date'
                                 value={dateFrom}
@@ -259,7 +274,7 @@ export default function ReportsPage() {
                             />
                         </div>
                         <div>
-                            <Label className='text-xs mb-1 block'>To</Label>
+                            <Label className='text-xs mb-1 block'>Hasta</Label>
                             <Input
                                 type='date'
                                 value={dateTo}
@@ -290,7 +305,7 @@ export default function ReportsPage() {
                                             {report.total}
                                         </p>
                                         <p className='text-xs text-muted-foreground'>
-                                            Total Leads
+                                            Total de leads
                                         </p>
                                     </div>
                                 </div>
@@ -310,7 +325,7 @@ export default function ReportsPage() {
                                             {report.thisMonth}
                                         </p>
                                         <p className='text-xs text-muted-foreground'>
-                                            This Month
+                                            Este mes
                                         </p>
                                     </div>
                                 </div>
@@ -330,7 +345,7 @@ export default function ReportsPage() {
                                             {report.lastMonth}
                                         </p>
                                         <p className='text-xs text-muted-foreground'>
-                                            Last Month
+                                            Mes pasado
                                         </p>
                                     </div>
                                 </div>
@@ -364,7 +379,7 @@ export default function ReportsPage() {
                                             ) : null}
                                         </div>
                                         <p className='text-xs text-muted-foreground'>
-                                            Growth
+                                            Crecimiento
                                         </p>
                                     </div>
                                 </div>
@@ -376,7 +391,7 @@ export default function ReportsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className='text-base'>
-                                    Leads per Month
+                                    Leads por mes
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -414,7 +429,7 @@ export default function ReportsPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className='text-base'>
-                                        Leads by Status
+                                        Leads por estado
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -462,7 +477,7 @@ export default function ReportsPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className='text-base'>
-                                        Leads by Priority
+                                        Leads por prioridad
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -512,7 +527,7 @@ export default function ReportsPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className='text-base'>
-                                        Leads by Travel Time
+                                        Leads por tiempo de viaje
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -562,7 +577,7 @@ export default function ReportsPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className='text-base'>
-                                        Leads by Referral Code
+                                        Leads por código de referido
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -609,7 +624,7 @@ export default function ReportsPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className='text-base'>
-                                        Leads by Tag
+                                        Leads por etiqueta
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>

@@ -17,7 +17,7 @@ export async function PATCH(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -35,7 +35,7 @@ export async function PATCH(
 
     if (!existing) {
         return NextResponse.json(
-            { error: 'Event not found' },
+            { error: 'Evento no encontrado' },
             { status: 404 }
         )
     }
@@ -45,7 +45,7 @@ export async function PATCH(
     if (body.type !== undefined) {
         if (!EVENT_TYPES.includes(body.type)) {
             return NextResponse.json(
-                { error: 'Invalid event type' },
+                { error: 'Tipo de evento inválido' },
                 { status: 400 }
             )
         }
@@ -75,7 +75,7 @@ export async function PATCH(
     if (body.status !== undefined) {
         if (!EVENT_STATUSES.includes(body.status)) {
             return NextResponse.json(
-                { error: 'Invalid status' },
+                { error: 'Estado inválido' },
                 { status: 400 }
             )
         }
@@ -91,7 +91,7 @@ export async function PATCH(
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }
@@ -110,7 +110,7 @@ export async function PATCH(
 
         if (!updated) {
             return NextResponse.json(
-                { error: 'Event not found' },
+                { error: 'Evento no encontrado' },
                 { status: 404 }
             )
         }
@@ -134,7 +134,7 @@ export async function DELETE(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     try {
@@ -151,7 +151,7 @@ export async function DELETE(
 
         if (!existing) {
             return NextResponse.json(
-                { error: 'Event not found' },
+                { error: 'Evento no encontrado' },
                 { status: 404 }
             )
         }
@@ -161,7 +161,7 @@ export async function DELETE(
             session.user.role !== 'admin'
         ) {
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'No autorizado' },
                 { status: 403 }
             )
         }
@@ -178,7 +178,7 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { error: 'Event not found' },
+                { error: 'Evento no encontrado' },
                 { status: 404 }
             )
         }

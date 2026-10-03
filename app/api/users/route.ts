@@ -9,7 +9,7 @@ export async function GET() {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const users = await db

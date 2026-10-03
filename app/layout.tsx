@@ -13,7 +13,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
     title: 'AIR CRM',
-    description: 'SUUPORT FOR BETTER AUTH IN NEXT.JS 13+'
+    description: 'CRM de ventas y cotizaciones para S Travel Costa Rica'
 }
 
 export default function RootLayout({
@@ -33,9 +33,9 @@ export default function RootLayout({
             <body className={poppins.className}>
                 <Providers>
                     <Header />
-                    <div className='flex'>
+                    <div className='flex h-[calc(100vh-3.5rem)] overflow-hidden'>
                         <Sidebar />
-                        <main className='flex-1 overflow-y-auto'>
+                        <main className='flex-1 overflow-x-hidden overflow-y-auto'>
                             {children}
                         </main>
                     </div>

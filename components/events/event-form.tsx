@@ -140,7 +140,7 @@ function EventForm({
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to save event')
+                throw new Error(err.error || 'No se pudo guardar el evento')
             }
             return res.json()
         },

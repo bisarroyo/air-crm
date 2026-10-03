@@ -23,7 +23,7 @@ export async function GET(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const [row] = await db
@@ -58,7 +58,7 @@ export async function GET(
 
     if (!row) {
         return NextResponse.json(
-            { error: 'Customer not found' },
+            { error: 'Cliente no encontrado' },
             { status: 404 }
         )
     }
@@ -95,7 +95,7 @@ export async function PUT(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -125,7 +125,7 @@ export async function PUT(
 
     if (Object.keys(updateData).length === 0 && !hasTagChange) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }
@@ -139,7 +139,7 @@ export async function PUT(
 
         if (!existing) {
             return NextResponse.json(
-                { error: 'Customer not found' },
+                { error: 'Cliente no encontrado' },
                 { status: 404 }
             )
         }
@@ -160,7 +160,7 @@ export async function PUT(
 
             if (!updated) {
                 return NextResponse.json(
-                    { error: 'Customer not found' },
+                    { error: 'Cliente no encontrado' },
                     { status: 404 }
                 )
             }
@@ -259,7 +259,7 @@ export async function DELETE(
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     try {
@@ -270,7 +270,7 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { error: 'Customer not found' },
+                { error: 'Cliente no encontrado' },
                 { status: 404 }
             )
         }

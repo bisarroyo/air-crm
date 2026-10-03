@@ -19,7 +19,7 @@ export async function GET(request: Request) {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -162,14 +162,14 @@ export async function POST(request: Request) {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
 
     if (!body.name || !body.email || !body.phone || !body.travelTime) {
         return NextResponse.json(
-            { error: 'Name, email, phone, and travel time are required' },
+            { error: 'El nombre, el email, el teléfono y el tiempo de viaje son obligatorios' },
             { status: 400 }
         )
     }

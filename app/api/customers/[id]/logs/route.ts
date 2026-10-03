@@ -15,7 +15,7 @@ export async function GET(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const rows = await db
@@ -35,5 +35,15 @@ export async function GET(
         .where(eq(logs.customerId, Number(id)))
         .orderBy(desc(logs.createdAt))
 
-    return NextResponse.json(rows)
+    const referralRows = await db
+        .select({ id: referrals.id, code: referrals.code })
+        .from(referrals)
+        .orderBy(referrals.id)
+
+    const referralNames: Record<string, string> = {}
+    for (const referral of referralRows) {
+        referralNames[String(referral.id)] = referral.code
+    }
+
+    return NextResponse.json({ logs: rows, referralNames })
 }

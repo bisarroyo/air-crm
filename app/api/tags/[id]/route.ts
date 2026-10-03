@@ -14,7 +14,7 @@ export async function PUT(
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -23,7 +23,7 @@ export async function PUT(
     if (body.tag !== undefined) {
         if (typeof body.tag !== 'string' || !body.tag.trim()) {
             return NextResponse.json(
-                { error: 'Tag name is required' },
+                { error: 'El nombre de la etiqueta es obligatorio' },
                 { status: 400 }
             )
         }
@@ -40,7 +40,7 @@ export async function PUT(
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }
@@ -54,7 +54,7 @@ export async function PUT(
 
         if (!updated) {
             return NextResponse.json(
-                { error: 'Tag not found' },
+                { error: 'Etiqueta no encontrada' },
                 { status: 404 }
             )
         }
@@ -64,7 +64,7 @@ export async function PUT(
         const message = error instanceof Error ? error.message : 'Failed to update tag'
         if (message.includes('UNIQUE')) {
             return NextResponse.json(
-                { error: 'A tag with this name already exists' },
+                { error: 'Ya existe una etiqueta con ese nombre' },
                 { status: 409 }
             )
         }
@@ -84,7 +84,7 @@ export async function DELETE(
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     try {
@@ -95,7 +95,7 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { error: 'Tag not found' },
+                { error: 'Etiqueta no encontrada' },
                 { status: 404 }
             )
         }

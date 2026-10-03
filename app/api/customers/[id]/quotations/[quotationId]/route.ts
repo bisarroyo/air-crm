@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { id, quotationId } = await params
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const [row] = await db
@@ -36,7 +36,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (!row) {
         return NextResponse.json(
-            { error: 'Quotation not found' },
+            { error: 'Cotización no encontrada' },
             { status: 404 }
         )
     }
@@ -58,7 +58,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { id, quotationId } = await params
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const [row] = await db
@@ -74,7 +74,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     if (!row) {
         return NextResponse.json(
-            { error: 'Quotation not found' },
+            { error: 'Cotización no encontrada' },
             { status: 404 }
         )
     }
@@ -119,7 +119,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const { id, quotationId } = await params
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const [row] = await db
@@ -135,7 +135,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (!row) {
         return NextResponse.json(
-            { error: 'Quotation not found' },
+            { error: 'Cotización no encontrada' },
             { status: 404 }
         )
     }
@@ -175,7 +175,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     const { id, quotationId } = await params
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const [row] = await db
@@ -191,7 +191,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     if (!row) {
         return NextResponse.json(
-            { error: 'Quotation not found' },
+            { error: 'Cotización no encontrada' },
             { status: 404 }
         )
     }

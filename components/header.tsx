@@ -11,6 +11,7 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
@@ -19,7 +20,7 @@ import { Button } from '@/components/ui/button'
 
 import { Blobatar } from '@blobatar/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { BadgeCheckIcon, LogOutIcon, ShieldCheck, UserX } from 'lucide-react'
+import { LogOutIcon, ShieldCheck, UserRoundIcon, UserX } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -43,15 +44,22 @@ export function Header() {
 
     const isImpersonating = !!session?.session?.impersonatedBy
 
+    const profileHref =
+        session?.user.role === 'ref'
+            ? '/ref/account'
+            : session?.user.role === 'admin' || session?.user.role === 'user'
+              ? '/account'
+              : null
+
     return (
         <>
             {isImpersonating && (
                 <div className='fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-center text-sm py-1 font-medium'>
-                    Impersonating {session?.user.name} ({session?.user.email})
+                    Suplantando a {session?.user.name} ({session?.user.email})
                     <button
                         onClick={stopImpersonating}
                         className='ml-3 underline hover:no-underline cursor-pointer'>
-                        Stop Impersonating
+                        Dejar de suplantar
                     </button>
                 </div>
             )}
@@ -83,7 +91,7 @@ export function Header() {
                                                                 session.user
                                                                     .image
                                                             }
-                                                            alt='User avatar'
+                                                            alt='Avatar del usuario'
                                                         />
                                                         <AvatarFallback>
                                                             {session.user.name
@@ -106,7 +114,7 @@ export function Header() {
                                                         alt={
                                                             session?.user
                                                                 ?.name ||
-                                                            'User avatar'
+                                                            'Avatar del usuario'
                                                         }
                                                     />
                                                 )}
@@ -116,45 +124,42 @@ export function Header() {
                                 )}
                                 <DropdownMenuContent align='end'>
                                     <DropdownMenuGroup>
-                                        {session?.user.role === 'ref' && (
-                                            <Link href='/ref/account'>
-                                                <DropdownMenuItem>
-                                                    <BadgeCheckIcon />
-                                                    Account
+                                        <DropdownMenuLabel>
+                                            {session?.user?.name ||
+                                                session?.user?.email}
+                                        </DropdownMenuLabel>
+                                        {profileHref && (
+                                            <Link href={profileHref}>
+                                                <DropdownMenuItem className='whitespace-nowrap'>
+                                                    <UserRoundIcon />
+                                                    Mi perfil
                                                 </DropdownMenuItem>
                                             </Link>
                                         )}
-                                        {session?.user.role === 'user' && (
-                                            <Link href='/account'>
-                                                <DropdownMenuItem>
-                                                    <BadgeCheckIcon />
-                                                    Account
-                                                </DropdownMenuItem>
-                                            </Link>
-                                        )}
-
                                         {session?.user.role === 'admin' && (
                                             <Link href={'/admin'}>
-                                                <DropdownMenuItem>
+                                                <DropdownMenuItem className='whitespace-nowrap'>
                                                     <ShieldCheck />
-                                                    Admin
+                                                    Administración
                                                 </DropdownMenuItem>
                                             </Link>
                                         )}
                                         {isImpersonating && (
                                             <DropdownMenuItem
+                                                className='whitespace-nowrap'
                                                 onClick={stopImpersonating}>
                                                 <UserX />
-                                                Stop Impersonating
+                                                Dejar de suplantar
                                             </DropdownMenuItem>
                                         )}
                                     </DropdownMenuGroup>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
+                                        className='whitespace-nowrap'
                                         onClick={signOut}
                                         variant='destructive'>
                                         <LogOutIcon />
-                                        Sign Out
+                                        Cerrar sesión
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

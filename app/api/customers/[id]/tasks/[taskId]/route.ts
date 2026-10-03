@@ -16,7 +16,7 @@ export async function PATCH(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -34,7 +34,7 @@ export async function PATCH(
 
     if (!existing) {
         return NextResponse.json(
-            { error: 'Task not found' },
+            { error: 'Tarea no encontrada' },
             { status: 404 }
         )
     }
@@ -45,7 +45,7 @@ export async function PATCH(
         const title = typeof body.title === 'string' ? body.title.trim() : ''
         if (!title) {
             return NextResponse.json(
-                { error: 'Title is required' },
+                { error: 'El título es obligatorio' },
                 { status: 400 }
             )
         }
@@ -62,7 +62,7 @@ export async function PATCH(
     if (body.urgency !== undefined) {
         if (!URGENCIES.includes(body.urgency)) {
             return NextResponse.json(
-                { error: 'Invalid urgency' },
+                { error: 'Urgencia inválida' },
                 { status: 400 }
             )
         }
@@ -87,7 +87,7 @@ export async function PATCH(
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }
@@ -106,7 +106,7 @@ export async function PATCH(
 
         if (!updated) {
             return NextResponse.json(
-                { error: 'Task not found' },
+                { error: 'Tarea no encontrada' },
                 { status: 404 }
             )
         }
@@ -130,7 +130,7 @@ export async function DELETE(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     try {
@@ -146,7 +146,7 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { error: 'Task not found' },
+                { error: 'Tarea no encontrada' },
                 { status: 404 }
             )
         }

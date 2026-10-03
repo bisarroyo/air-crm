@@ -136,10 +136,10 @@ const travelTimeLabels: Record<string, string> = {
 }
 
 const customerSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z.string().email('Invalid email'),
-    phone: z.string().min(1, 'Phone is required'),
-    travelTime: z.string().min(1, 'Travel time is required'),
+    name: z.string().min(1, 'El nombre es obligatorio'),
+    email: z.string().email('Email inválido'),
+    phone: z.string().min(1, 'El teléfono es obligatorio'),
+    travelTime: z.string().min(1, 'El tiempo de viaje es obligatorio'),
     country: z.string().optional(),
     statusId: z.string().min(1),
     priorityId: z.string().min(1),
@@ -256,7 +256,7 @@ function HomeContent() {
             params.set('pageSize', String(pageSize))
 
             const res = await fetch(`/api/customers?${params.toString()}`)
-            if (!res.ok) throw new Error('Failed to fetch')
+            if (!res.ok) throw new Error('No se pudo cargar')
             return res.json()
         }
     })
@@ -399,7 +399,7 @@ function HomeContent() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update')
+                throw new Error(err.error || 'No se pudo actualizar')
             }
             return res.json()
         },
@@ -410,7 +410,7 @@ function HomeContent() {
     const classifyMutation = useMutation({
         mutationFn: async () => {
             if (classifyingId === null) {
-                throw new Error('No customer selected')
+                throw new Error('No hay cliente seleccionado')
             }
             const body: Record<string, string | number | null | number[]> = {
                 statusId: Number(classifyStatusId),
@@ -430,12 +430,12 @@ function HomeContent() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update')
+                throw new Error(err.error || 'No se pudo actualizar')
             }
             return res.json()
         },
         onSuccess: () => {
-            toast.success('Classification updated successfully')
+            toast.success('Clasificación actualizada')
             setClassifyModalOpen(false)
             invalidate()
         },
@@ -471,12 +471,12 @@ function HomeContent() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to bulk update')
+                throw new Error(err.error || 'No se pudo actualizar en lote')
             }
             return res.json()
         },
         onSuccess: (res: { updated: number }) => {
-            toast.success(`${res.updated} customers updated`)
+            toast.success(`${res.updated} clientes actualizados`)
             setSelectedIds([])
             setBulkStatusId('')
             setBulkPriorityId('')
@@ -515,7 +515,7 @@ function HomeContent() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to save')
+                throw new Error(err.error || 'No se pudo guardar')
             }
             return res.json()
         },
@@ -610,10 +610,10 @@ function HomeContent() {
                 <UserPlus size={48} className='mb-4 text-muted-foreground' />
                 <h2 className='mb-2 text-xl font-medium'>Welcome to AIR CRM</h2>
                 <p className='mb-6 text-muted-foreground'>
-                    Sign in to manage your customers
+                    Iniciá sesión para gestionar tus clientes
                 </p>
                 <Link href='/signin'>
-                    <Button>Sign In</Button>
+                    <Button>Iniciar sesión</Button>
                 </Link>
             </div>
         )
@@ -625,10 +625,9 @@ function HomeContent() {
                 <CardHeader>
                     <div className='flex items-center justify-between'>
                         <div>
-                            <CardTitle>Customers</CardTitle>
+                            <CardTitle>Clientes</CardTitle>
                             <p className='mt-0.5 text-sm text-muted-foreground'>
-                                {total} customer
-                                {total !== 1 ? 's' : ''}
+                                {total} cliente{total !== 1 ? 's' : ''}
                             </p>
                         </div>
                         <div className='flex items-center gap-2'>
@@ -668,7 +667,7 @@ function HomeContent() {
                                         )
                                     }
                                 }}>
-                                <MessageSquareText size={16} /> Copy WA Sender
+                                <MessageSquareText size={16} /> Copiar remitente WA
                             </Button>
                             <Button
                                 variant='outline'
@@ -698,15 +697,15 @@ function HomeContent() {
                                         )
                                     }
                                 }}>
-                                <Mail size={16} /> Copy Emails
+                                <Mail size={16} /> Copiar correos
                             </Button>
                             <Link href='/leads/import'>
                                 <Button variant='outline' size='sm'>
-                                    <FileUp size={16} /> Import CSV
+                                    <FileUp size={16} /> Importar CSV
                                 </Button>
                             </Link>
                             <Button onClick={openCreate} size='sm'>
-                                <Plus /> New Customer
+                                <Plus /> Nuevo cliente
                             </Button>
                         </div>
                     </div>
@@ -720,7 +719,7 @@ function HomeContent() {
                             />
                             <Input
                                 type='text'
-                                placeholder='Search by name, email, or phone...'
+                                placeholder='Buscar por nombre, email o teléfono...'
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className='h-8 w-full pl-8 pr-8'
@@ -744,12 +743,12 @@ function HomeContent() {
                                 setPage(1)
                             }}>
                             <SelectTrigger className='h-8 w-[150px]'>
-                                <SelectValue placeholder='All Statuses' />
+                                <SelectValue placeholder='Todos los estados' />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectItem value=''>
-                                        All Statuses
+                                        Todos los estados
                                     </SelectItem>
                                     {statuses.map((s) => (
                                         <SelectItem
@@ -772,12 +771,12 @@ function HomeContent() {
                                 setPage(1)
                             }}>
                             <SelectTrigger className='h-8 w-[150px]'>
-                                <SelectValue placeholder='All Priorities' />
+                                <SelectValue placeholder='Todas las prioridades' />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectItem value=''>
-                                        All Priorities
+                                        Todas las prioridades
                                     </SelectItem>
                                     {priorities.map((p) => (
                                         <SelectItem
@@ -800,12 +799,12 @@ function HomeContent() {
                                     setPage(1)
                                 }}>
                                 <SelectTrigger className='h-8 w-[150px]'>
-                                    <SelectValue placeholder='All Users' />
+                                    <SelectValue placeholder='Todos los usuarios' />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            All Users
+                                            Todos los usuarios
                                         </SelectItem>
                                         {users.map((u) => (
                                             <SelectItem key={u.id} value={u.id}>
@@ -827,7 +826,7 @@ function HomeContent() {
                                 setPage(1)
                             }}>
                             <SelectTrigger className='h-8 w-[150px]'>
-                                <SelectValue placeholder='All Tags' />
+                                <SelectValue placeholder='Todas las etiquetas' />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -851,7 +850,7 @@ function HomeContent() {
                             </span>
                             <span className='text-muted-foreground'>|</span>
                             <label className='text-sm text-muted-foreground'>
-                                Status:
+                                Estado:
                             </label>
                             <Select
                                 value={
@@ -867,12 +866,12 @@ function HomeContent() {
                                 <SelectTrigger
                                     size='sm'
                                     className='h-7 text-xs'>
-                                    <SelectValue placeholder='No change' />
+                                    <SelectValue placeholder='Sin cambio' />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            No change
+                                            Sin cambio
                                         </SelectItem>
                                         {statuses.map((s) => (
                                             <SelectItem
@@ -885,7 +884,7 @@ function HomeContent() {
                                 </SelectContent>
                             </Select>
                             <label className='text-sm text-muted-foreground'>
-                                Priority:
+                                Prioridad:
                             </label>
                             <Select
                                 value={
@@ -902,12 +901,12 @@ function HomeContent() {
                                 <SelectTrigger
                                     size='sm'
                                     className='h-7 text-xs'>
-                                    <SelectValue placeholder='No change' />
+                                    <SelectValue placeholder='Sin cambio' />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            No change
+                                            Sin cambio
                                         </SelectItem>
                                         {priorities.map((p) => (
                                             <SelectItem
@@ -922,7 +921,7 @@ function HomeContent() {
                             {isAdmin && (
                                 <>
                                     <label className='text-sm text-muted-foreground'>
-                                        Assign to:
+                                        Asignar a:
                                     </label>
                                     <Select
                                         value={
@@ -939,12 +938,12 @@ function HomeContent() {
                                         <SelectTrigger
                                             size='sm'
                                             className='h-7 text-xs'>
-                                            <SelectValue placeholder='No change' />
+                                            <SelectValue placeholder='Sin cambio' />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectGroup>
                                                 <SelectItem value=''>
-                                                    No change
+                                                    Sin cambio
                                                 </SelectItem>
                                                 {users.map((u) => (
                                                     <SelectItem
@@ -959,7 +958,7 @@ function HomeContent() {
                                 </>
                             )}
                             <label className='text-sm text-muted-foreground'>
-                                Tag:
+                                Etiqueta:
                             </label>
                             <Select
                                 value={
@@ -971,12 +970,12 @@ function HomeContent() {
                                 <SelectTrigger
                                     size='sm'
                                     className='h-7 text-xs'>
-                                    <SelectValue placeholder='No change' />
+                                    <SelectValue placeholder='Sin cambio' />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
                                         <SelectItem value=''>
-                                            No change
+                                            Sin cambio
                                         </SelectItem>
                                         {tagOptions.map((t) => (
                                             <SelectItem
@@ -998,7 +997,7 @@ function HomeContent() {
                                         !bulkTagId
                                     ) {
                                         toast.error(
-                                            'Select at least one change'
+                                            'Seleccioná al menos un cambio'
                                         )
                                         return
                                     }
@@ -1025,7 +1024,7 @@ function HomeContent() {
                                         className='animate-spin'
                                     />
                                 ) : (
-                                    'Save'
+                                    'Guardar'
                                 )}
                             </Button>
                             <span className='text-muted-foreground'>|</span>
@@ -1037,13 +1036,13 @@ function HomeContent() {
                                         selectedIds.includes(c.id)
                                     )
                                     const headers = [
-                                        'Name',
+                                        'Nombre',
                                         'Email',
-                                        'Phone',
-                                        'Travel Time',
-                                        'Status',
-                                        'Priority',
-                                        'Assigned To'
+                                        'Teléfono',
+                                        'Tiempo de viaje',
+                                        'Estado',
+                                        'Prioridad',
+                                        'Asignado a'
                                     ]
                                     const csv =
                                         '\uFEFF' +
@@ -1077,7 +1076,7 @@ function HomeContent() {
                                     a.click()
                                     URL.revokeObjectURL(url)
                                 }}>
-                                Export CSV
+                                Exportar CSV
                             </Button>
                             <Button
                                 size='xs'
@@ -1104,7 +1103,7 @@ function HomeContent() {
                                     a.click()
                                     URL.revokeObjectURL(url)
                                 }}>
-                                WA Sender
+                                Remitente WA
                             </Button>
                             <Button
                                 size='xs'
@@ -1117,7 +1116,7 @@ function HomeContent() {
                                     setBulkAssignedTo('')
                                     setBulkTagId('')
                                 }}>
-                                Clear
+                                Limpiar
                             </Button>
                         </div>
                     )}
@@ -1135,8 +1134,8 @@ function HomeContent() {
                                 filterStatusId ||
                                 filterPriorityId ||
                                 filterTagId
-                                    ? 'No customers match your filters'
-                                    : 'No customers yet. Create your first one!'}
+                                    ? 'Ningún cliente coincide con tus filtros'
+                                    : 'Todavía no hay clientes. ¡Creá el primero!'}
                             </p>
                         </div>
                     ) : (
@@ -1158,33 +1157,30 @@ function HomeContent() {
                                                 />
                                             </th>
                                             <th className='pb-2 font-medium'>
-                                                Name
+                                                Nombre
                                             </th>
                                             <th className='pb-2 font-medium'>
                                                 Email
                                             </th>
                                             <th className='pb-2 font-medium'>
-                                                Phone
+                                                Teléfono
                                             </th>
                                             <th className='pb-2 font-medium'>
-                                                Travel Time
+                                                Estado
                                             </th>
                                             <th className='pb-2 font-medium'>
-                                                Status
+                                                Prioridad
                                             </th>
                                             <th className='pb-2 font-medium'>
-                                                Priority
-                                            </th>
-                                            <th className='pb-2 font-medium'>
-                                                Tags
+                                                Etiquetas
                                             </th>
                                             {isAdmin && (
                                                 <th className='pb-2 font-medium'>
-                                                    Assigned To
+                                                    Asignado a
                                                 </th>
                                             )}
                                             <th className='pb-2 font-medium text-right'>
-                                                Actions
+                                                Acciones
                                             </th>
                                         </tr>
                                     </thead>
@@ -1268,12 +1264,6 @@ function HomeContent() {
                                                             }}>
                                                             {customer.phone}
                                                         </button>
-                                                    </td>
-                                                    <td className='py-2.5'>
-                                                        {travelTimeLabels[
-                                                            customer.travelTime
-                                                        ] ||
-                                                            customer.travelTime}
                                                     </td>
                                                     <td className='py-2.5'>
                                                         <Select
@@ -1495,7 +1485,7 @@ function HomeContent() {
                                                             <Button
                                                                 size='icon-sm'
                                                                 variant='ghost'
-                                                                title='Edit status, priority, and referral'
+                                                                title='Editar estado, prioridad y referido'
                                                                 onClick={() =>
                                                                     openClassify(
                                                                         customer
@@ -1528,7 +1518,7 @@ function HomeContent() {
 
                             <div className='mt-4 flex flex-wrap items-center justify-between gap-3'>
                                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                                    <span>Rows per page:</span>
+                                    <span>Filas por página:</span>
                                     <Select
                                         value={String(pageSize)}
                                         onValueChange={(val) => {
@@ -1554,7 +1544,7 @@ function HomeContent() {
                                     </Select>
                                     <span>
                                         {(page - 1) * pageSize + 1}–
-                                        {Math.min(page * pageSize, total)} of{' '}
+                                        {Math.min(page * pageSize, total)} de{' '}
                                         {total}
                                     </span>
                                 </div>
@@ -1613,12 +1603,12 @@ function HomeContent() {
                 <DialogContent className='max-h-[90vh] sm:max-w-lg overflow-y-auto'>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingId ? 'Edit' : 'New'} Customer
+                            {editingId ? 'Editar' : 'Nuevo'} cliente
                         </DialogTitle>
                         <DialogDescription>
                             {editingId
-                                ? 'Update customer information.'
-                                : 'Enter the details for the new customer.'}
+                                ? 'Actualizá los datos del cliente.'
+                                : 'Ingresá los datos del nuevo cliente.'}
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -1631,12 +1621,12 @@ function HomeContent() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor='name'>
-                                            Name
+                                            Nombre
                                         </FieldLabel>
                                         <Input
                                             {...field}
                                             id='name'
-                                            placeholder='Full name'
+                                            placeholder='Nombre completo'
                                             aria-invalid={fieldState.invalid}
                                         />
                                         {fieldState.invalid && (
@@ -1676,7 +1666,7 @@ function HomeContent() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor='phone'>
-                                            Phone
+                                            Teléfono
                                         </FieldLabel>
                                         <Input
                                             {...field}
@@ -1699,7 +1689,7 @@ function HomeContent() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor='travelTime'>
-                                            Travel Time
+                                            Tiempo de viaje
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -1712,7 +1702,7 @@ function HomeContent() {
                                                 aria-invalid={
                                                     fieldState.invalid
                                                 }>
-                                                <SelectValue placeholder='Select...' />
+                                                <SelectValue placeholder='Seleccionar...' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -1748,7 +1738,7 @@ function HomeContent() {
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel htmlFor='country'>
-                                            Country
+                                            País
                                         </FieldLabel>
                                         <Select
                                             value={field.value || ''}
@@ -1779,7 +1769,7 @@ function HomeContent() {
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel htmlFor='statusId'>
-                                            Status
+                                            Estado
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -1791,7 +1781,7 @@ function HomeContent() {
                                             }
                                             onValueChange={field.onChange}>
                                             <SelectTrigger id='statusId'>
-                                                <SelectValue placeholder='Select...' />
+                                                <SelectValue placeholder='Seleccionar...' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -1816,7 +1806,7 @@ function HomeContent() {
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel htmlFor='priorityId'>
-                                            Priority
+                                            Prioridad
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -1830,7 +1820,7 @@ function HomeContent() {
                                             }
                                             onValueChange={field.onChange}>
                                             <SelectTrigger id='priorityId'>
-                                                <SelectValue placeholder='Select...' />
+                                                <SelectValue placeholder='Seleccionar...' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -1856,7 +1846,7 @@ function HomeContent() {
                                     render={({ field }) => (
                                         <Field>
                                             <FieldLabel htmlFor='assignedTo'>
-                                                Assigned To
+                                                Asignado a
                                             </FieldLabel>
                                             <Select
                                                 value={
@@ -1867,7 +1857,7 @@ function HomeContent() {
                                                 }
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='assignedTo'>
-                                                    <SelectValue placeholder='Select...' />
+                                                    <SelectValue placeholder='Seleccionar...' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
@@ -1892,7 +1882,7 @@ function HomeContent() {
                                     render={({ field }) => (
                                         <Field>
                                             <FieldLabel htmlFor='referralId'>
-                                                Referral Code
+                                                Código de referido
                                             </FieldLabel>
                                             <Select
                                                 value={
@@ -1904,12 +1894,12 @@ function HomeContent() {
                                                 }
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='referralId'>
-                                                    <SelectValue placeholder='Select...' />
+                                                    <SelectValue placeholder='Seleccionar...' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         <SelectItem value=''>
-                                                            None
+                                                            Ninguno
                                                         </SelectItem>
                                                         {referralOptions.map(
                                                             (r) => (
@@ -1930,7 +1920,7 @@ function HomeContent() {
                                 />
                             )}
                             <Field>
-                                <FieldLabel>Tags</FieldLabel>
+                                <FieldLabel>Etiquetas</FieldLabel>
                                 <TagSelect
                                     options={tagOptions}
                                     selected={selectedTagIds}
@@ -1943,7 +1933,7 @@ function HomeContent() {
                                 type='button'
                                 variant='ghost'
                                 onClick={() => setModalOpen(false)}>
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button
                                 type='submit'
@@ -1954,9 +1944,9 @@ function HomeContent() {
                                         className='animate-spin'
                                     />
                                 ) : editingId ? (
-                                    'Update Customer'
+                                    'Actualizar cliente'
                                 ) : (
-                                    'Create Customer'
+                                    'Crear cliente'
                                 )}
                             </Button>
                         </div>
@@ -1969,16 +1959,16 @@ function HomeContent() {
                 onOpenChange={setClassifyModalOpen}>
                 <DialogContent className='sm:max-w-md'>
                     <DialogHeader>
-                        <DialogTitle>Edit classification</DialogTitle>
+                        <DialogTitle>Editar clasificación</DialogTitle>
                         <DialogDescription>
-                            Update the status, priority, referral, and tags for
-                            this lead.
+                            Actualizá el estado, la prioridad, el referido y
+                            las etiquetas de este lead.
                         </DialogDescription>
                     </DialogHeader>
                     <FieldGroup>
                         <Field>
                             <FieldLabel htmlFor='classify-status'>
-                                Status
+                                Estado
                             </FieldLabel>
                             <Select
                                 value={
@@ -1991,7 +1981,7 @@ function HomeContent() {
                                     setClassifyStatusId(val ?? '1')
                                 }>
                                 <SelectTrigger id='classify-status'>
-                                    <SelectValue placeholder='Select...' />
+                                    <SelectValue placeholder='Seleccionar...' />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -2009,7 +1999,7 @@ function HomeContent() {
                         </Field>
                         <Field>
                             <FieldLabel htmlFor='classify-priority'>
-                                Priority
+                                Prioridad
                             </FieldLabel>
                             <Select
                                 value={
@@ -2022,7 +2012,7 @@ function HomeContent() {
                                     setClassifyPriorityId(val ?? '1')
                                 }>
                                 <SelectTrigger id='classify-priority'>
-                                    <SelectValue placeholder='Select...' />
+                                    <SelectValue placeholder='Seleccionar...' />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -2042,7 +2032,7 @@ function HomeContent() {
                             <>
                                 <Field>
                                     <FieldLabel htmlFor='classify-referral'>
-                                        Referral
+                                        Referido
                                     </FieldLabel>
                                     <Select
                                         value={
@@ -2056,12 +2046,12 @@ function HomeContent() {
                                             setClassifyReferralId(val ?? '')
                                         }>
                                         <SelectTrigger id='classify-referral'>
-                                            <SelectValue placeholder='Select...' />
+                                            <SelectValue placeholder='Seleccionar...' />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectGroup>
                                                 <SelectItem value=''>
-                                                    None
+                                                    Ninguno
                                                 </SelectItem>
                                                 {referralOptions.map((r) => (
                                                     <SelectItem
@@ -2076,7 +2066,7 @@ function HomeContent() {
                                 </Field>
                                 <Field>
                                     <FieldLabel htmlFor='classify-assigned'>
-                                        Assigned To
+                                        Asignado a
                                     </FieldLabel>
                                     <Select
                                         value={
@@ -2089,7 +2079,7 @@ function HomeContent() {
                                             setClassifyAssignedTo(val ?? '')
                                         }>
                                         <SelectTrigger id='classify-assigned'>
-                                            <SelectValue placeholder='Select...' />
+                                            <SelectValue placeholder='Seleccionar...' />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectGroup>
@@ -2107,7 +2097,7 @@ function HomeContent() {
                                 </>
                             )}
                             <Field>
-                                <FieldLabel>Tags</FieldLabel>
+                                <FieldLabel>Etiquetas</FieldLabel>
                                 <TagSelect
                                     options={tagOptions}
                                     selected={classifyTagIds}
@@ -2120,7 +2110,7 @@ function HomeContent() {
                                 type='button'
                                 variant='ghost'
                                 onClick={() => setClassifyModalOpen(false)}>
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button
                                 onClick={() => classifyMutation.mutate()}
@@ -2131,7 +2121,7 @@ function HomeContent() {
                                         className='animate-spin'
                                     />
                                 ) : (
-                                    'Save Changes'
+                                    'Guardar cambios'
                                 )}
                             </Button>
                         </div>

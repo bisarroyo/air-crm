@@ -6,7 +6,7 @@ export default function PriorityPage() {
     return (
         <div className='container mx-auto p-6'>
             <EntityManager
-                title='Priorities'
+                title='Prioridad'
                 nameField='priority'
                 apiBase='priority'
             />

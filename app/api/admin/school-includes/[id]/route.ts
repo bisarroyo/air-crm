@@ -31,12 +31,12 @@ export async function PUT(
     const { id } = await params
     const session = await getSession()
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const quotationId = Number(id)
     if (!Number.isFinite(quotationId)) {
-        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+        return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     }
 
     const body = (await request.json()) as Record<string, unknown>
@@ -87,7 +87,7 @@ export async function PUT(
 
     if (Object.keys(values).length === 0 && !hasSchoolIds) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }
@@ -112,7 +112,7 @@ export async function PUT(
                 .returning()
             if (!updated) {
                 return NextResponse.json(
-                    { error: 'Not found' },
+                    { error: 'No encontrado' },
                     { status: 404 }
                 )
             }
@@ -136,7 +136,7 @@ export async function PUT(
             .where(eq(quotationSchoolIncludes.id, quotationId))
             .limit(1)
         if (!row) {
-            return NextResponse.json({ error: 'Not found' }, { status: 404 })
+            return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
         }
 
         return NextResponse.json({
@@ -156,12 +156,12 @@ export async function DELETE(
     const { id } = await params
     const session = await getSession()
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const quotationId = Number(id)
     if (!Number.isFinite(quotationId)) {
-        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+        return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
     }
 
     try {
@@ -175,7 +175,7 @@ export async function DELETE(
             .where(eq(quotationSchoolIncludes.id, quotationId))
             .returning()
         if (!deleted) {
-            return NextResponse.json({ error: 'Not found' }, { status: 404 })
+            return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
         }
         return NextResponse.json(deleted)
     } catch (err) {

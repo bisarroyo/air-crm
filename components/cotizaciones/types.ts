@@ -1,4 +1,8 @@
-import { CURRENCIES, type Currency } from '@/lib/cotizaciones/shared'
+import {
+    CURRENCIES,
+    toDateInputValue,
+    type Currency
+} from '@/lib/cotizaciones/shared'
 
 export interface CatalogOption {
     id: number
@@ -122,7 +126,7 @@ export function formatDateValue(
     value: string | Date | null | undefined
 ): string {
     if (!value) return ''
-    if (typeof value === 'string') return value.slice(0, 10)
+    if (typeof value === 'string') return toDateInputValue(value)
     const y = value.getFullYear()
     const m = String(value.getMonth() + 1).padStart(2, '0')
     const d = String(value.getDate()).padStart(2, '0')

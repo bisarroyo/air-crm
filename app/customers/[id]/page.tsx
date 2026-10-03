@@ -97,10 +97,10 @@ const travelTimeLabels: Record<string, string> = {
 }
 
 const customerSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z.string().email('Invalid email'),
-    phone: z.string().min(1, 'Phone is required'),
-    travelTime: z.string().min(1, 'Travel time is required'),
+    name: z.string().min(1, 'El nombre es obligatorio'),
+    email: z.string().email('Email inválido'),
+    phone: z.string().min(1, 'El teléfono es obligatorio'),
+    travelTime: z.string().min(1, 'El tiempo de viaje es obligatorio'),
     country: z.string().optional(),
     statusId: z.string().min(1),
     priorityId: z.string().min(1),
@@ -112,28 +112,28 @@ type CustomerFormValues = z.infer<typeof customerSchema>
 
 function formatAction(action: string) {
     const map: Record<string, string> = {
-        created: 'Created',
-        updated: 'Updated',
-        lead_created: 'Lead Received',
-        lead_updated: 'Lead Re-submitted',
-        bulk_updated: 'Bulk Updated'
+        created: 'Cliente creado',
+        updated: 'Cliente actualizado',
+        lead_created: 'Lead recibido',
+        lead_updated: 'Lead reenviado',
+        bulk_updated: 'Actualización masiva'
     }
     return map[action] || action
 }
 
 const FIELD_LABELS: Record<string, string> = {
-    name: 'Name',
+    name: 'Nombre',
     email: 'Email',
-    phone: 'Phone',
-    travelTime: 'Travel Time',
-    travel_time: 'Travel Time',
-    country: 'Country',
-    statusId: 'Status',
-    priorityId: 'Priority',
-    assignedTo: 'Assigned To',
-    referralId: 'Referral',
-    referralCode: 'Referral Code',
-    tags: 'Tags'
+    phone: 'Teléfono',
+    travelTime: 'Tiempo de viaje',
+    travel_time: 'Tiempo de viaje',
+    country: 'País',
+    statusId: 'Estado',
+    priorityId: 'Prioridad',
+    assignedTo: 'Asignado a',
+    referralId: 'Referido',
+    referralCode: 'Código de referido',
+    tags: 'Etiquetas'
 }
 
 function resolveValue(
@@ -141,9 +141,10 @@ function resolveValue(
     value: string | number | null | undefined,
     statuses: SelectOption[],
     priorities: SelectOption[],
-    users: SelectOption[]
+    users: SelectOption[],
+    referrals: Record<string, string>
 ): string {
-    if (value === null || value === undefined || value === '') return 'None'
+    if (value === null || value === undefined || value === '') return 'Ninguno'
     if (key === 'statusId') {
         return statuses.find((s) => s.id === value)?.name || String(value)
     }
@@ -153,8 +154,8 @@ function resolveValue(
     if (key === 'assignedTo') {
         return users.find((u) => u.id === value)?.name || String(value)
     }
-    if (key === 'referralId') {
-        return value ? `#${value}` : 'None'
+    if (key === 'referralId' || key === 'referralCode') {
+        return referrals[String(value)] || `#${value}`
     }
     if (key === 'travelTime' || key === 'travel_time') {
         return travelTimeLabels[String(value)] || String(value)
@@ -166,7 +167,8 @@ function formatChanges(
     changes: string,
     statuses: SelectOption[],
     priorities: SelectOption[],
-    users: SelectOption[]
+    users: SelectOption[],
+    referrals: Record<string, string>
 ) {
     const data = JSON.parse(changes) as Record<
         string,
@@ -199,15 +201,30 @@ function formatChanges(
                 from,
                 statuses,
                 priorities,
-                users
+                users,
+                referrals
             )
-            const toDisplay = resolveValue(key, to, statuses, priorities, users)
+            const toDisplay = resolveValue(
+                key,
+                to,
+                statuses,
+                priorities,
+                users,
+                referrals
+            )
             return { label, value: `${fromDisplay} → ${toDisplay}` }
         }
 
         return {
             label,
-            value: resolveValue(key, rawValue, statuses, priorities, users)
+            value: resolveValue(
+                key,
+                rawValue,
+                statuses,
+                priorities,
+                users,
+                referrals
+            )
         }
     })
 }
@@ -254,10 +271,10 @@ export default function CustomerDetailPage() {
             const res = await fetch(`/api/customers/${id}`)
             if (!res.ok) {
                 if (res.status === 404) {
-                    toast.error('Customer not found')
+                    toast.error('Cliente no encontrado')
                     router.push('/leads')
                 }
-                throw new Error('Failed to fetch')
+                throw new Error('No se pudo cargar')
             }
             return res.json()
         }
@@ -332,14 +349,24 @@ export default function CustomerDetailPage() {
                 }))
     }) as { data: TagOption[] | undefined }
 
-    const { data: logs = [] } = useQuery<LogEntry[]>({
+    const { data: logData } = useQuery<{
+        logs: LogEntry[]
+        referralNames: Record<string, string>
+    }>({
         queryKey: ['logs', id],
         queryFn: async () => {
             const res = await fetch(`/api/customers/${id}/logs`)
-            if (!res.ok) throw new Error('Failed to fetch logs')
+            if (!res.ok) throw new Error('No se pudo cargar el historial')
             return res.json()
         }
     })
+
+    const logs = useMemo(() => logData?.logs ?? [], [logData])
+
+    const historyReferralNames = useMemo(
+        () => ({ ...logData?.referralNames, ...referralItems }),
+        [logData, referralItems]
+    )
 
     const updateMutation = useMutation({
         mutationFn: async (data: CustomerFormValues) => {
@@ -358,12 +385,12 @@ export default function CustomerDetailPage() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update')
+                throw new Error(err.error || 'No se pudo actualizar')
             }
             return res.json()
         },
         onSuccess: () => {
-            toast.success('Customer updated successfully')
+            toast.success('Cliente actualizado')
             setModalOpen(false)
             queryClient.invalidateQueries({ queryKey: ['customer', id] })
             queryClient.invalidateQueries({ queryKey: ['customers'] })
@@ -379,12 +406,12 @@ export default function CustomerDetailPage() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to delete')
+                throw new Error(err.error || 'No se pudo eliminar')
             }
             return res.json()
         },
         onSuccess: () => {
-            toast.success('Customer deleted')
+            toast.success('Cliente eliminado')
             queryClient.invalidateQueries({ queryKey: ['customers'] })
             router.push('/leads')
         },
@@ -439,19 +466,19 @@ export default function CustomerDetailPage() {
                 <Button
                     variant='ghost'
                     size='icon-sm'
-                    aria-label='Go back'
+                    aria-label='Volver'
                     onClick={handleBack}>
                     <ArrowLeft size={16} />
                 </Button>
                 <div className='flex-1'>
                     <h1 className='text-xl font-medium'>{customer.name}</h1>
                     <p className='text-sm text-muted-foreground'>
-                        Customer #{customer.id}
+                        Cliente #{customer.id}
                     </p>
                 </div>
                 <div className='flex gap-2'>
                     <Button size='sm' onClick={openEdit}>
-                        <Pencil size={14} /> Edit
+                        <Pencil size={14} /> Editar
                     </Button>
                     {isAdmin && (
                         <Button
@@ -464,7 +491,7 @@ export default function CustomerDetailPage() {
                             ) : (
                                 <Trash2 size={14} />
                             )}
-                            Delete
+                            Eliminar
                         </Button>
                     )}
                 </div>
@@ -473,7 +500,7 @@ export default function CustomerDetailPage() {
             <div className='grid gap-6 md:grid-cols-2'>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Contact Information</CardTitle>
+                        <CardTitle>Información de contacto</CardTitle>
                     </CardHeader>
                     <CardContent className='grid gap-3'>
                         <div>
@@ -503,7 +530,7 @@ export default function CustomerDetailPage() {
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Phone
+                                Teléfono
                             </p>
                             <div className='flex items-center gap-2'>
                                 <button
@@ -538,7 +565,7 @@ export default function CustomerDetailPage() {
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Travel Time
+                                Tiempo de viaje
                             </p>
                             <p className='text-sm'>
                                 {travelTimeLabels[customer.travelTime] ||
@@ -547,7 +574,7 @@ export default function CustomerDetailPage() {
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Country
+                                País
                             </p>
                             <p className='text-sm'>
                                 {customer.country || 'No especificado'}
@@ -558,12 +585,12 @@ export default function CustomerDetailPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Classification</CardTitle>
+                        <CardTitle>Clasificación</CardTitle>
                     </CardHeader>
                     <CardContent className='grid gap-3'>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Status
+                                Estado
                             </p>
                             <div className='mt-1 flex items-center gap-2'>
                                 <ColorDot
@@ -575,26 +602,26 @@ export default function CustomerDetailPage() {
                                             ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                             : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                                     }`}>
-                                    {customer.statusName || 'Unknown'}
+                                    {customer.statusName || 'Desconocido'}
                                 </span>
                             </div>
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Priority
+                                Prioridad
                             </p>
                             <div className='mt-1 flex items-center gap-2'>
                                 <ColorDot
                                     color={customer.priorityColor || '#6b7280'}
                                 />
                                 <span className='inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'>
-                                    {customer.priorityName || 'Unknown'}
+                                    {customer.priorityName || 'Desconocido'}
                                 </span>
                             </div>
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Assigned To
+                                Asignado a
                             </p>
                             <div className='mt-1 flex items-center gap-2 text-sm'>
                                 <UserRound
@@ -603,7 +630,7 @@ export default function CustomerDetailPage() {
                                 />
                                 {customer.assignedUserName ||
                                     customer.assignedUserEmail ||
-                                    'Unassigned'}
+                                    'Sin asignar'}
                             </div>
                         </div>
                     </CardContent>
@@ -611,12 +638,12 @@ export default function CustomerDetailPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Timeline</CardTitle>
+                        <CardTitle>Historial</CardTitle>
                     </CardHeader>
                     <CardContent className='grid gap-3'>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Created
+                                Creado
                             </p>
                             <p className='text-sm'>
                                 {customer.createdAt
@@ -631,7 +658,7 @@ export default function CustomerDetailPage() {
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
-                                Last Updated
+                                Última actualización
                             </p>
                             <p className='text-sm'>
                                 {customer.updatedAt
@@ -649,7 +676,7 @@ export default function CustomerDetailPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Tags</CardTitle>
+                        <CardTitle>Etiquetas</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className='flex flex-wrap gap-1.5'>
@@ -660,7 +687,7 @@ export default function CustomerDetailPage() {
                                     .map((t) => <TagPill key={t.id} tag={t} />)
                             ) : (
                                 <span className='text-sm text-muted-foreground'>
-                                    None
+                                    Ninguno
                                 </span>
                             )}
                         </div>
@@ -683,12 +710,12 @@ export default function CustomerDetailPage() {
             <div className='mt-6'>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Activity History</CardTitle>
+                        <CardTitle>Historial de actividad</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {logs.length === 0 ? (
                             <p className='py-4 text-center text-sm text-muted-foreground'>
-                                No activity recorded yet.
+                                Todavía no hay actividad registrada.
                             </p>
                         ) : (
                             <div className='space-y-0'>
@@ -703,9 +730,15 @@ export default function CustomerDetailPage() {
                                             <div className='h-[15px] w-[15px] rounded-full border-2 border-primary bg-background' />
                                         </div>
                                         <div className='flex-1 space-y-1'>
-                                            <div className='flex items-center gap-2 text-sm'>
+                                            <div className='flex flex-wrap items-center gap-2 text-sm'>
                                                 <span className='font-medium capitalize'>
                                                     {formatAction(log.action)}
+                                                </span>
+                                                <span className='text-xs text-muted-foreground'>
+                                                    {log.userName ||
+                                                    log.userEmail
+                                                        ? `por ${log.userName || log.userEmail}`
+                                                        : 'por Anónimo'}
                                                 </span>
                                                 {log.referralCode && (
                                                     <span className='rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-medium text-primary'>
@@ -734,7 +767,8 @@ export default function CustomerDetailPage() {
                                                         log.changes,
                                                         statuses,
                                                         priorities,
-                                                        users
+                                                        users,
+                                                        historyReferralNames
                                                     ).map(
                                                         ({ label, value }) => (
                                                             <span key={label}>
@@ -749,11 +783,6 @@ export default function CustomerDetailPage() {
                                                     )}
                                                 </div>
                                             )}
-                                            <p className='text-xs text-muted-foreground'>
-                                                {log.userName
-                                                    ? `by ${log.userName}`
-                                                    : 'by anonymous'}
-                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -766,9 +795,9 @@ export default function CustomerDetailPage() {
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                 <DialogContent className='max-h-[90vh] sm:max-w-lg overflow-y-auto'>
                     <DialogHeader>
-                        <DialogTitle>Edit Customer</DialogTitle>
+                        <DialogTitle>Editar cliente</DialogTitle>
                         <DialogDescription>
-                            Update customer information.
+                            Actualizá los datos del cliente.
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -781,12 +810,12 @@ export default function CustomerDetailPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor='edit-name'>
-                                            Name
+                                            Nombre
                                         </FieldLabel>
                                         <Input
                                             {...field}
                                             id='edit-name'
-                                            placeholder='Full name'
+                                            placeholder='Nombre completo'
                                             aria-invalid={fieldState.invalid}
                                         />
                                         {fieldState.invalid && (
@@ -826,7 +855,7 @@ export default function CustomerDetailPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor='edit-phone'>
-                                            Phone
+                                            Teléfono
                                         </FieldLabel>
                                         <Input
                                             {...field}
@@ -849,7 +878,7 @@ export default function CustomerDetailPage() {
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
                                         <FieldLabel htmlFor='edit-travelTime'>
-                                            Travel Time
+                                            Tiempo de viaje
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -862,7 +891,7 @@ export default function CustomerDetailPage() {
                                                 aria-invalid={
                                                     fieldState.invalid
                                                 }>
-                                                <SelectValue placeholder='Select...' />
+                                                <SelectValue placeholder='Seleccionar...' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -898,7 +927,7 @@ export default function CustomerDetailPage() {
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel htmlFor='edit-country'>
-                                            Country
+                                            País
                                         </FieldLabel>
                                         <Select
                                             value={field.value || ''}
@@ -929,7 +958,7 @@ export default function CustomerDetailPage() {
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel htmlFor='edit-statusId'>
-                                            Status
+                                            Estado
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -941,7 +970,7 @@ export default function CustomerDetailPage() {
                                             }
                                             onValueChange={field.onChange}>
                                             <SelectTrigger id='edit-statusId'>
-                                                <SelectValue placeholder='Select...' />
+                                                <SelectValue placeholder='Seleccionar...' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -966,7 +995,7 @@ export default function CustomerDetailPage() {
                                 render={({ field }) => (
                                     <Field>
                                         <FieldLabel htmlFor='edit-priorityId'>
-                                            Priority
+                                            Prioridad
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -978,7 +1007,7 @@ export default function CustomerDetailPage() {
                                             }
                                             onValueChange={field.onChange}>
                                             <SelectTrigger id='edit-priorityId'>
-                                                <SelectValue placeholder='Select...' />
+                                                <SelectValue placeholder='Seleccionar...' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -1004,7 +1033,7 @@ export default function CustomerDetailPage() {
                                     render={({ field }) => (
                                         <Field>
                                             <FieldLabel htmlFor='edit-assignedTo'>
-                                                Assigned To
+                                                Asignado a
                                             </FieldLabel>
                                             <Select
                                                 value={
@@ -1015,7 +1044,7 @@ export default function CustomerDetailPage() {
                                                 }
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='edit-assignedTo'>
-                                                    <SelectValue placeholder='Select...' />
+                                                    <SelectValue placeholder='Seleccionar...' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
@@ -1040,19 +1069,19 @@ export default function CustomerDetailPage() {
                                     render={({ field }) => (
                                         <Field>
                                             <FieldLabel htmlFor='edit-referralId'>
-                                                Referral Code
+                                                Código de referido
                                             </FieldLabel>
                                             <Select
                                                 value={field.value}
                                                 items={referralItems}
                                                 onValueChange={field.onChange}>
                                                 <SelectTrigger id='edit-referralId'>
-                                                    <SelectValue placeholder='Select...' />
+                                                    <SelectValue placeholder='Seleccionar...' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         <SelectItem value=''>
-                                                            None
+                                                            Ninguno
                                                         </SelectItem>
                                                         {referralOptions.map(
                                                             (r) => (
@@ -1073,7 +1102,7 @@ export default function CustomerDetailPage() {
                                 />
                             )}
                             <Field>
-                                <FieldLabel>Tags</FieldLabel>
+                                <FieldLabel>Etiquetas</FieldLabel>
                                 <TagSelect
                                     options={tagOptions}
                                     selected={selectedTagIds}
@@ -1092,7 +1121,7 @@ export default function CustomerDetailPage() {
                                 type='button'
                                 variant='ghost'
                                 onClick={() => setModalOpen(false)}>
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button
                                 type='submit'
@@ -1103,7 +1132,7 @@ export default function CustomerDetailPage() {
                                         className='animate-spin'
                                     />
                                 ) : (
-                                    'Update Customer'
+                                    'Actualizar cliente'
                                 )}
                             </Button>
                         </div>
@@ -1115,21 +1144,21 @@ export default function CustomerDetailPage() {
                 <DialogContent className='sm:max-w-md'>
                     <DialogHeader>
                         <DialogTitle className='text-destructive'>
-                            Delete Customer
+                            Eliminar cliente
                         </DialogTitle>
                         <DialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete <strong>{customer?.name}</strong> and all
-                            associated data.
+                            Esta acción no se puede deshacer. Se eliminará
+            permanentemente <strong>{customer?.name}</strong> y todos sus
+            datos asociados.
                         </DialogDescription>
                     </DialogHeader>
                     <div className='mb-4'>
                         <label className='mb-1 block text-sm font-medium'>
-                            Type{' '}
+                            Escribí{' '}
                             <span className='font-mono font-bold text-destructive'>
                                 confirm
                             </span>{' '}
-                            to proceed
+                            para continuar
                         </label>
                         <Input
                             value={deleteConfirmText}
@@ -1149,7 +1178,7 @@ export default function CustomerDetailPage() {
                                 setDeleteDialogOpen(false)
                                 setDeleteConfirmText('')
                             }}>
-                            Cancel
+                            Cancelar
                         </Button>
                         <Button
                             variant='destructive'
@@ -1161,7 +1190,7 @@ export default function CustomerDetailPage() {
                             {deleteMutation.isPending ? (
                                 <Loader2 size={16} className='animate-spin' />
                             ) : (
-                                'Delete'
+                                'Eliminar'
                             )}
                         </Button>
                     </div>

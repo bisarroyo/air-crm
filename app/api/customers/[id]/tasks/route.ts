@@ -17,7 +17,7 @@ export async function GET(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const rows = await db
@@ -63,7 +63,7 @@ export async function POST(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -71,7 +71,7 @@ export async function POST(
 
     if (!title) {
         return NextResponse.json(
-            { error: 'Title is required' },
+            { error: 'El título es obligatorio' },
             { status: 400 }
         )
     }

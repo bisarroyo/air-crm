@@ -51,8 +51,8 @@ interface Referral {
 }
 
 const schema = z.object({
-    code: z.string().min(1, 'Code is required'),
-    userId: z.string().min(1, 'User is required'),
+    code: z.string().min(1, 'El código es obligatorio'),
+    userId: z.string().min(1, 'El usuario es obligatorio'),
     name: z.string().optional()
 })
 
@@ -72,7 +72,7 @@ export default function ReferralsPage() {
         queryKey: ['referrals'],
         queryFn: async () => {
             const res = await fetch('/api/referrals')
-            if (!res.ok) throw new Error('Failed to fetch')
+            if (!res.ok) throw new Error('No se pudo cargar la información')
             return res.json()
         }
     })
@@ -81,7 +81,7 @@ export default function ReferralsPage() {
         queryKey: ['users'],
         queryFn: async () => {
             const res = await fetch('/api/users')
-            if (!res.ok) throw new Error('Failed to fetch users')
+            if (!res.ok) throw new Error('No se pudieron cargar los usuarios')
             return res.json()
         }
     })
@@ -105,14 +105,14 @@ export default function ReferralsPage() {
 
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to save')
+                throw new Error(err.error || 'No se pudo guardar')
             }
 
             return res.json()
         },
         onSuccess: () => {
             toast.success(
-                `Referral ${editingId ? 'updated' : 'created'} successfully`
+                `Referido ${editingId ? 'actualizado' : 'creado'} correctamente`
             )
             setDialogOpen(false)
             invalidate()
@@ -127,12 +127,12 @@ export default function ReferralsPage() {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to delete')
+                throw new Error(err.error || 'No se pudo eliminar')
             }
             return res.json()
         },
         onSuccess: () => {
-            toast.success('Referral deleted')
+            toast.success('Referido eliminado')
             invalidate()
         },
         onError: (error: Error) => toast.error(error.message)
@@ -156,7 +156,7 @@ export default function ReferralsPage() {
 
     const getSelectedUserName = (userId: string) => {
         const user = users.find((u) => u.id === userId)
-        return user ? `${user.name} (${user.email})` : 'Unknown user'
+        return user ? `${user.name} (${user.email})` : 'Usuario desconocido'
     }
 
     const onSubmit = (data: FormValues) => saveMutation.mutate(data)
@@ -164,7 +164,7 @@ export default function ReferralsPage() {
     const handleDelete = (referral: Referral) => {
         if (
             !confirm(
-                `Are you sure you want to delete referral code "${referral.code}"?`
+                `¿Seguro que querés eliminar el código de referido "${referral.code}"?`
             )
         )
             return
@@ -176,9 +176,9 @@ export default function ReferralsPage() {
             <Card>
                 <CardHeader>
                     <div className='flex items-center justify-between'>
-                        <CardTitle>Manage Referral Codes</CardTitle>
+                        <CardTitle>Administrar códigos de referido</CardTitle>
                         <Button onClick={openCreate} size='sm'>
-                            <Plus /> New Referral
+                            <Plus /> Nuevo referido
                         </Button>
                     </div>
                 </CardHeader>
@@ -196,16 +196,16 @@ export default function ReferralsPage() {
                                     <tr className='border-b text-left text-muted-foreground'>
                                         <th className='pb-2 font-medium'>ID</th>
                                         <th className='pb-2 font-medium'>
-                                            Code
+                                            Código
                                         </th>
                                         <th className='pb-2 font-medium'>
-                                            Name
+                                            Nombre
                                         </th>
                                         <th className='pb-2 font-medium'>
-                                            Linked User
+                                            Usuario vinculado
                                         </th>
                                         <th className='pb-2 font-medium text-right'>
-                                            Actions
+                                            Acciones
                                         </th>
                                     </tr>
                                 </thead>
@@ -215,7 +215,7 @@ export default function ReferralsPage() {
                                             <td
                                                 colSpan={5}
                                                 className='py-8 text-center text-muted-foreground'>
-                                                No referral codes found
+                                                No se encontraron códigos de referido
                                             </td>
                                         </tr>
                                     )}
@@ -276,12 +276,12 @@ export default function ReferralsPage() {
                 <DialogContent className='sm:max-w-md'>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingId ? 'Edit' : 'Create'} Referral Code
+                            {editingId ? 'Editar' : 'Crear'} código de referido
                         </DialogTitle>
                         <DialogDescription>
                             {editingId
-                                ? 'Update the referral code and assigned user.'
-                                : 'Create a new referral code and link it to a user.'}
+                                ? 'Actualizá el código de referido y el usuario asignado.'
+                                : 'Creá un nuevo código de referido y vinculalo a un usuario.'}
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -295,12 +295,12 @@ export default function ReferralsPage() {
                                         <Field
                                             data-invalid={fieldState.invalid}>
                                             <FieldLabel htmlFor='code'>
-                                                Code
+                                                Código
                                             </FieldLabel>
                                             <Input
                                                 {...field}
                                                 id='code'
-                                                placeholder='e.g. bismark'
+                                                placeholder='ej. bismark'
                                                 aria-invalid={
                                                     fieldState.invalid
                                                 }
@@ -319,12 +319,12 @@ export default function ReferralsPage() {
                                     render={({ field }) => (
                                         <Field>
                                             <FieldLabel htmlFor='name'>
-                                                Display Name
+                                                Nombre visible
                                             </FieldLabel>
                                             <Input
                                                 {...field}
                                                 id='name'
-                                                placeholder='Optional display name'
+                                                placeholder='Nombre visible (opcional)'
                                             />
                                         </Field>
                                     )}
@@ -336,7 +336,7 @@ export default function ReferralsPage() {
                                         <Field
                                             data-invalid={fieldState.invalid}>
                                             <FieldLabel htmlFor='userId'>
-                                                Linked User
+                                                Usuario vinculado
                                             </FieldLabel>
                                             <Select
                                                 value={field.value}
@@ -346,7 +346,7 @@ export default function ReferralsPage() {
                                                     aria-invalid={
                                                         fieldState.invalid
                                                     }>
-                                                    <SelectValue placeholder='Select a user' />
+                                                    <SelectValue placeholder='Elegí un usuario' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
@@ -375,7 +375,7 @@ export default function ReferralsPage() {
                                     type='button'
                                     variant='ghost'
                                     onClick={() => setDialogOpen(false)}>
-                                    Cancel
+                                    Cancelar
                                 </Button>
                                 <Button
                                     type='submit'
@@ -386,9 +386,9 @@ export default function ReferralsPage() {
                                             className='animate-spin'
                                         />
                                     ) : editingId ? (
-                                        'Update'
+                                        'Actualizar'
                                     ) : (
-                                        'Create'
+                                        'Crear'
                                     )}
                                 </Button>
                             </div>

@@ -76,15 +76,15 @@ interface ListUsersResponse {
 }
 
 const createSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z.string().email('Invalid email'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    name: z.string().min(1, 'El nombre es obligatorio'),
+    email: z.string().email('Email inválido'),
+    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
     role: z.string().optional()
 })
 
 const editSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z.string().email('Invalid email'),
+    name: z.string().min(1, 'El nombre es obligatorio'),
+    email: z.string().email('Email inválido'),
     role: z.string().optional()
 })
 
@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
                         : {})
                 }
             })
-            if (error) throw new Error(error.message || 'Failed to list users')
+            if (error) throw new Error(error.message || 'No se pudieron listar los usuarios')
             return data as unknown as ListUsersResponse
         }
     })
@@ -174,11 +174,11 @@ export default function AdminUsersPage() {
                 password: form.password,
                 role: (form.role || 'user') as 'user' | 'admin' | 'ref'
             })
-            if (error) throw new Error(error.message || 'Failed to create user')
+            if (error) throw new Error(error.message || 'No se pudo crear el usuario')
             return data
         },
         onSuccess: () => {
-            toast.success('User created successfully')
+            toast.success('Usuario creado correctamente')
             setShowCreate(false)
             createForm.reset()
             invalidate()
@@ -188,7 +188,7 @@ export default function AdminUsersPage() {
 
     const updateMutation = useMutation({
         mutationFn: async (form: EditForm) => {
-            if (!editingUser) throw new Error('No user selected')
+            if (!editingUser) throw new Error('No hay ningún usuario seleccionado')
             const { data, error } = await authClient.admin.updateUser({
                 userId: editingUser.id,
                 data: {
@@ -197,11 +197,11 @@ export default function AdminUsersPage() {
                     role: form.role || 'user'
                 }
             })
-            if (error) throw new Error(error.message || 'Failed to update user')
+            if (error) throw new Error(error.message || 'No se pudo actualizar el usuario')
             return data
         },
         onSuccess: () => {
-            toast.success('User updated successfully')
+            toast.success('Usuario actualizado correctamente')
             setEditingUser(null)
             invalidate()
         },
@@ -210,17 +210,17 @@ export default function AdminUsersPage() {
 
     const passwordMutation = useMutation({
         mutationFn: async (form: PasswordForm) => {
-            if (!passwordUser) throw new Error('No user selected')
+            if (!passwordUser) throw new Error('No hay ningún usuario seleccionado')
             const { data, error } = await authClient.admin.setUserPassword({
                 userId: passwordUser.id,
                 newPassword: form.newPassword
             })
             if (error)
-                throw new Error(error.message || 'Failed to set password')
+                throw new Error(error.message || 'No se pudo establecer la contraseña')
             return data
         },
         onSuccess: () => {
-            toast.success('Password set successfully')
+            toast.success('Contraseña establecida correctamente')
             setPasswordUser(null)
             passwordForm.reset()
         },
@@ -255,7 +255,7 @@ export default function AdminUsersPage() {
             }
         },
         onSuccess: () => {
-            toast.success('User status updated')
+            toast.success('Estado del usuario actualizado')
             invalidate()
         },
         onError: (err: Error) => toast.error(err.message)
@@ -266,11 +266,11 @@ export default function AdminUsersPage() {
             const { data, error } = await authClient.admin.removeUser({
                 userId: user.id
             })
-            if (error) throw new Error(error.message || 'Failed to delete user')
+            if (error) throw new Error(error.message || 'No se pudo eliminar el usuario')
             return data
         },
         onSuccess: () => {
-            toast.success('User deleted')
+            toast.success('Usuario eliminado')
             setDeleteUser(null)
             invalidate()
         },
@@ -282,11 +282,11 @@ export default function AdminUsersPage() {
             const { data, error } = await authClient.admin.impersonateUser({
                 userId: user.id
             })
-            if (error) throw new Error(error.message || 'Failed to impersonate')
+            if (error) throw new Error(error.message || 'No se pudo suplantar al usuario')
             return data as { url?: string } | null
         },
         onSuccess: (data: { url?: string } | null) => {
-            toast.success('Impersonating user')
+            toast.success('Suplantando al usuario')
             if (data?.url) window.location.href = data.url
         },
         onError: (err: Error) => toast.error(err.message)
@@ -319,7 +319,7 @@ export default function AdminUsersPage() {
                 <Card>
                     <CardHeader>
                         <div className='flex items-center justify-between gap-4 flex-wrap'>
-                            <CardTitle>Manage Users</CardTitle>
+                            <CardTitle>Administrar usuarios</CardTitle>
                             <div className='flex items-center gap-2'>
                                 <div className='relative'>
                                     <Search
@@ -327,7 +327,7 @@ export default function AdminUsersPage() {
                                         className='absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground'
                                     />
                                     <Input
-                                        placeholder='Search users...'
+                                        placeholder='Buscar usuarios...'
                                         value={search}
                                         onChange={(e) => {
                                             setSearch(e.target.value)
@@ -342,7 +342,7 @@ export default function AdminUsersPage() {
                                         setShowCreate(true)
                                     }}
                                     size='sm'>
-                                    <Plus /> New User
+                                    <Plus /> Nuevo usuario
                                 </Button>
                             </div>
                         </div>
@@ -361,19 +361,19 @@ export default function AdminUsersPage() {
                                         <thead>
                                             <tr className='border-b text-left text-muted-foreground'>
                                                 <th className='pb-2 font-medium'>
-                                                    Name
+                                                    Nombre
                                                 </th>
                                                 <th className='pb-2 font-medium'>
                                                     Email
                                                 </th>
                                                 <th className='pb-2 font-medium'>
-                                                    Role
+                                                    Rol
                                                 </th>
                                                 <th className='pb-2 font-medium'>
-                                                    Status
+                                                    Estado
                                                 </th>
                                                 <th className='pb-2 font-medium text-right'>
-                                                    Actions
+                                                    Acciones
                                                 </th>
                                             </tr>
                                         </thead>
@@ -383,7 +383,7 @@ export default function AdminUsersPage() {
                                                     <td
                                                         colSpan={5}
                                                         className='py-8 text-center text-muted-foreground'>
-                                                        No users found
+                                                        No se encontraron usuarios
                                                     </td>
                                                 </tr>
                                             )}
@@ -412,14 +412,14 @@ export default function AdminUsersPage() {
                                                     <td className='py-2.5'>
                                                         {user.banned ? (
                                                             <span className='text-destructive text-xs font-medium bg-destructive/10 px-2 py-0.5 rounded-full'>
-                                                                Banned
+                                                                Bloqueado
                                                                 {user.banReason
                                                                     ? `: ${user.banReason}`
                                                                     : ''}
                                                             </span>
                                                         ) : (
                                                             <span className='text-green-600 text-xs font-medium bg-green-600/10 px-2 py-0.5 rounded-full'>
-                                                                Active
+                                                                Activo
                                                             </span>
                                                         )}
                                                     </td>
@@ -446,7 +446,7 @@ export default function AdminUsersPage() {
                                                                     />
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    Edit user
+                                                                    Editar usuario
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                             <Tooltip>
@@ -471,7 +471,7 @@ export default function AdminUsersPage() {
                                                                     />
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    Set password
+                                                                    Establecer contraseña
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                             <Tooltip>
@@ -498,8 +498,8 @@ export default function AdminUsersPage() {
                                                                     />
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    Impersonate
-                                                                    user
+                                                                    Suplantar
+                                                                    usuario
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                             <Tooltip>
@@ -543,8 +543,8 @@ export default function AdminUsersPage() {
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
                                                                     {user.banned
-                                                                        ? 'Unban user'
-                                                                        : 'Ban user'}
+                                                                        ? 'Desbloquear usuario'
+                                                                        : 'Bloquear usuario'}
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                             <Tooltip>
@@ -571,7 +571,7 @@ export default function AdminUsersPage() {
                                                                     />
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    Delete user
+                                                                    Eliminar usuario
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </div>
@@ -584,7 +584,7 @@ export default function AdminUsersPage() {
 
                                 {totalPages > 1 && (
                                     <div className='flex items-center justify-between pt-4 text-sm text-muted-foreground'>
-                                        <span>{total} total users</span>
+                                        <span>{total} usuarios en total</span>
                                         <div className='flex items-center gap-2'>
                                             <Button
                                                 size='icon-sm'
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
                                                 <ChevronLeft size={14} />
                                             </Button>
                                             <span className='tabular-nums'>
-                                                Page {page + 1} of {totalPages}
+                                                Página {page + 1} de {totalPages}
                                             </span>
                                             <Button
                                                 size='icon-sm'
@@ -622,9 +622,9 @@ export default function AdminUsersPage() {
                 <Dialog open={showCreate} onOpenChange={setShowCreate}>
                     <DialogContent className='sm:max-w-md'>
                         <DialogHeader>
-                            <DialogTitle>Create User</DialogTitle>
+                            <DialogTitle>Crear usuario</DialogTitle>
                             <DialogDescription>
-                                Create a new user account.
+                                Creá una nueva cuenta de usuario.
                             </DialogDescription>
                         </DialogHeader>
                         <form
@@ -641,10 +641,10 @@ export default function AdminUsersPage() {
                                                 data-invalid={
                                                     fieldState.invalid
                                                 }>
-                                                <FieldLabel>Name</FieldLabel>
+                                                <FieldLabel>Nombre</FieldLabel>
                                                 <Input
                                                     {...field}
-                                                    placeholder='Full name'
+                                                    placeholder='Nombre completo'
                                                     aria-invalid={
                                                         fieldState.invalid
                                                     }
@@ -695,12 +695,12 @@ export default function AdminUsersPage() {
                                                     fieldState.invalid
                                                 }>
                                                 <FieldLabel>
-                                                    Password
+                                                    Contraseña
                                                 </FieldLabel>
                                                 <Input
                                                     {...field}
                                                     type='password'
-                                                    placeholder='Min 8 characters'
+                                                    placeholder='Mínimo 8 caracteres'
                                                     aria-invalid={
                                                         fieldState.invalid
                                                     }
@@ -723,7 +723,7 @@ export default function AdminUsersPage() {
                                                 data-invalid={
                                                     fieldState.invalid
                                                 }>
-                                                <FieldLabel>Role</FieldLabel>
+                                                <FieldLabel>Rol</FieldLabel>
                                                 <Select
                                                     value={field.value}
                                                     onValueChange={
@@ -733,21 +733,21 @@ export default function AdminUsersPage() {
                                                         aria-invalid={
                                                             fieldState.invalid
                                                         }>
-                                                        <SelectValue placeholder='Select role' />
+                                                        <SelectValue placeholder='Elegí un rol' />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectGroup>
                                                             <SelectItem value='user'>
-                                                                User
+                                                                Usuario
                                                             </SelectItem>
                                                             <SelectItem value='ref'>
-                                                                Ref
+                                                                Referido
                                                             </SelectItem>
                                                             <SelectItem value='admin'>
-                                                                Admin
+                                                                Administrador
                                                             </SelectItem>
                                                             <SelectItem value='pending'>
-                                                                Pending
+                                                                Pendiente
                                                             </SelectItem>
                                                         </SelectGroup>
                                                     </SelectContent>
@@ -762,7 +762,7 @@ export default function AdminUsersPage() {
                                         variant='ghost'
                                         className='cursor-pointer'
                                         onClick={() => setShowCreate(false)}>
-                                        Cancel
+                                        Cancelar
                                     </Button>
                                     <Button
                                         type='submit'
@@ -773,7 +773,7 @@ export default function AdminUsersPage() {
                                                 className='animate-spin'
                                             />
                                         ) : (
-                                            'Create'
+                                            'Crear'
                                         )}
                                     </Button>
                                 </div>
@@ -784,9 +784,9 @@ export default function AdminUsersPage() {
                 <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
                     <DialogContent className='sm:max-w-md'>
                         <DialogHeader>
-                            <DialogTitle>Edit User</DialogTitle>
+                            <DialogTitle>Editar usuario</DialogTitle>
                             <DialogDescription>
-                                Update user details.
+                                Actualizá los datos del usuario.
                             </DialogDescription>
                         </DialogHeader>
                         <form
@@ -803,7 +803,7 @@ export default function AdminUsersPage() {
                                                 data-invalid={
                                                     fieldState.invalid
                                                 }>
-                                                <FieldLabel>Name</FieldLabel>
+                                                <FieldLabel>Nombre</FieldLabel>
                                                 <Input
                                                     {...field}
                                                     aria-invalid={
@@ -854,7 +854,7 @@ export default function AdminUsersPage() {
                                                 data-invalid={
                                                     fieldState.invalid
                                                 }>
-                                                <FieldLabel>Role</FieldLabel>
+                                                <FieldLabel>Rol</FieldLabel>
                                                 <Select
                                                     value={field.value}
                                                     onValueChange={
@@ -864,21 +864,21 @@ export default function AdminUsersPage() {
                                                         aria-invalid={
                                                             fieldState.invalid
                                                         }>
-                                                        <SelectValue placeholder='Select role' />
+                                                        <SelectValue placeholder='Elegí un rol' />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectGroup>
                                                             <SelectItem value='user'>
-                                                                User
+                                                                Usuario
                                                             </SelectItem>
                                                             <SelectItem value='ref'>
-                                                                Ref
+                                                                Referido
                                                             </SelectItem>
                                                             <SelectItem value='admin'>
-                                                                Admin
+                                                                Administrador
                                                             </SelectItem>
                                                             <SelectItem value='pending'>
-                                                                Pending
+                                                                Pendiente
                                                             </SelectItem>
                                                         </SelectGroup>
                                                     </SelectContent>
@@ -893,7 +893,7 @@ export default function AdminUsersPage() {
                                         variant='ghost'
                                         className='cursor-pointer'
                                         onClick={() => setEditingUser(null)}>
-                                        Cancel
+                                        Cancelar
                                     </Button>
                                     <Button
                                         type='submit'
@@ -904,7 +904,7 @@ export default function AdminUsersPage() {
                                                 className='animate-spin'
                                             />
                                         ) : (
-                                            'Save'
+                                            'Guardar'
                                         )}
                                     </Button>
                                 </div>
@@ -915,9 +915,9 @@ export default function AdminUsersPage() {
                 <Dialog open={!!passwordUser} onOpenChange={(open) => !open && setPasswordUser(null)}>
                     <DialogContent className='sm:max-w-md'>
                         <DialogHeader>
-                            <DialogTitle>Set Password</DialogTitle>
+                            <DialogTitle>Establecer contraseña</DialogTitle>
                             <DialogDescription>
-                                Set a new password for{' '}
+                                Establecé una nueva contraseña para{' '}
                                 <strong>{passwordUser?.name}</strong>.
                             </DialogDescription>
                         </DialogHeader>
@@ -936,12 +936,12 @@ export default function AdminUsersPage() {
                                                     fieldState.invalid
                                                 }>
                                                 <FieldLabel>
-                                                    New Password
+                                                    Nueva contraseña
                                                 </FieldLabel>
                                                 <Input
                                                     {...field}
                                                     type='password'
-                                                    placeholder='Min 8 characters'
+                                                    placeholder='Mínimo 8 caracteres'
                                                     aria-invalid={
                                                         fieldState.invalid
                                                     }
@@ -963,7 +963,7 @@ export default function AdminUsersPage() {
                                         variant='ghost'
                                         className='cursor-pointer'
                                         onClick={() => setPasswordUser(null)}>
-                                        Cancel
+                                        Cancelar
                                     </Button>
                                     <Button
                                         type='submit'
@@ -974,7 +974,7 @@ export default function AdminUsersPage() {
                                                 className='animate-spin'
                                             />
                                         ) : (
-                                            'Set Password'
+                                            'Establecer contraseña'
                                         )}
                                     </Button>
                                 </div>
@@ -992,9 +992,9 @@ export default function AdminUsersPage() {
                     }}>
                     <DialogContent className='sm:max-w-md'>
                         <DialogHeader>
-                            <DialogTitle>Ban User</DialogTitle>
+                            <DialogTitle>Bloquear usuario</DialogTitle>
                             <DialogDescription>
-                                Ban <strong>{banUser?.name}</strong> (
+                                Bloqueá a <strong>{banUser?.name}</strong> (
                                 {banUser?.email})
                             </DialogDescription>
                         </DialogHeader>
@@ -1008,11 +1008,11 @@ export default function AdminUsersPage() {
                                         render={({ field }) => (
                                             <Field>
                                                 <FieldLabel>
-                                                    Ban Reason
+                                                    Motivo del bloqueo
                                                 </FieldLabel>
                                                 <Input
                                                     {...field}
-                                                    placeholder='Reason for the ban (optional)'
+                                                    placeholder='Motivo del bloqueo (opcional)'
                                                 />
                                             </Field>
                                         )}
@@ -1026,7 +1026,7 @@ export default function AdminUsersPage() {
                                                     fieldState.invalid
                                                 }>
                                                 <FieldLabel>
-                                                    Ban Duration
+                                                    Duración del bloqueo
                                                 </FieldLabel>
                                                 <Select
                                                     value={field.value || ''}
@@ -1034,30 +1034,30 @@ export default function AdminUsersPage() {
                                                         field.onChange
                                                     }>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder='Permanent (never expires)' />
+                                                        <SelectValue placeholder='Permanente (nunca expira)' />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectGroup>
                                                             <SelectItem value=''>
-                                                                Permanent
+                                                                Permanente
                                                             </SelectItem>
                                                             <SelectItem value='3600'>
-                                                                1 hour
+                                                                1 hora
                                                             </SelectItem>
                                                             <SelectItem value='86400'>
-                                                                1 day
+                                                                1 día
                                                             </SelectItem>
                                                             <SelectItem value='604800'>
-                                                                7 days
+                                                                7 días
                                                             </SelectItem>
                                                             <SelectItem value='2592000'>
-                                                                30 days
+                                                                30 días
                                                             </SelectItem>
                                                             <SelectItem value='7776000'>
-                                                                90 days
+                                                                90 días
                                                             </SelectItem>
                                                             <SelectItem value='31536000'>
-                                                                1 year
+                                                                1 año
                                                             </SelectItem>
                                                         </SelectGroup>
                                                     </SelectContent>
@@ -1075,7 +1075,7 @@ export default function AdminUsersPage() {
                                             setBanUser(null)
                                             banForm.reset()
                                         }}>
-                                        Cancel
+                                        Cancelar
                                     </Button>
                                     <Button
                                         type='submit'
@@ -1087,7 +1087,7 @@ export default function AdminUsersPage() {
                                                 className='animate-spin'
                                             />
                                         ) : (
-                                            'Ban User'
+                                            'Bloquear usuario'
                                         )}
                                     </Button>
                                 </div>
@@ -1098,12 +1098,12 @@ export default function AdminUsersPage() {
                 <Dialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
                     <DialogContent className='sm:max-w-md'>
                         <DialogHeader>
-                            <DialogTitle>Delete User</DialogTitle>
+                            <DialogTitle>Eliminar usuario</DialogTitle>
                             <DialogDescription>
-                                Are you sure you want to permanently delete{' '}
+                                ¿Seguro que querés eliminar definitivamente a{' '}
                                 <strong>{deleteUser?.name}</strong> (
-                                {deleteUser?.email})? This action cannot be
-                                undone.
+                                {deleteUser?.email})? Esta acción no se puede
+                                deshacer.
                             </DialogDescription>
                         </DialogHeader>
                         <div className='flex justify-end gap-2'>
@@ -1112,7 +1112,7 @@ export default function AdminUsersPage() {
                                 variant='ghost'
                                 className='cursor-pointer'
                                 onClick={() => setDeleteUser(null)}>
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button
                                 onClick={handleDeleteConfirm}
@@ -1124,7 +1124,7 @@ export default function AdminUsersPage() {
                                         className='animate-spin'
                                     />
                                 ) : (
-                                    'Delete'
+                                    'Eliminar'
                                 )}
                             </Button>
                         </div>

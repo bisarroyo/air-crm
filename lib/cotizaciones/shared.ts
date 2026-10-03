@@ -202,9 +202,27 @@ export function formatMoneyCompact(amount: number, currency: Currency): string {
     return `${symbol}${fixed}`
 }
 
+/**
+ * Las fechas coming de la DB pueden venir como 'YYYY-MM-DD' (sin hora).
+ * `new Date('2026-10-05')` se interpreta como UTC y en zonas negativas
+ * muestra el dia anterior, asi que se parsean como fecha local.
+ */
+export function toLocalDate(value: Date | string): Date {
+    if (value instanceof Date) return value
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+    if (dateOnly) {
+        return new Date(
+            Number(dateOnly[1]),
+            Number(dateOnly[2]) - 1,
+            Number(dateOnly[3])
+        )
+    }
+    return new Date(value)
+}
+
 export function toDateInputValue(value: Date | string | null | undefined): string {
     if (!value) return ''
-    const date = value instanceof Date ? value : new Date(value)
+    const date = toLocalDate(value)
     if (Number.isNaN(date.getTime())) return ''
     const y = date.getFullYear()
     const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -214,14 +232,48 @@ export function toDateInputValue(value: Date | string | null | undefined): strin
 
 export function parseDateInput(value: string | null | undefined): Date | null {
     if (!value) return null
-    const date = new Date(`${value}T00:00:00`)
+    const date = toLocalDate(value.trim())
     if (Number.isNaN(date.getTime())) return null
     return date
 }
 
+/** Ultimo instante del dia (23:59:59.999) para considerar el dia de vencimiento. */
+export function endOfDay(
+    value: Date | string | null | undefined
+): Date | null {
+    const date = parseDateInput(toDateInputValue(value))
+    if (!date) return null
+    date.setHours(23, 59, 59, 999)
+    return date
+}
+
+/** La cotizacion sigue siendo valida durante todo el dia de vencimiento (inclusive). */
+export function isQuotationValid(
+    validUntil: Date | string | null | undefined,
+    now: Date = new Date()
+): boolean {
+    const end = endOfDay(validUntil)
+    if (!end) return false
+    return now.getTime() <= end.getTime()
+}
+
+/** Texto de vigencia para cabecera de la cotizacion, indicando que el dia final cuenta. */
+export function validityLabel(
+    validUntil: Date | string | null | undefined
+): string {
+    return `Válida hasta: ${formatDateLong(validUntil)} (incluye ese día)`
+}
+
+/** Texto de disponibilidad de un descuento, indicando que el dia final cuenta. */
+export function availabilityLabel(
+    endsAt: Date | string | null | undefined
+): string {
+    return `Disponible hasta ${formatDateLong(endsAt)} (incluye ese día)`
+}
+
 export function formatDateShort(value: Date | string | null | undefined): string {
     if (!value) return '—'
-    const date = value instanceof Date ? value : new Date(value)
+    const date = toLocalDate(value)
     if (Number.isNaN(date.getTime())) return '—'
     try {
         return date.toLocaleDateString('es-CR', {
@@ -236,7 +288,7 @@ export function formatDateShort(value: Date | string | null | undefined): string
 
 export function formatDateLong(value: Date | string | null | undefined): string {
     if (!value) return '—'
-    const date = value instanceof Date ? value : new Date(value)
+    const date = toLocalDate(value)
     if (Number.isNaN(date.getTime())) return '—'
     try {
         return date.toLocaleDateString('es-CR', {

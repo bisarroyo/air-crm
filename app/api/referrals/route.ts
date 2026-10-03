@@ -11,7 +11,7 @@ export async function GET() {
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const rows = await db
@@ -36,14 +36,14 @@ export async function POST(request: Request) {
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
 
     if (!body.code || !body.userId) {
         return NextResponse.json(
-            { error: 'Code and user are required' },
+            { error: 'El código y el usuario son obligatorios' },
             { status: 400 }
         )
     }
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         const message = error instanceof Error ? error.message : 'Failed to create referral'
         if (message.includes('UNIQUE')) {
             return NextResponse.json(
-                { error: 'A referral with this code already exists' },
+                { error: 'Ya existe un referido con ese código' },
                 { status: 409 }
             )
         }

@@ -135,6 +135,10 @@ export function WizardStepClient({
                         }
                         placeholder="Válida hasta"
                     />
+                    <p className="text-xs text-muted-foreground">
+                        La cotización es válida durante todo el día de
+                        vencimiento, inclusive.
+                    </p>
                 </Field>
             </div>
         </div>

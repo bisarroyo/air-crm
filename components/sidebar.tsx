@@ -84,12 +84,12 @@ export function Sidebar() {
 
     const sections: MenuSection[] = [
         {
-            label: 'Main',
+            label: 'Inicio',
             icon: Home,
             defaultOpen: true,
             items: [
-                { href: '/', label: 'Dashboard', icon: Gauge },
-                { href: '/reports', label: 'Reports', icon: BarChart3 }
+                { href: '/', label: 'Inicio', icon: Gauge },
+                { href: '/reports', label: 'Reportes', icon: BarChart3 }
             ]
         },
         {
@@ -97,50 +97,50 @@ export function Sidebar() {
             icon: Users,
             defaultOpen: true,
             items: [
-                { href: '/leads', label: 'All Leads', icon: Users },
+                { href: '/leads', label: 'Todos los leads', icon: Users },
                 {
                     href: '/leads/quotations',
                     label: 'Cotizaciones',
                     icon: FileText
                 },
                 { href: '/leads/emails', label: 'Emails', icon: Mail },
-                { href: '/leads/import', label: 'Import', icon: FileUp }
+                { href: '/leads/import', label: 'Importar', icon: FileUp }
             ]
         },
         {
-            label: 'Account',
+            label: 'Cuenta',
             icon: User,
             defaultOpen: pathname.startsWith('/account'),
-            items: [{ href: '/account', label: 'Settings', icon: Settings }]
+            items: [{ href: '/account', label: 'Ajustes', icon: Settings }]
         },
         ...(session?.user.role === 'admin'
             ? [
                   {
-                      label: 'Admin',
+                      label: 'Administración',
                       icon: ShieldCheck,
                       defaultOpen: pathname.startsWith('/admin'),
                       items: [
                           {
                               href: '/admin/users',
-                              label: 'Users',
+                              label: 'Usuarios',
                               icon: UserCog
                           },
                           {
                               href: '/admin/status',
-                              label: 'Status',
+                              label: 'Estados',
                               icon: Flag
                           },
                           {
                               href: '/admin/priority',
-                              label: 'Priority',
+                              label: 'Prioridades',
                               icon: Layers
                           },
                           {
                               href: '/admin/referrals',
-                              label: 'Referrals',
+                              label: 'Referidos',
                               icon: Link2
                           },
-                          { href: '/admin/tags', label: 'Tags', icon: Tag },
+                          { href: '/admin/tags', label: 'Etiquetas', icon: Tag },
                           {
                               href: '/admin/quotations',
                               label: 'Cotizaciones',
@@ -181,12 +181,12 @@ export function Sidebar() {
             )}
             <aside
                 className={cn(
-                    'fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] flex-col border-r bg-background transition-all duration-200 md:static',
+                    'fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] shrink-0 flex-col border-r bg-background transition-all duration-200 md:static',
                     collapsed ? 'w-14' : 'w-56'
                 )}>
                 <button
                     onClick={() => setCollapsed(!collapsed)}
-                    className='flex h-9 items-center justify-end px-3 text-muted-foreground hover:text-foreground'>
+                    className='flex h-9 items-center justify-end px-3 text-foreground hover:text-foreground'>
                     {collapsed ? (
                         <ChevronRight size={16} />
                     ) : (
@@ -208,7 +208,7 @@ export function Sidebar() {
                                         {SectionIcon && (
                                             <span
                                                 className={cn(
-                                                    'mb-1 text-muted-foreground/70',
+                                                    'mb-1 text-foreground/70',
                                                     sectionActive &&
                                                         'text-primary'
                                                 )}
@@ -232,7 +232,7 @@ export function Sidebar() {
                                                         'relative flex items-center justify-center rounded-lg p-2 transition-colors',
                                                         active
                                                             ? 'bg-primary/10 text-primary'
-                                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                            : 'text-foreground hover:bg-muted hover:text-foreground'
                                                     )}
                                                     title={item.label}>
                                                     {active && (
@@ -252,8 +252,8 @@ export function Sidebar() {
                                             className={cn(
                                                 'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors',
                                                 sectionActive || isOpen
-                                                    ? 'bg-accent text-white'
-                                                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                                                    ? 'bg-accent text-accent-foreground'
+                                                    : 'text-foreground hover:bg-muted/60 hover:text-foreground'
                                             )}>
                                             {SectionIcon && (
                                                 <SectionIcon
@@ -275,7 +275,7 @@ export function Sidebar() {
                                             <ChevronDown
                                                 size={14}
                                                 className={cn(
-                                                    'text-muted-foreground transition-transform',
+                                                    'text-foreground/70 transition-transform',
                                                     isOpen && 'rotate-180'
                                                 )}
                                             />
@@ -300,7 +300,7 @@ export function Sidebar() {
                                                                 'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                                                                 active
                                                                     ? 'bg-primary/10 font-semibold text-primary'
-                                                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                                    : 'text-foreground hover:bg-muted hover:text-foreground'
                                                             )}>
                                                             <Icon size={18} />
                                                             {item.label}

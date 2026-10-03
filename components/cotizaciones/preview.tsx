@@ -1,9 +1,11 @@
 'use client'
 
 import {
+    availabilityLabel,
     formatDateLong,
     formatMoneyCompact,
     quotationIncludes,
+    validityLabel,
     splitEvenly,
     accommodationSummary,
     companyContactRows,
@@ -121,7 +123,9 @@ function CostRow({
     )
 
     return (
-        <div className='px-2 py-[7px]'>
+        <div
+            className='px-2 py-[7px]'
+            style={{ backgroundColor: total ? ACCENT : undefined }}>
             {detail ? (
                 <div
                     className='text-[10px]'
@@ -275,7 +279,7 @@ export function QuotationPreview({
                         Fecha de emisión: {formatDateLong(data.issueDate)}
                     </div>
                     <div className='text-[11px]' style={{ color: MUTED }}>
-                        Válida hasta: {formatDateLong(data.validUntil)}
+                        {validityLabel(data.validUntil)}
                     </div>
                 </div>
             </div>
@@ -430,9 +434,9 @@ export function QuotationPreview({
                                             <CostRow
                                                 label=''
                                                 value=''
-                                                detail={`Disponible hasta ${formatDateLong(
+                                                detail={availabilityLabel(
                                                     line.endsAt
-                                                )}`}
+                                                )}
                                             />
                                         </div>
                                     ) : null}
@@ -495,7 +499,10 @@ export function QuotationPreview({
                                   </div>
                               ]
                             : []),
-                        <div key='total' className='border-t' style={{ borderColor: BORDER }}>
+                        <div
+                            key='total'
+                            className='border-t'
+                            style={{ borderColor: BORDER }}>
                             <CostRow
                                 label='TOTAL'
                                 value={money(totals.total)}

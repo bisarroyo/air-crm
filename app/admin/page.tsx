@@ -10,20 +10,20 @@ import {
 export default function AdminPage() {
     return (
         <div className='container mx-auto space-y-6 p-6'>
-            <h1 className='text-2xl font-medium'>Admin Panel</h1>
+            <h1 className='text-2xl font-medium'>Panel de administración</h1>
             <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
                 <Link href='/admin/users'>
                     <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
                         <CardHeader>
-                            <CardTitle>Users</CardTitle>
+                            <CardTitle>Usuarios</CardTitle>
                             <CardDescription>
-                                Manage user accounts
+                                Administrar cuentas de usuarios
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className='text-sm text-muted-foreground'>
-                                Create, edit, ban, delete, and manage user
-                                accounts.
+                                Creá, editá, bloqueá, eliminá y gestioná
+                                cuentas de usuarios.
                             </p>
                         </CardContent>
                     </Card>
@@ -31,15 +31,15 @@ export default function AdminPage() {
                 <Link href='/admin/status'>
                     <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
                         <CardHeader>
-                            <CardTitle>Status</CardTitle>
+                            <CardTitle>Estados</CardTitle>
                             <CardDescription>
-                                Manage customer statuses
+                                Administrar estados de clientes
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className='text-sm text-muted-foreground'>
-                                Create, edit, activate, or deactivate status
-                                options.
+                                Creá, editá, activá o desactivá opciones de
+                                estado.
                             </p>
                         </CardContent>
                     </Card>
@@ -47,15 +47,15 @@ export default function AdminPage() {
                 <Link href='/admin/priority'>
                     <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
                         <CardHeader>
-                            <CardTitle>Priority</CardTitle>
+                            <CardTitle>Prioridades</CardTitle>
                             <CardDescription>
-                                Manage customer priorities
+                                Administrar prioridades de clientes
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className='text-sm text-muted-foreground'>
-                                Create, edit, activate, or deactivate priority
-                                levels.
+                                Creá, editá, activá o desactivá niveles de
+                                prioridad.
                             </p>
                         </CardContent>
                     </Card>
@@ -63,15 +63,15 @@ export default function AdminPage() {
                 <Link href='/admin/referrals'>
                     <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
                         <CardHeader>
-                            <CardTitle>Referrals</CardTitle>
+                            <CardTitle>Referidos</CardTitle>
                             <CardDescription>
-                                Manage referral codes
+                                Administrar códigos de referido
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className='text-sm text-muted-foreground'>
-                                Create, edit, or delete referral codes and
-                                link them to users.
+                                Creá, editá o eliminá códigos de referido y
+                                asignalos a usuarios.
                             </p>
                         </CardContent>
                     </Card>
@@ -79,15 +79,15 @@ export default function AdminPage() {
                 <Link href='/admin/tags'>
                     <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
                         <CardHeader>
-                            <CardTitle>Tags</CardTitle>
+                            <CardTitle>Etiquetas</CardTitle>
                             <CardDescription>
-                                Manage lead tags
+                                Administrar etiquetas de leads
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className='text-sm text-muted-foreground'>
-                                Create, edit, activate, or deactivate tags to
-                                classify your leads.
+                                Creá, editá, activá o desactivá etiquetas para
+                                clasificar tus leads.
                             </p>
                         </CardContent>
                     </Card>

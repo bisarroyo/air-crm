@@ -9,7 +9,7 @@ export async function GET() {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const allTags = await db.select().from(tags).orderBy(tags.id)
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     if (!tagName || typeof tagName !== 'string' || !tagName.trim()) {
         return NextResponse.json(
-            { error: 'Tag name is required' },
+            { error: 'El nombre de la etiqueta es obligatorio' },
             { status: 400 }
         )
     }
@@ -46,12 +46,12 @@ export async function POST(request: Request) {
     } catch (error) {
         if ((error as Error)?.message?.includes('UNIQUE')) {
             return NextResponse.json(
-                { error: 'A tag with this name already exists' },
+                { error: 'Ya existe una etiqueta con ese nombre' },
                 { status: 409 }
             )
         }
         return NextResponse.json(
-            { error: 'Failed to create tag' },
+            { error: 'No se pudo crear la etiqueta' },
             { status: 500 }
         )
     }

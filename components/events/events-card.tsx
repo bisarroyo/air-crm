@@ -194,7 +194,7 @@ export function EventCard({ customerId }: { customerId: number }) {
         queryKey: ['events', customerId],
         queryFn: async () => {
             const res = await fetch(`/api/customers/${customerId}/events`)
-            if (!res.ok) throw new Error('Failed to fetch events')
+            if (!res.ok) throw new Error('No se pudieron cargar los eventos')
             return res.json()
         }
     })
@@ -217,7 +217,7 @@ export function EventCard({ customerId }: { customerId: number }) {
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update event')
+                throw new Error(err.error || 'No se pudo actualizar el evento')
             }
             return res.json()
         },
@@ -265,7 +265,7 @@ export function EventCard({ customerId }: { customerId: number }) {
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to delete event')
+                throw new Error(err.error || 'No se pudo eliminar el evento')
             }
             return res.json()
         },

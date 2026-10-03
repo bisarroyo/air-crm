@@ -2,8 +2,10 @@ import pdfMake from 'pdfmake'
 import vfsFonts from 'pdfmake/build/vfs_fonts'
 import {
     formatMoneyCompact,
+    availabilityLabel,
     formatDateLong,
     quotationIncludes,
+    validityLabel,
     splitEvenly,
     accommodationSummary,
     companyContactRows,
@@ -332,9 +334,7 @@ export function buildDocDefinition(
                                 margin: [0, 1, 0, 0]
                             },
                             {
-                                text: `Válida hasta: ${formatDateLong(
-                                    data.validUntil
-                                )}`,
+                                text: validityLabel(data.validUntil),
                                 fontSize: 8.5,
                                 color: MUTED,
                                 alignment: 'right',
@@ -526,9 +526,7 @@ export function buildDocDefinition(
                       {
                           label: '',
                           value: '',
-                          detail: `Disponible hasta ${formatDateLong(
-                              discount.endsAt
-                          )}`
+                          detail: availabilityLabel(discount.endsAt)
                       }
                   ]
                 : [])

@@ -17,6 +17,7 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -35,7 +36,11 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table'
-import { formatMoney, type Currency } from '@/lib/cotizaciones/shared'
+import {
+    formatMoney,
+    toDateInputValue,
+    type Currency
+} from '@/lib/cotizaciones/shared'
 import type { CatalogConfig, CatalogField } from '@/lib/cotizaciones/catalog-def'
 
 type Row = Record<string, unknown>
@@ -526,10 +531,10 @@ function CatalogFieldControl({
         }
         case 'date':
             control = (
-                <Input
-                    type='date'
-                    value={value === undefined ? '' : String(value).slice(0, 10)}
-                    onChange={(event) => onChange(event.target.value)}
+                <DatePicker
+                    value={toDateInputValue(value as string | Date | null)}
+                    onChange={onChange}
+                    placeholder='Elegí una fecha'
                 />
             )
             break

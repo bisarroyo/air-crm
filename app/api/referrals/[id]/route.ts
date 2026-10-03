@@ -14,7 +14,7 @@ export async function PUT(
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -23,7 +23,7 @@ export async function PUT(
     if (body.code !== undefined) {
         if (typeof body.code !== 'string' || !body.code.trim()) {
             return NextResponse.json(
-                { error: 'Code is required' },
+                { error: 'El código es obligatorio' },
                 { status: 400 }
             )
         }
@@ -40,7 +40,7 @@ export async function PUT(
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }
@@ -54,7 +54,7 @@ export async function PUT(
 
         if (!updated) {
             return NextResponse.json(
-                { error: 'Referral not found' },
+                { error: 'Referido no encontrado' },
                 { status: 404 }
             )
         }
@@ -64,7 +64,7 @@ export async function PUT(
         const message = error instanceof Error ? error.message : 'Failed to update referral'
         if (message.includes('UNIQUE')) {
             return NextResponse.json(
-                { error: 'A referral with this code already exists' },
+                { error: 'Ya existe un referido con ese código' },
                 { status: 409 }
             )
         }
@@ -84,7 +84,7 @@ export async function DELETE(
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     try {
@@ -95,7 +95,7 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { error: 'Referral not found' },
+                { error: 'Referido no encontrado' },
                 { status: 404 }
             )
         }

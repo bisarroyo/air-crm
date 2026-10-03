@@ -14,14 +14,14 @@ export async function PATCH(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
     const note = typeof body.note === 'string' ? body.note.trim() : ''
     if (!note) {
         return NextResponse.json(
-            { error: 'Note is required' },
+            { error: 'La nota es obligatoria' },
             { status: 400 }
         )
     }
@@ -40,7 +40,7 @@ export async function PATCH(
 
         if (!existing) {
             return NextResponse.json(
-                { error: 'Note not found' },
+                { error: 'Nota no encontrada' },
                 { status: 404 }
             )
         }
@@ -50,7 +50,7 @@ export async function PATCH(
             session.user.role !== 'admin'
         ) {
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'No autorizado' },
                 { status: 403 }
             )
         }
@@ -68,7 +68,7 @@ export async function PATCH(
 
         if (!updated) {
             return NextResponse.json(
-                { error: 'Note not found' },
+                { error: 'Nota no encontrada' },
                 { status: 404 }
             )
         }
@@ -92,7 +92,7 @@ export async function DELETE(
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     try {
@@ -109,14 +109,14 @@ export async function DELETE(
 
         if (!existing) {
             return NextResponse.json(
-                { error: 'Note not found' },
+                { error: 'Nota no encontrada' },
                 { status: 404 }
             )
         }
 
         if (existing.userId !== session.user.id && session.user.role !== 'admin') {
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'No autorizado' },
                 { status: 403 }
             )
         }
@@ -133,7 +133,7 @@ export async function DELETE(
 
         if (!deleted) {
             return NextResponse.json(
-                { error: 'Note not found' },
+                { error: 'Nota no encontrada' },
                 { status: 404 }
             )
         }

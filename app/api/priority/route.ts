@@ -9,7 +9,7 @@ export async function GET() {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const allPriority = await db.select().from(priority).orderBy(priority.id)
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         !priorityName.trim()
     ) {
         return NextResponse.json(
-            { error: 'Priority name is required' },
+            { error: 'El nombre de la prioridad es obligatorio' },
             { status: 400 }
         )
     }
@@ -50,12 +50,12 @@ export async function POST(request: Request) {
     } catch (error) {
         if ((error as Error)?.message?.includes('UNIQUE')) {
             return NextResponse.json(
-                { error: 'A priority with this name already exists' },
+                { error: 'Ya existe una prioridad con ese nombre' },
                 { status: 409 }
             )
         }
         return NextResponse.json(
-            { error: 'Failed to create priority' },
+            { error: 'No se pudo crear la prioridad' },
             { status: 500 }
         )
     }

@@ -49,7 +49,7 @@ export function EntityManager({
     const [editingId, setEditingId] = useState<number | null>(null)
 
     const schema = z.object({
-        [nameField]: z.string().min(1, `${title} name is required`),
+        [nameField]: z.string().min(1, `El nombre de ${title.toLowerCase()} es obligatorio`),
         color: z.string().optional()
     })
 
@@ -64,7 +64,7 @@ export function EntityManager({
         queryKey: [apiBase],
         queryFn: async () => {
             const res = await fetch(`/api/${apiBase}`)
-            if (!res.ok) throw new Error('Failed to fetch')
+            if (!res.ok) throw new Error('No se pudo cargar la información')
             return res.json()
         }
     })
@@ -88,14 +88,14 @@ export function EntityManager({
 
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to save')
+                throw new Error(err.error || 'No se pudo guardar')
             }
 
             return res.json()
         },
         onSuccess: () => {
             toast.success(
-                `${title} ${editingId ? 'updated' : 'created'} successfully`
+                `${title} ${editingId ? 'actualizado' : 'creado'} correctamente`
             )
             setDialogOpen(false)
             invalidate()
@@ -112,16 +112,16 @@ export function EntityManager({
                     isActive: entity.isActive ? 0 : 1
                 })
             })
-            if (!res.ok) throw new Error('Failed to update')
+            if (!res.ok) throw new Error('No se pudo actualizar')
             return res.json()
         },
         onSuccess: (_, entity) => {
             toast.success(
-                `${title} ${entity.isActive ? 'deactivated' : 'activated'}`
+                `${title} ${entity.isActive ? 'desactivado' : 'activado'}`
             )
             invalidate()
         },
-        onError: () => toast.error(`Failed to update ${title.toLowerCase()}`)
+        onError: () => toast.error(`No se pudo actualizar ${title.toLowerCase()}`)
     })
 
     const deleteMutation = useMutation({
@@ -131,7 +131,7 @@ export function EntityManager({
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to delete')
+                throw new Error(err.error || 'No se pudo eliminar')
             }
             return res.json()
         },
@@ -162,7 +162,7 @@ export function EntityManager({
     const handleDelete = (entity: Entity) => {
         if (
             !confirm(
-                `Are you sure you want to delete this ${title.toLowerCase()}?`
+                `¿Seguro que querés eliminar ${title.toLowerCase()}?`
             )
         )
             return
@@ -174,9 +174,9 @@ export function EntityManager({
             <Card>
                 <CardHeader>
                     <div className='flex items-center justify-between'>
-                        <CardTitle>Manage {title}</CardTitle>
+                        <CardTitle>Administrar {title}</CardTitle>
                         <Button onClick={openCreate} size='sm'>
-                            <Plus /> New {title}
+                            <Plus /> Nuevo {title}
                         </Button>
                     </div>
                 </CardHeader>
@@ -194,16 +194,16 @@ export function EntityManager({
                                     <tr className='border-b text-left text-muted-foreground'>
                                         <th className='pb-2 font-medium'>ID</th>
                                         <th className='pb-2 font-medium'>
-                                            Name
+                                            Nombre
                                         </th>
                                         <th className='pb-2 font-medium'>
                                             Color
                                         </th>
                                         <th className='pb-2 font-medium'>
-                                            Active
+                                            Activo
                                         </th>
                                         <th className='pb-2 font-medium text-right'>
-                                            Actions
+                                            Acciones
                                         </th>
                                     </tr>
                                 </thead>
@@ -213,7 +213,7 @@ export function EntityManager({
                                             <td
                                                 colSpan={5}
                                                 className='py-8 text-center text-muted-foreground'>
-                                                No {title.toLowerCase()}s found
+                                                No se encontraron {title.toLowerCase()}s
                                             </td>
                                         </tr>
                                     )}
@@ -248,8 +248,8 @@ export function EntityManager({
                                                             : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                                                     }`}>
                                                     {entity.isActive
-                                                        ? 'Active'
-                                                        : 'Inactive'}
+                                                        ? 'Activo'
+                                                        : 'Inactivo'}
                                                 </span>
                                             </td>
                                             <td className='py-2.5 text-right'>
@@ -308,11 +308,13 @@ export function EntityManager({
                 <DialogContent className='sm:max-w-md'>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingId ? 'Edit' : 'Create'} {title}
+                            {editingId ? 'Editar' : 'Crear'} {title}
                         </DialogTitle>
                         <DialogDescription>
-                            {editingId ? 'Update the' : 'Enter a new'}{' '}
-                            {title.toLowerCase()} name and choose a color.
+                            {editingId
+                                ? 'Actualizá el nombre de la'
+                                : 'Ingresá un nuevo nombre de'}{' '}
+                            {title.toLowerCase()} y elegí un color.
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -327,12 +329,12 @@ export function EntityManager({
                                             data-invalid={fieldState.invalid}>
                                             <FieldLabel
                                                 htmlFor={`${apiBase}-name`}>
-                                                {title} Name
+                                                Nombre del {title.toLowerCase()}
                                             </FieldLabel>
                                             <Input
                                                 {...field}
                                                 id={`${apiBase}-name`}
-                                                placeholder={`Enter ${title.toLowerCase()} name`}
+                                                placeholder={`Ingresá el nombre del ${title.toLowerCase()}`}
                                                 aria-invalid={
                                                     fieldState.invalid
                                                 }
@@ -374,7 +376,7 @@ export function EntityManager({
                                     type='button'
                                     variant='ghost'
                                     onClick={() => setDialogOpen(false)}>
-                                    Cancel
+                                    Cancelar
                                 </Button>
                                 <Button
                                     type='submit'
@@ -385,9 +387,9 @@ export function EntityManager({
                                             className='animate-spin'
                                         />
                                     ) : editingId ? (
-                                        'Update'
+                                        'Actualizar'
                                     ) : (
-                                        'Create'
+                                        'Crear'
                                     )}
                                 </Button>
                             </div>

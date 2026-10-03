@@ -25,7 +25,7 @@ const STRING_FIELDS = [
 export async function GET() {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const row = await getCompanySettings()
@@ -35,7 +35,7 @@ export async function GET() {
 export async function PUT(request: Request) {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = (await request.json()) as Record<string, unknown>
@@ -59,7 +59,7 @@ export async function PUT(request: Request) {
 
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }

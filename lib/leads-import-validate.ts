@@ -78,39 +78,39 @@ export function validateImportRow(
     const travelTime = normalizeTravelTime(raw.travelTime || '')
 
     if (!name) {
-        errors.push('Name is required')
+        errors.push('El nombre es obligatorio')
     } else if (name.length > 255) {
-        errors.push('Name cannot exceed 255 characters')
+        errors.push('El nombre no puede superar 255 caracteres')
     }
 
     if (!email) {
-        errors.push('Email is required')
+        errors.push('El email es obligatorio')
     } else if (!EMAIL_REGEX.test(email)) {
-        errors.push('Invalid email')
+        errors.push('Email inválido')
     }
 
     if (!phone) {
-        errors.push('Phone is required')
+        errors.push('El teléfono es obligatorio')
     } else if (!/\d/.test(phone)) {
-        errors.push('Phone must contain at least one digit')
+        errors.push('El teléfono debe tener al menos un número')
     }
 
     if (!travelTime) {
         errors.push(
-            'Travel time is required (values: 0-3, 3-6, 6-12, 12-18, 0)'
+            'El tiempo de viaje es obligatorio (valores: 0-3, 3-6, 6-12, 12-18, 0)'
         )
     }
 
     const country = (raw.country || '').trim()
     if (country.length > 255) {
-        errors.push('Country cannot exceed 255 characters')
+        errors.push('El país no puede superar 255 caracteres')
     }
 
     let statusId = DEFAULT_STATUS_ID
     if (raw.statusId !== undefined && raw.statusId !== null && raw.statusId !== '') {
         const parsed = Number(raw.statusId)
         if (!Number.isInteger(parsed) || !ctx.validStatusIds.has(parsed)) {
-            errors.push(`Invalid status: ${raw.statusId}`)
+            errors.push(`Estado inválido: ${raw.statusId}`)
         } else {
             statusId = parsed
         }
@@ -124,7 +124,7 @@ export function validateImportRow(
     ) {
         const parsed = Number(raw.priorityId)
         if (!Number.isInteger(parsed) || !ctx.validPriorityIds.has(parsed)) {
-            errors.push(`Invalid priority: ${raw.priorityId}`)
+            errors.push(`Prioridad inválida: ${raw.priorityId}`)
         } else {
             priorityId = parsed
         }
@@ -138,7 +138,7 @@ export function validateImportRow(
     ) {
         const parsed = Number(raw.referralId)
         if (!Number.isInteger(parsed) || !ctx.validReferralIds.has(parsed)) {
-            errors.push(`Invalid referral: ${raw.referralId}`)
+            errors.push(`Referido inválido: ${raw.referralId}`)
         } else {
             referralId = parsed
         }
@@ -148,7 +148,7 @@ export function validateImportRow(
         if (found) {
             referralId = found
         } else {
-            warnings.push(`Referral code not found: ${code}`)
+            warnings.push(`Código de referido no encontrado: ${code}`)
         }
     }
 
@@ -159,12 +159,12 @@ export function validateImportRow(
             assignedTo = target
         } else {
             warnings.push(
-                'Assigned user not found; will be assigned to the current user'
+                'El usuario asignado no existe; se asignará al usuario actual'
             )
         }
     } else if (!isAdmin && raw.assignedTo) {
         warnings.push(
-            'Only admins can assign; will be assigned to the current user'
+            'Solo los administradores pueden asignar; se asignará al usuario actual'
         )
     }
 

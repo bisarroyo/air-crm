@@ -13,11 +13,11 @@ import { Check, Palette } from 'lucide-react'
 import { cn } from 'cn'
 
 const THEMES = [
-    { id: '', label: 'Default', color: '#f97316' },
-    { id: 'blue', label: 'Blue', color: '#3b82f6' },
-    { id: 'turquoise', label: 'Turquoise', color: '#14b8a6' },
-    { id: 'red', label: 'Red', color: '#ef4444' },
-    { id: 'green', label: 'Green', color: '#22c55e' }
+    { id: '', label: 'Predeterminado', color: '#f97316' },
+    { id: 'blue', label: 'Azul', color: '#3b82f6' },
+    { id: 'turquoise', label: 'Turquesa', color: '#14b8a6' },
+    { id: 'red', label: 'Rojo', color: '#ef4444' },
+    { id: 'green', label: 'Verde', color: '#22c55e' }
 ]
 
 function getInitialTheme() {
@@ -53,7 +53,7 @@ export function ThemePicker() {
                         variant='outline'
                         size='icon'
                         className='rounded-full backdrop-blur-md h-8 w-8 cursor-pointer'
-                        title='Theme'>
+                        title='Tema'>
                         <Palette className='h-[1.2rem] w-[1.2rem]' />
                     </Button>
                 }

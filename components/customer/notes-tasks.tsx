@@ -151,7 +151,7 @@ function NoteEditDialog({
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update note')
+                throw new Error(err.error || 'No se pudo actualizar la nota')
             }
             return res.json()
         },
@@ -255,7 +255,7 @@ function NoteCard({ customerId }: { customerId: number }) {
         queryKey: ['notes', customerId],
         queryFn: async () => {
             const res = await fetch(`/api/customers/${customerId}/notes`)
-            if (!res.ok) throw new Error('Failed to fetch notes')
+            if (!res.ok) throw new Error('No se pudieron cargar las notas')
             return res.json()
         }
     })
@@ -269,7 +269,7 @@ function NoteCard({ customerId }: { customerId: number }) {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to add note')
+                throw new Error(err.error || 'No se pudo agregar la nota')
             }
             return res.json()
         },
@@ -320,7 +320,7 @@ function NoteCard({ customerId }: { customerId: number }) {
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to delete note')
+                throw new Error(err.error || 'No se pudo eliminar la nota')
             }
             return res.json()
         },
@@ -590,7 +590,7 @@ function TaskEditDialog({
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update task')
+                throw new Error(err.error || 'No se pudo actualizar la tarea')
             }
             return res.json()
         },
@@ -741,7 +741,7 @@ function TaskCard({ customerId }: { customerId: number }) {
         queryKey: ['tasks', customerId],
         queryFn: async () => {
             const res = await fetch(`/api/customers/${customerId}/tasks`)
-            if (!res.ok) throw new Error('Failed to fetch tasks')
+            if (!res.ok) throw new Error('No se pudieron cargar las tareas')
             return res.json()
         }
     })
@@ -760,7 +760,7 @@ function TaskCard({ customerId }: { customerId: number }) {
             })
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to add task')
+                throw new Error(err.error || 'No se pudo agregar la tarea')
             }
             return res.json()
         },
@@ -823,7 +823,7 @@ function TaskCard({ customerId }: { customerId: number }) {
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to update task')
+                throw new Error(err.error || 'No se pudo actualizar la tarea')
             }
             return res.json()
         },
@@ -875,7 +875,7 @@ function TaskCard({ customerId }: { customerId: number }) {
             )
             if (!res.ok) {
                 const err = await res.json()
-                throw new Error(err.error || 'Failed to delete task')
+                throw new Error(err.error || 'No se pudo eliminar la tarea')
             }
             return res.json()
         },

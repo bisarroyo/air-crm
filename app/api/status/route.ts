@@ -9,7 +9,7 @@ export async function GET() {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const allStatus = await db.select().from(status).orderBy(status.id)
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
         headers: await headers()
     })
     if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     if (!statusName || typeof statusName !== 'string' || !statusName.trim()) {
         return NextResponse.json(
-            { error: 'Status name is required' },
+            { error: 'El nombre del estado es obligatorio' },
             { status: 400 }
         )
     }
@@ -46,12 +46,12 @@ export async function POST(request: Request) {
     } catch (error) {
         if ((error as Error)?.message?.includes('UNIQUE')) {
             return NextResponse.json(
-                { error: 'A status with this name already exists' },
+                { error: 'Ya existe un estado con ese nombre' },
                 { status: 409 }
             )
         }
         return NextResponse.json(
-            { error: 'Failed to create status' },
+            { error: 'No se pudo crear el estado' },
             { status: 500 }
         )
     }

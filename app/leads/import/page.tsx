@@ -99,7 +99,7 @@ const REQUIRED_COLUMN_LABELS: Record<string, string> = {
 function ValidBadge() {
     return (
         <span className='inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600'>
-            <CheckCircle2 size={12} /> Valid
+            <CheckCircle2 size={12} /> Válida
         </span>
     )
 }
@@ -107,7 +107,7 @@ function ValidBadge() {
 function InvalidBadge() {
     return (
         <span className='inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive'>
-            <XCircle size={12} /> With errors
+            <XCircle size={12} /> Con errores
         </span>
     )
 }
@@ -244,12 +244,12 @@ export default function ImportLeadsPage() {
 
                 if (missing.length > 0) {
                     toast.error(
-                        `Missing required columns: ${missing
+                        `Faltan columnas obligatorias: ${missing
                             .map((m) => REQUIRED_COLUMN_LABELS[m])
                             .join(', ')}`
                     )
                 } else if (parsedRows.length === 0) {
-                    toast.error('The file does not contain any lead rows')
+                    toast.error('El archivo no contiene filas de leads')
                 }
             },
             error: (error) => {
@@ -275,7 +275,7 @@ export default function ImportLeadsPage() {
             })
             if (!res.ok) {
                 const err = await res.json().catch(() => null)
-                throw new Error(err?.error || 'Failed to review the data')
+                throw new Error(err?.error || 'No se pudo revisar la información')
             }
             return res.json()
         },
@@ -289,7 +289,7 @@ export default function ImportLeadsPage() {
                     `${data.summary.valid} valid, ${data.summary.invalid} with errors`
                 )
             } else {
-                toast.success('All rows are valid')
+                toast.success('Todas las filas son válidas')
             }
         },
         onError: (error: Error) => toast.error(error.message)
@@ -297,7 +297,7 @@ export default function ImportLeadsPage() {
 
     const importMutation = useMutation({
         mutationFn: async () => {
-            if (!reviewData) throw new Error('Review the data first')
+            if (!reviewData) throw new Error('Primero tenés que revisar la información')
             const validLeads = reviewData.results
                 .filter((r) => r.valid && r.lead)
                 .map((r) => r.lead)
@@ -317,7 +317,7 @@ export default function ImportLeadsPage() {
             })
             if (!res.ok) {
                 const err = await res.json().catch(() => null)
-                throw new Error(err?.error || 'Failed to import the leads')
+                throw new Error(err?.error || 'No se pudieron importar los leads')
             }
             return res.json()
         },
@@ -353,12 +353,12 @@ export default function ImportLeadsPage() {
         return (
             <div className='flex flex-col items-center justify-center py-32 text-center'>
                 <UserPlus size={48} className='mb-4 text-muted-foreground' />
-                <h2 className='mb-2 text-xl font-medium'>Sign in</h2>
+                <h2 className='mb-2 text-xl font-medium'>Iniciá sesión</h2>
                 <p className='mb-6 text-muted-foreground'>
-                    You need an active session to import leads.
+                    Necesitás una sesión activa para importar leads.
                 </p>
                 <Link href='/signin'>
-                    <Button>Sign in</Button>
+                    <Button>Iniciar sesión</Button>
                 </Link>
             </div>
         )
@@ -369,27 +369,27 @@ export default function ImportLeadsPage() {
             <Link
                 href='/leads'
                 className='mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground'>
-                <ArrowLeft size={14} /> Back to leads
+                <ArrowLeft size={14} /> Volver a leads
             </Link>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Import leads from CSV</CardTitle>
+                    <CardTitle>Importar leads desde CSV</CardTitle>
                     <CardDescription>
-                        Upload a CSV file, review the preview, and load the
-                        valid leads into the database.
+                        Subí un archivo CSV, revisá la vista previa y cargá
+                        los leads válidos en la base de datos.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {importResult ? (
                         <Alert>
                             <CheckCircle2 />
-                            <AlertTitle>Import completed</AlertTitle>
+                            <AlertTitle>Importación completada</AlertTitle>
                             <AlertDescription>
-                                {importResult.imported} leads imported,{' '}
-                                {importResult.skipped} skipped.{' '}
+                                {importResult.imported} leads importados,{' '}
+                                {importResult.skipped} omitidos.{' '}
                                 <Link href='/leads' className='underline'>
-                                    View customers
+                                    Ver clientes
                                 </Link>
                             </AlertDescription>
                         </Alert>
@@ -397,18 +397,18 @@ export default function ImportLeadsPage() {
 
                     <Alert className='mb-4'>
                         <FileSpreadsheet />
-                        <AlertTitle>File structure</AlertTitle>
+                        <AlertTitle>Estructura del archivo</AlertTitle>
                         <AlertDescription>
-                            Required columns:{' '}
+                            Columnas obligatorias:{' '}
                             <span className='font-medium text-foreground'>
                                 {REQUIRED_COLUMNS.join(', ')}
                             </span>
-                            . Optional: country, statusId, priorityId,
-                            referralCode, assignedTo. The{' '}
+                            . Opcionales: country, statusId, priorityId,
+                            referralCode, assignedTo. El campo{' '}
                             <span className='font-medium text-foreground'>
                                 travelTime
                             </span>{' '}
-                            field accepts: 0-3, 3-6, 6-12, 12-18 or 0.
+                            acepta: 0-3, 3-6, 6-12, 12-18 o 0.
                         </AlertDescription>
                         <div className='pt-2'>
                             <Button
@@ -416,7 +416,7 @@ export default function ImportLeadsPage() {
                                 variant='outline'
                                 size='sm'
                                 onClick={handleTemplateDownload}>
-                                <Download /> Download template
+                                <Download /> Descargar plantilla
                             </Button>
                         </div>
                     </Alert>
@@ -445,10 +445,10 @@ export default function ImportLeadsPage() {
                         <p className='text-sm font-medium'>
                             {fileName
                                 ? fileName
-                                : 'Drag and drop your CSV file here, or click to choose one'}
+                                : 'Arrastrá tu archivo CSV acá, o hacé clic para elegirlo'}
                         </p>
                         <p className='text-xs text-muted-foreground'>
-                            Up to 500 rows per import
+                            Hasta 500 filas por importación
                         </p>
                         <input
                             ref={fileInputRef}
@@ -466,18 +466,20 @@ export default function ImportLeadsPage() {
                         <div className='mt-4 space-y-4'>
                             <div className='flex flex-wrap items-center gap-2'>
                                 <span className='text-sm text-muted-foreground'>
-                                    {rows.length} row{rows.length !== 1 ? 's' : ''}{' '}
-                                    detected
+                                    {rows.length} fila
+                                    {rows.length !== 1 ? 's' : ''}{' '}
+                                    detectada
+                                    {rows.length !== 1 ? 's' : ''}
                                     {recognizedColumns.length > 0 && (
                                         <>
-                                            {' · Recognized columns: '}
+                                            {' · Columnas reconocidas: '}
                                             {recognizedColumns.join(', ')}
                                         </>
                                     )}
                                 </span>
                                 {missingRequired.length > 0 && (
                                     <span className='text-xs font-medium text-destructive'>
-                                        Missing required columns:
+                                        Faltan columnas obligatorias:
                                         {missingRequired
                                             .map(
                                                 (m) =>
@@ -490,12 +492,12 @@ export default function ImportLeadsPage() {
 
                             <div className='flex flex-col gap-3 rounded-lg border bg-muted/30 p-3'>
                                 <span className='text-sm font-medium'>
-                                    Apply to all imported leads
+                                    Aplicar a todos los leads importados
                                 </span>
                                 <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
                                     <Field>
                                         <FieldLabel htmlFor='default-status'>
-                                            Status
+                                            Estado
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -511,12 +513,12 @@ export default function ImportLeadsPage() {
                                             <SelectTrigger
                                                 id='default-status'
                                                 className='h-8 w-full'>
-                                                <SelectValue placeholder='No change' />
+                                                <SelectValue placeholder='Sin cambio' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
                                                     <SelectItem value=''>
-                                                        No change
+                                                        Sin cambio
                                                     </SelectItem>
                                                     {statuses.map((s) => (
                                                         <SelectItem
@@ -533,7 +535,7 @@ export default function ImportLeadsPage() {
                                     </Field>
                                     <Field>
                                         <FieldLabel htmlFor='default-priority'>
-                                            Priority
+                                            Prioridad
                                         </FieldLabel>
                                         <Select
                                             value={
@@ -551,12 +553,12 @@ export default function ImportLeadsPage() {
                                             <SelectTrigger
                                                 id='default-priority'
                                                 className='h-8 w-full'>
-                                                <SelectValue placeholder='No change' />
+                                                <SelectValue placeholder='Sin cambio' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
                                                     <SelectItem value=''>
-                                                        No change
+                                                        Sin cambio
                                                     </SelectItem>
                                                     {priorities.map((p) => (
                                                         <SelectItem
@@ -573,7 +575,7 @@ export default function ImportLeadsPage() {
                                     </Field>
                                     <Field>
                                         <FieldLabel htmlFor='default-country'>
-                                            Country
+                                            País
                                         </FieldLabel>
                                         <Select
                                             value={defaultCountry}
@@ -583,12 +585,12 @@ export default function ImportLeadsPage() {
                                             <SelectTrigger
                                                 id='default-country'
                                                 className='h-8 w-full'>
-                                                <SelectValue placeholder='No change' />
+                                                <SelectValue placeholder='Sin cambio' />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
                                                     <SelectItem value=''>
-                                                        No change
+                                                        Sin cambio
                                                     </SelectItem>
                                                     {COUNTRY_OPTIONS.map(
                                                         (country) => (
@@ -606,7 +608,7 @@ export default function ImportLeadsPage() {
                                     {isAdmin && (
                                         <Field>
                                             <FieldLabel htmlFor='default-referral'>
-                                                Referral
+                                                Referido
                                             </FieldLabel>
                                             <Select
                                                 value={
@@ -626,12 +628,12 @@ export default function ImportLeadsPage() {
                                                 <SelectTrigger
                                                     id='default-referral'
                                                     className='h-8 w-full'>
-                                                    <SelectValue placeholder='No change' />
+                                                    <SelectValue placeholder='Sin cambio' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         <SelectItem value=''>
-                                                            No change
+                                                            Sin cambio
                                                         </SelectItem>
                                                         {referrals.map(
                                                             (r) => (
@@ -652,7 +654,7 @@ export default function ImportLeadsPage() {
                                     {isAdmin && (
                                         <Field>
                                             <FieldLabel htmlFor='default-assigned'>
-                                                Assigned to
+                                                Asignado a
                                             </FieldLabel>
                                             <Select
                                                 value={
@@ -670,12 +672,12 @@ export default function ImportLeadsPage() {
                                                 <SelectTrigger
                                                     id='default-assigned'
                                                     className='h-8 w-full'>
-                                                    <SelectValue placeholder='No change' />
+                                                    <SelectValue placeholder='Sin cambio' />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         <SelectItem value=''>
-                                                            No change
+                                                            Sin cambio
                                                         </SelectItem>
                                                         {users.map((u) => (
                                                             <SelectItem
@@ -692,7 +694,7 @@ export default function ImportLeadsPage() {
                                 </div>
                                 <div className='flex flex-col gap-1.5'>
                                     <span className='text-sm font-medium'>
-                                        Tags
+                                        Etiquetas
                                     </span>
                                     <TagSelect
                                         options={tagOptions}
@@ -725,7 +727,7 @@ export default function ImportLeadsPage() {
                                         ) : (
                                             <RefreshCw size={16} />
                                         )}
-                                        Review data
+                                        Revisar datos
                                     </Button>
                                     <Button
                                         variant='ghost'
@@ -743,7 +745,7 @@ export default function ImportLeadsPage() {
                                             if (fileInputRef.current)
                                                 fileInputRef.current.value = ''
                                         }}>
-                                        Reset
+                                        Reiniciar
                                     </Button>
                                 </div>
                             )}
@@ -761,12 +763,12 @@ export default function ImportLeadsPage() {
                                         <CheckCircle2 />
                                     ))}
                                     <AlertTitle>
-                                        {reviewData.summary.valid} of{' '}
-                                        {reviewData.summary.total} rows are valid
+                                        {reviewData.summary.valid} de{' '}
+                                        {reviewData.summary.total} filas son válidas
                                     </AlertTitle>
                                     <AlertDescription>
-                                        Check the errors in each row before
-                                        importing.
+                                        Revisá los errores de cada fila antes
+                                        de importar.
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -781,38 +783,38 @@ export default function ImportLeadsPage() {
                                                         #
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Name
+                                                        Nombre
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
                                                         Email
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Phone
+                                                        Teléfono
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Travel time
+                                                        Tiempo de viaje
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Country
+                                                        País
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Status
+                                                        Estado
                                                     </th>
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Priority
+                                                        Prioridad
                                                     </th>
                                                     {isAdmin && (
                                                         <th className='px-3 py-2 font-medium'>
-                                                            Referral
+                                                            Referido
                                                         </th>
                                                     )}
                                                     {isAdmin && (
                                                         <th className='px-3 py-2 font-medium'>
-                                                            Assigned to
+                                                            Asignado a
                                                         </th>
                                                     )}
                                                     <th className='px-3 py-2 font-medium'>
-                                                        Result
+                                                        Resultado
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -979,13 +981,13 @@ export default function ImportLeadsPage() {
                                         ) : (
                                             <Upload size={16} />
                                         )}
-                                        Import {validCount} lead
+                                        Importar {validCount} lead
                                         {validCount !== 1 ? 's' : ''}
                                     </Button>
                                     <Button
                                         variant='ghost'
                                         onClick={() => setReviewData(null)}>
-                                        Review again
+                                        Revisar de nuevo
                                     </Button>
                                 </div>
                             )}

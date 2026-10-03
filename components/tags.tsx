@@ -43,7 +43,7 @@ export function TagSelect({
     if (options.length === 0) {
         return (
             <p className='text-xs text-muted-foreground'>
-                No tags available. Create some in the admin panel first.
+                No hay etiquetas disponibles. Creá algunas en el panel de administración primero.
             </p>
         )
     }

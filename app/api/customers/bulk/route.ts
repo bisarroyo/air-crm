@@ -11,7 +11,7 @@ export async function POST(request: Request) {
         headers: await headers()
     })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return NextResponse.json(
-            { error: 'No customer IDs provided' },
+            { error: 'No se proporcionaron IDs de clientes' },
             { status: 400 }
         )
     }
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     if (statusId === undefined && priorityId === undefined && assignedTo === undefined && !hasTagChange) {
         return NextResponse.json(
-            { error: 'No fields to update' },
+            { error: 'No hay campos para actualizar' },
             { status: 400 }
         )
     }

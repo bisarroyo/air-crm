@@ -18,7 +18,7 @@ export async function GET(
     const { id } = await params
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const customerId = Number(id)
@@ -30,7 +30,7 @@ export async function GET(
 
     if (!customer) {
         return NextResponse.json(
-            { error: 'Customer not found' },
+            { error: 'Cliente no encontrado' },
             { status: 404 }
         )
     }
@@ -58,7 +58,7 @@ export async function POST(
     const { id } = await params
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const customerId = Number(id)
@@ -70,7 +70,7 @@ export async function POST(
 
     if (!customer) {
         return NextResponse.json(
-            { error: 'Customer not found' },
+            { error: 'Cliente no encontrado' },
             { status: 404 }
         )
     }

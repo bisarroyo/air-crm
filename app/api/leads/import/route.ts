@@ -69,13 +69,13 @@ export async function POST(request: Request) {
             const email = lead.email
             if (ctx.existingEmails.has(email)) {
                 result.errors.push(
-                    'A customer with this email already exists'
+                    'Ya existe un cliente con este email'
                 )
             }
             const firstRow = seenEmails.get(email)
             if (firstRow !== undefined) {
                 result.errors.push(
-                    `Duplicate email within the file (row ${firstRow})`
+                    `Email duplicado dentro del archivo (fila ${firstRow})`
                 )
             } else {
                 seenEmails.set(email, lead.row)
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
                 index: i,
                 row: lead?.row ?? i + 1,
                 status: 'skipped',
-                reason: result.errors[0] || 'Invalid row'
+                reason: result.errors[0] || 'Fila inválida'
             })
         }
     }
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
             const message =
                 error instanceof Error
                     ? error.message
-                    : 'Failed to import leads'
+                    : 'No se pudieron importar los leads'
             return NextResponse.json({ error: message }, { status: 500 })
         }
     }
