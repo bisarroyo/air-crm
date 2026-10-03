@@ -283,6 +283,10 @@ function HomeContent() {
             }))
     }) as { data: LabelOption[] | undefined }
 
+    const selectedStatus = statuses.find(
+        (s) => s.id === Number(filterStatusId)
+    )
+
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
         queryFn: () => fetch('/api/users').then((r) => r.json()),
@@ -293,6 +297,10 @@ function HomeContent() {
             })),
         enabled: isAdmin
     }) as { data: { id: string; name: string }[] | undefined }
+
+    const selectedPriority = priorities.find(
+        (p) => p.id === Number(filterPriorityId)
+    )
 
     const { data: referralOptions = [] } = useQuery({
         queryKey: ['referrals'],
@@ -712,7 +720,7 @@ function HomeContent() {
                 </CardHeader>
                 <CardContent>
                     <div className='mb-4 flex flex-wrap items-center gap-2'>
-                        <div className='relative min-w-[200px] flex-1'>
+                        <div className='relative w-full min-w-[200px] sm:w-1/2'>
                             <Search
                                 size={16}
                                 className='pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground'
@@ -742,7 +750,17 @@ function HomeContent() {
                                 setFilterStatusId(val ?? '')
                                 setPage(1)
                             }}>
-                            <SelectTrigger className='h-8 w-[150px]'>
+                            <SelectTrigger
+                                className='h-8 w-[150px]'
+                                style={
+                                    selectedStatus
+                                        ? {
+                                              color: selectedStatus.color,
+                                              borderColor:
+                                                  selectedStatus.color
+                                          }
+                                        : undefined
+                                }>
                                 <SelectValue placeholder='Todos los estados' />
                             </SelectTrigger>
                             <SelectContent>
@@ -753,7 +771,12 @@ function HomeContent() {
                                     {statuses.map((s) => (
                                         <SelectItem
                                             key={s.id}
-                                            value={String(s.id)}>
+                                            value={String(s.id)}
+                                            className='border-l-[3px] pl-3'
+                                            style={{
+                                                color: s.color,
+                                                borderLeftColor: s.color
+                                            }}>
                                             {s.name}
                                         </SelectItem>
                                     ))}
@@ -770,7 +793,17 @@ function HomeContent() {
                                 setFilterPriorityId(val ?? '')
                                 setPage(1)
                             }}>
-                            <SelectTrigger className='h-8 w-[150px]'>
+                            <SelectTrigger
+                                className='h-8 w-[150px]'
+                                style={
+                                    selectedPriority
+                                        ? {
+                                              color: selectedPriority.color,
+                                              borderColor:
+                                                  selectedPriority.color
+                                          }
+                                        : undefined
+                                }>
                                 <SelectValue placeholder='Todas las prioridades' />
                             </SelectTrigger>
                             <SelectContent>
@@ -781,7 +814,12 @@ function HomeContent() {
                                     {priorities.map((p) => (
                                         <SelectItem
                                             key={p.id}
-                                            value={String(p.id)}>
+                                            value={String(p.id)}
+                                            className='border-l-[3px] pl-3'
+                                            style={{
+                                                color: p.color,
+                                                borderLeftColor: p.color
+                                            }}>
                                             {p.name}
                                         </SelectItem>
                                     ))}
@@ -830,7 +868,7 @@ function HomeContent() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    <SelectItem value=''>All Tags</SelectItem>
+                                    <SelectItem value=''>Todas las etiquetas</SelectItem>
                                     {tagOptions.map((t) => (
                                         <SelectItem
                                             key={t.id}
