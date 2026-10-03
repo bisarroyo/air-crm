@@ -5,7 +5,8 @@ import {
     text,
     real,
     uniqueIndex,
-    primaryKey
+    primaryKey,
+    index
 } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
 import { user } from '@/auth-schema'
@@ -508,5 +509,140 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
     notes: many(customerNotes),
     tasks: many(customerTasks),
     events: many(customerEvents),
-    quotations: many(quotations)
+    quotations: many(quotations),
+    emailRecipients: many(emailCampaignRecipients)
 }))
+
+export const EMAIL_CAMPAIGN_STATUSES = [
+    'draft',
+    'sending',
+    'completed'
+] as const
+export type EmailCampaignStatus =
+    (typeof EMAIL_CAMPAIGN_STATUSES)[number]
+
+export const EMAIL_RECIPIENT_STATUSES = [
+    'pending',
+    'sent',
+    'failed',
+    'skipped'
+] as const
+export type EmailRecipientStatus =
+    (typeof EMAIL_RECIPIENT_STATUSES)[number]
+
+export const emailCampaigns = sqliteTable('email_campaigns', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    subject: text('subject').notNull(),
+    bodyHtml: text('body_html').notNull(),
+    // 'visual' = armado con el editor; 'html' = HTML pegado a mano.
+    mode: text('mode').notNull().default('visual'),
+    bcc: text('bcc'),
+    status: text('status', { enum: EMAIL_CAMPAIGN_STATUSES })
+        .notNull()
+        .default('draft'),
+    createdBy: text('created_by').references(() => user.id),
+    recipientCount: integer('recipient_count').notNull().default(0),
+    sentCount: integer('sent_count').notNull().default(0),
+    failedCount: integer('failed_count').notNull().default(0),
+    skippedCount: integer('skipped_count').notNull().default(0),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    ),
+    startedAt: integer('started_at', { mode: 'timestamp' }),
+    completedAt: integer('completed_at', { mode: 'timestamp' })
+})
+
+export const emailCampaignRecipients = sqliteTable(
+    'email_campaign_recipients',
+    {
+        id: integer('id').primaryKey({ autoIncrement: true }),
+        campaignId: integer('campaign_id')
+            .notNull()
+            .references(() => emailCampaigns.id, { onDelete: 'cascade' }),
+        customerId: integer('customer_id').references(() => customers.id, {
+            onDelete: 'set null'
+        }),
+        name: text('name').notNull(),
+        email: text('email'),
+        status: text('status', { enum: EMAIL_RECIPIENT_STATUSES })
+            .notNull()
+            .default('pending'),
+        error: text('error'),
+        sentAt: integer('sent_at', { mode: 'timestamp' })
+    },
+    (table) => [
+        uniqueIndex('email_recipients_campaign_uidx').on(
+            table.campaignId,
+            table.customerId
+        ),
+        index('email_recipients_campaign_status_idx').on(
+            table.campaignId,
+            table.status
+        )
+    ]
+)
+
+/**
+ * Plantillas de correo guardadas por el usuario. Se organizan en categorías
+ * (Seguimiento, Promoción, Cotización, Relación) para elegirla rápido al armar
+ * una campaña. Todas son compartidas en la organización.
+ */
+export const EMAIL_TEMPLATE_CATEGORIES = [
+    'Seguimiento',
+    'Promoción',
+    'Cotización',
+    'Relación'
+] as const
+export type EmailTemplateCategory =
+    (typeof EMAIL_TEMPLATE_CATEGORIES)[number]
+
+export const emailTemplates = sqliteTable('email_templates', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    description: text('description'),
+    category: text('category', { enum: EMAIL_TEMPLATE_CATEGORIES })
+        .notNull()
+        .default('Seguimiento'),
+    subject: text('subject').notNull(),
+    bodyHtml: text('body_html').notNull(),
+    createdBy: text('created_by').references(() => user.id),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    ),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    )
+})
+
+export const emailCampaignRelations = relations(
+    emailCampaigns,
+    ({ one, many }) => ({
+        author: one(user, {
+            fields: [emailCampaigns.createdBy],
+            references: [user.id]
+        }),
+        recipients: many(emailCampaignRecipients)
+    })
+)
+
+export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
+    author: one(user, {
+        fields: [emailTemplates.createdBy],
+        references: [user.id]
+    })
+}))
+
+export const emailCampaignRecipientsRelations = relations(
+    emailCampaignRecipients,
+    ({ one }) => ({
+        campaign: one(emailCampaigns, {
+            fields: [emailCampaignRecipients.campaignId],
+            references: [emailCampaigns.id]
+        }),
+        customer: one(customers, {
+            fields: [emailCampaignRecipients.customerId],
+            references: [customers.id]
+        })
+    })
+)

@@ -106,6 +106,20 @@
       "when": 1790784982852,
       "tag": "0014_free_maverick",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1790962319949,
+      "tag": "0015_white_lyja",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1790989755165,
+      "tag": "0016_puzzling_imperial_guard",
+      "breakpoints": true
     }
   ]
 }

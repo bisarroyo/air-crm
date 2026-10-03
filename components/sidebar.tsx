@@ -12,6 +12,7 @@ import {
     Home,
     Layers,
     Link2,
+    Mail,
     Settings,
     ShieldCheck,
     Tag,
@@ -102,6 +103,7 @@ export function Sidebar() {
                     label: 'Cotizaciones',
                     icon: FileText
                 },
+                { href: '/leads/emails', label: 'Emails', icon: Mail },
                 { href: '/leads/import', label: 'Import', icon: FileUp }
             ]
         },
