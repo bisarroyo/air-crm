@@ -1,8 +1,9 @@
 'use client'
 
-import { Key } from 'lucide-react'
+import { Key, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { SignInForm } from '@/components/forms/sign-in-form'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,39 @@ import { cn } from 'cn'
 export default function SignIn() {
     const router = useRouter()
     const params = useSearchParams()
+    const [isPasskeyPending, setIsPasskeyPending] = useState(false)
+
+    const handlePasskeySignIn = async () => {
+        setIsPasskeyPending(true)
+        try {
+            const res = await authClient.signIn.passkey()
+
+            if (res?.error) {
+                // El usuario cancelo el dialogo del navegador: no es un error.
+                const code =
+                    'code' in res.error ? res.error.code : undefined
+                if (code !== 'AUTH_CANCELLED') {
+                    toast.error(
+                        'No se pudo iniciar sesión: ' + res.error.message
+                    )
+                }
+                return
+            }
+
+            toast.success('Sesión iniciada')
+            const callbackURL = getCallbackURL(params)
+            router.push(callbackURL)
+            // refresh para que el layout/proxy del servidor lea la cookie de sesion
+            router.refresh()
+        } catch (error) {
+            toast.error(
+                'No se pudo iniciar sesión: ' +
+                    (error instanceof Error ? error.message : 'error desconocido')
+            )
+        } finally {
+            setIsPasskeyPending(false)
+        }
+    }
 
     return (
         <Card className='w-full'>
@@ -77,26 +111,21 @@ export default function SignIn() {
                             className={cn(
                                 'w-full gap-2 flex items-center relative'
                             )}
-                            onClick={async () => {
-                                await authClient.signIn.passkey({
-                                    fetchOptions: {
-                                        onSuccess() {
-                                            toast.success(
-                                                'Successfully signed in'
-                                            )
-                                            router.push(getCallbackURL(params))
-                                        },
-                                        onError(context) {
-                                            toast.error(
-                                                'Authentication failed: ' +
-                                                    context.error.message
-                                            )
-                                        }
-                                    }
-                                })
-                            }}>
-                            <Key size={16} />
-                            <span>Sign in with Passkey</span>
+                            onClick={handlePasskeySignIn}
+                            disabled={isPasskeyPending}>
+                            {isPasskeyPending ? (
+                                <Loader2
+                                    size={16}
+                                    className='animate-spin'
+                                />
+                            ) : (
+                                <Key size={16} />
+                            )}
+                            <span>
+                                {isPasskeyPending
+                                    ? 'Validando llave...'
+                                    : 'Sign in with Passkey'}
+                            </span>
                         </Button>
                     </div>
                 </div>
