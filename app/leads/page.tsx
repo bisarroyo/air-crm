@@ -51,7 +51,12 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
-import { TagPill, TagSelect, type TagOption } from '@/components/tags'
+import {
+    TagMultiSelect,
+    TagPill,
+    TagSelect,
+    type TagOption
+} from '@/components/tags'
 import { GlobeLoader } from '@/components/ui/globe-loader'
 import { CreateEventDialog } from '@/components/events/event-form'
 import { useSession } from '@/hooks/use-session'
@@ -215,7 +220,7 @@ function HomeContent() {
     const [bulkStatusId, setBulkStatusId] = useState('')
     const [bulkPriorityId, setBulkPriorityId] = useState('')
     const [bulkAssignedTo, setBulkAssignedTo] = useState('')
-    const [bulkTagId, setBulkTagId] = useState('')
+    const [bulkTagIds, setBulkTagIds] = useState<number[]>([])
 
     const form = useForm<CustomerFormValues>({
         resolver: zodResolver(customerSchema),
@@ -381,7 +386,7 @@ function HomeContent() {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setBulkAssignedTo('')
             // eslint-disable-next-line react-hooks/set-state-in-effect
-            setBulkTagId('')
+            setBulkTagIds([])
         }
     }, [selectedIds])
 
@@ -464,6 +469,13 @@ function HomeContent() {
         setClassifyModalOpen(true)
     }
 
+    const toggleBulkTag = (id: number) =>
+        setBulkTagIds((prev) =>
+            prev.includes(id)
+                ? prev.filter((tagId) => tagId !== id)
+                : [...prev, id]
+        )
+
     const bulkMutation = useMutation({
         mutationFn: async (data: {
             ids: number[]
@@ -489,7 +501,7 @@ function HomeContent() {
             setBulkStatusId('')
             setBulkPriorityId('')
             setBulkAssignedTo('')
-            setBulkTagId('')
+            setBulkTagIds([])
             invalidate()
         },
         onError: (error: Error) => toast.error(error.message)
@@ -996,35 +1008,17 @@ function HomeContent() {
                                 </>
                             )}
                             <label className='text-sm text-muted-foreground'>
-                                Etiqueta:
+                                Etiquetas:
                             </label>
-                            <Select
-                                value={
-                                    tagOptions.find(
-                                        (t) => t.id === Number(bulkTagId)
-                                    )?.name.toString() || ''
-                                }
-                                onValueChange={(val) => setBulkTagId(val ?? '')}>
-                                <SelectTrigger
-                                    size='sm'
-                                    className='h-7 text-xs'>
-                                    <SelectValue placeholder='Sin cambio' />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value=''>
-                                            Sin cambio
-                                        </SelectItem>
-                                        {tagOptions.map((t) => (
-                                            <SelectItem
-                                                key={t.id}
-                                                value={String(t.id)}>
-                                                {t.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+                            <TagMultiSelect
+                                options={tagOptions}
+                                selected={bulkTagIds}
+                                onToggle={toggleBulkTag}
+                                placeholder='Sin cambio'
+                                searchPlaceholder='Buscar etiqueta...'
+                                emptyMessage='No hay etiquetas disponibles. Creá algunas en Administración.'
+                                triggerClassName='w-[220px]'
+                            />
                             <Button
                                 size='xs'
                                 onClick={() => {
@@ -1032,7 +1026,7 @@ function HomeContent() {
                                         !bulkStatusId &&
                                         !bulkPriorityId &&
                                         !bulkAssignedTo &&
-                                        !bulkTagId
+                                        bulkTagIds.length === 0
                                     ) {
                                         toast.error(
                                             'Seleccioná al menos un cambio'
@@ -1050,8 +1044,8 @@ function HomeContent() {
                                         ...(bulkAssignedTo && {
                                             assignedTo: bulkAssignedTo
                                         }),
-                                        ...(bulkTagId && {
-                                            tagIds: [Number(bulkTagId)]
+                                        ...(bulkTagIds.length > 0 && {
+                                            tagIds: bulkTagIds
                                         })
                                     })
                                 }}
@@ -1152,7 +1146,7 @@ function HomeContent() {
                                     setBulkStatusId('')
                                     setBulkPriorityId('')
                                     setBulkAssignedTo('')
-                                    setBulkTagId('')
+                                    setBulkTagIds([])
                                 }}>
                                 Limpiar
                             </Button>

@@ -89,26 +89,35 @@ export async function POST(request: Request) {
             }
         }
 
-        const result = await db
-            .update(customers)
-            .set(updateData)
-            .where(inArray(customers.id, ids))
-            .returning({ id: customers.id })
+        // Si solo cambian etiquetas no hay campos de customers que actualizar:
+        // ejecutar el update con un set vacio hacia que drizzle tire error.
+        const hasCustomerUpdate = Object.keys(updateData).length > 0
+        let updatedIds: number[] = existingCustomers.map(c => c.id)
 
-        if (statusId !== undefined) {
-            const movedIds = existingCustomers
-                .filter((c) => c.statusId !== Number(statusId))
-                .map((c) => c.id)
-            if (movedIds.length > 0) {
-                await db
-                    .update(customers)
-                    .set({ statusChangedAt: new Date() })
-                    .where(inArray(customers.id, movedIds))
+        if (hasCustomerUpdate) {
+            const result = await db
+                .update(customers)
+                .set(updateData)
+                .where(inArray(customers.id, ids))
+                .returning({ id: customers.id })
+
+            updatedIds = result.map(r => r.id)
+
+            if (statusId !== undefined) {
+                const movedIds = existingCustomers
+                    .filter((c) => c.statusId !== Number(statusId))
+                    .map((c) => c.id)
+                if (movedIds.length > 0) {
+                    await db
+                        .update(customers)
+                        .set({ statusChangedAt: new Date() })
+                        .where(inArray(customers.id, movedIds))
+                }
             }
         }
 
-        const logEntries = result.map(r => {
-                const existing = existingMap.get(r.id)
+        const logEntries = updatedIds.map(customerId => {
+                const existing = existingMap.get(customerId)
                 if (!existing) return null
 
                 const changedFields: Record<
@@ -122,7 +131,7 @@ export async function POST(request: Request) {
                     }
                 }
 
-                const addedTagIds = tagsByCustomer.get(r.id)
+                const addedTagIds = tagsByCustomer.get(customerId)
                 if (addedTagIds && addedTagIds.length > 0) {
                     changedFields.tags = {
                         from: [],
@@ -135,7 +144,7 @@ export async function POST(request: Request) {
                 if (Object.keys(changedFields).length === 0) return null
 
                 return {
-                    customerId: r.id,
+                    customerId,
                     action: 'bulk_updated',
                     changes: JSON.stringify(changedFields),
                     userId: session.user.id
@@ -149,12 +158,12 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            updated: result.length
+            updated: updatedIds.length
         })
     } catch (error: unknown) {
         const err = error as Error
         return NextResponse.json(
-            { error: err?.message || 'Failed to update customers' },
+            { error: err?.message || 'No se pudieron actualizar los clientes' },
             { status: 500 }
         )
     }
