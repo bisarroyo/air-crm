@@ -35,10 +35,12 @@ export const auth = betterAuth({
             create: {
                 async after(user) {
                     if (user.role === 'ref') {
-                        const code = user.name
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]/g, '')
-                            .slice(0, 8) + Math.random().toString(36).slice(2, 6)
+                        const code =
+                            user.name
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]/g, '')
+                                .slice(0, 8) +
+                            Math.random().toString(36).slice(2, 6)
                         await db.insert(referrals).values({
                             code,
                             userId: user.id,
