@@ -147,6 +147,11 @@ export default function TravelDetailPage() {
             }))
     }) as { data: StatusLabel[] | undefined }
 
+    const statusItems = statuses.map((s) => ({
+        value: String(s.id),
+        label: s.name
+    }))
+
     const updateMutation = useMutation({
         mutationFn: async (data: TravelLeadFormValues) => {
             const res = await fetch(`/api/travel/leads/${id}`, {
@@ -509,6 +514,7 @@ export default function TravelDetailPage() {
                                         </FieldLabel>
                                         <Select
                                             value={field.value}
+                                            items={statusItems}
                                             onValueChange={field.onChange}>
                                             <SelectTrigger id='edit-travel-status'>
                                                 <SelectValue placeholder='Seleccionar...' />

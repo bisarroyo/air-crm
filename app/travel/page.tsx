@@ -201,6 +201,11 @@ function TravelContent() {
             }))
     }) as { data: StatusLabel[] | undefined }
 
+    const statusItems = statuses.map((s) => ({
+        value: String(s.id),
+        label: s.name
+    }))
+
     useEffect(() => {
         const url = new URLSearchParams()
         if (search) url.set('search', search)
@@ -489,6 +494,10 @@ function TravelContent() {
                         </div>
                         <Select
                             value={filterStatusId}
+                            items={[
+                                { value: '', label: 'Todos los estados' },
+                                ...statusItems
+                            ]}
                             onValueChange={(val) => {
                                 setFilterStatusId(val ?? '')
                                 setPage(1)
@@ -530,6 +539,10 @@ function TravelContent() {
                             </label>
                             <Select
                                 value={bulkStatusId}
+                                items={[
+                                    { value: '', label: 'Sin cambio' },
+                                    ...statusItems
+                                ]}
                                 onValueChange={(val) =>
                                     setBulkStatusId(val ?? '')
                                 }>
@@ -1080,6 +1093,7 @@ function TravelContent() {
                                         </FieldLabel>
                                         <Select
                                             value={field.value}
+                                            items={statusItems}
                                             onValueChange={field.onChange}>
                                             <SelectTrigger
                                                 id='travel-status'
