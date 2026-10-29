@@ -1,3 +1,4 @@
+import { canAccessLeads } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { inArray } from 'drizzle-orm'
@@ -5,6 +6,11 @@ import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { customers, logs, customerTags } from '@/db/schema'
 import { getTagNamesByIds, resolveExistingTagIds } from '@/lib/tags'
+import {
+    enqueueLeadSyncs,
+    getOrganizationId,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function POST(request: Request) {
     const session = await auth.api.getSession({
@@ -22,6 +28,10 @@ export async function POST(request: Request) {
             { error: 'No se proporcionaron IDs de clientes' },
             { status: 400 }
         )
+    }
+
+    if (!(await canAccessLeads(session, 'customer', ids.map(Number)))) {
+        return NextResponse.json({ error: 'Leads fuera de la organización activa' }, { status: 403 })
     }
 
     const hasTagChange = Array.isArray(tagIds) && tagIds.length > 0
@@ -154,6 +164,19 @@ export async function POST(request: Request) {
 
         if (logEntries.length > 0) {
             await db.insert(logs).values(logEntries)
+        }
+
+        const organizationId = await getOrganizationId(session)
+        if (
+            statusId !== undefined &&
+            updatedIds.length > 0 &&
+            (await enqueueLeadSyncs(
+                organizationId,
+                'customer',
+                updatedIds
+            ))
+        ) {
+            scheduleGoogleSheetsProcessing(organizationId)
         }
 
         return NextResponse.json({

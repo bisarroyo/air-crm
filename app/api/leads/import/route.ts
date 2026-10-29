@@ -1,3 +1,4 @@
+import { organizationAccess } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
@@ -14,6 +15,12 @@ import {
     type NormalizedLeadRow
 } from '@/lib/leads-import'
 import { getTagNamesByIds, resolveExistingTagIds } from '@/lib/tags'
+import {
+    enqueueLeadSyncs,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
+
+export const maxDuration = 30
 
 export async function POST(request: Request) {
     const session = await auth.api.getSession({
@@ -21,6 +28,10 @@ export async function POST(request: Request) {
     })
     if (!session) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const organizationId = await organizationAccess(session)
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Seleccioná una organización de la que seas miembro' }, { status: 403 })
     }
 
     const body = await request.json().catch(() => null)
@@ -49,7 +60,8 @@ export async function POST(request: Request) {
 
     const ctx = await buildImportContext(
         session.user.id,
-        session.user.role
+        session.user.role,
+        organizationId
     )
 
     const seenEmails = new Map<string, number>()
@@ -101,6 +113,7 @@ export async function POST(request: Request) {
     }
 
     let importedCount = 0
+    const importedIds: number[] = []
     if (validRows.length > 0) {
         try {
             await db.transaction(async (tx) => {
@@ -108,6 +121,7 @@ export async function POST(request: Request) {
                     const [inserted] = await tx
                         .insert(customers)
                         .values({
+                organizationId,
                             name: lead.name,
                             email: lead.email,
                             phone: lead.phone,
@@ -151,6 +165,7 @@ export async function POST(request: Request) {
                     })
 
                     importedCount++
+                    importedIds.push(inserted.id)
                 }
             })
         } catch (error: unknown) {
@@ -160,6 +175,20 @@ export async function POST(request: Request) {
                     : 'No se pudieron importar los leads'
             return NextResponse.json({ error: message }, { status: 500 })
         }
+    }
+
+    if (
+        importedIds.length > 0 &&
+        (await enqueueLeadSyncs(
+            organizationId,
+            'customer',
+            importedIds
+        ))
+    ) {
+        scheduleGoogleSheetsProcessing(organizationId, {
+            limit: 25,
+            timeBudgetMs: 20_000
+        })
     }
 
     return NextResponse.json({

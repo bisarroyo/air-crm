@@ -37,10 +37,12 @@ const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: string }> = [
 
 export function CreateEventButton({
     customerId,
-    className
+    className,
+    apiBase
 }: {
     customerId: number
     className?: string
+    apiBase?: string
 }) {
     const [open, setOpen] = useState(false)
     return (
@@ -53,6 +55,7 @@ export function CreateEventButton({
             </Button>
             <CreateEventDialog
                 customerId={customerId}
+                apiBase={apiBase}
                 open={open}
                 onOpenChange={setOpen}
             />
@@ -90,13 +93,16 @@ function scheduledAtToLocalParts(value: string | null) {
 function EventForm({
     customerId,
     event,
-    onDone
+    onDone,
+    apiBase
 }: {
     customerId: number
     event?: CustomerEvent
     onDone: () => void
+    apiBase?: string
 }) {
     const queryClient = useQueryClient()
+    const base = apiBase ?? `/api/customers/${customerId}`
 
     const initialParts = event
         ? scheduledAtToLocalParts(event.scheduledAt)
@@ -129,9 +135,7 @@ function EventForm({
                 meetingLink: normalizeMeetingLink(meetingLink)
             }
             const res = await fetch(
-                event
-                    ? `/api/customers/${customerId}/events/${event.id}`
-                    : `/api/customers/${customerId}/events`,
+                event ? `${base}/events/${event.id}` : `${base}/events`,
                 {
                     method: event ? 'PATCH' : 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -146,16 +150,16 @@ function EventForm({
         },
         onMutate: async () => {
             await queryClient.cancelQueries({
-                queryKey: ['events', customerId]
+                queryKey: ['events', apiBase ?? customerId]
             })
             const previous = queryClient.getQueryData<CustomerEvent[]>([
                 'events',
-                customerId
+                apiBase ?? customerId
             ])
             const scheduledAt = buildScheduledAt()
             if (event) {
                 queryClient.setQueryData<CustomerEvent[]>(
-                    ['events', customerId],
+                    ['events', apiBase ?? customerId],
                     (old) =>
                         old?.map((e) =>
                             e.id === event.id
@@ -185,7 +189,7 @@ function EventForm({
                     userEmail: null
                 }
                 queryClient.setQueryData<CustomerEvent[]>(
-                    ['events', customerId],
+                    ['events', apiBase ?? customerId],
                     (old) => [optimisticEvent, ...(old ?? [])]
                 )
             }
@@ -198,14 +202,16 @@ function EventForm({
         onError: (error: Error, _variables, context) => {
             if (context?.previous) {
                 queryClient.setQueryData(
-                    ['events', customerId],
+                    ['events', apiBase ?? customerId],
                     context.previous
                 )
             }
             toast.error(error.message)
         },
         onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['events', customerId] })
+            queryClient.invalidateQueries({
+                queryKey: ['events', apiBase ?? customerId]
+            })
         }
     })
 
@@ -304,11 +310,13 @@ function EventForm({
 export function CreateEventDialog({
     customerId,
     open,
-    onOpenChange
+    onOpenChange,
+    apiBase
 }: {
     customerId: number
     open: boolean
     onOpenChange: (open: boolean) => void
+    apiBase?: string
 }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -328,6 +336,7 @@ export function CreateEventDialog({
                 <EventForm
                     key={String(open)}
                     customerId={customerId}
+                    apiBase={apiBase}
                     onDone={() => onOpenChange(false)}
                 />
             </DialogContent>
@@ -339,12 +348,14 @@ export function EditEventDialog({
     customerId,
     event,
     open,
-    onOpenChange
+    onOpenChange,
+    apiBase
 }: {
     customerId: number
     event: CustomerEvent
     open: boolean
     onOpenChange: (open: boolean) => void
+    apiBase?: string
 }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -365,6 +376,7 @@ export function EditEventDialog({
                     key={String(open)}
                     customerId={customerId}
                     event={event}
+                    apiBase={apiBase}
                     onDone={() => onOpenChange(false)}
                 />
             </DialogContent>

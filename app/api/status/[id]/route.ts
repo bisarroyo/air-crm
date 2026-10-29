@@ -4,6 +4,10 @@ import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { status } from '@/db/schema'
+import {
+    enqueueStatusRenameSync,
+    scheduleAllEnabledGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function PUT(
     request: Request,
@@ -46,6 +50,23 @@ export async function PUT(
     }
 
     try {
+        const [existing] = await db
+            .select()
+            .from(status)
+            .where(eq(status.id, Number(id)))
+            .limit(1)
+
+        if (!existing) {
+            return NextResponse.json(
+                { error: 'Estado no encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const nameChanged =
+            updateData.status !== undefined &&
+            updateData.status !== existing.status
+
         const [updated] = await db
             .update(status)
             .set(updateData)
@@ -57,6 +78,12 @@ export async function PUT(
                 { error: 'Estado no encontrado' },
                 { status: 404 }
             )
+        }
+
+        if (nameChanged) {
+            if (await enqueueStatusRenameSync('customer', Number(id))) {
+                scheduleAllEnabledGoogleSheetsProcessing()
+            }
         }
 
         return NextResponse.json(updated)

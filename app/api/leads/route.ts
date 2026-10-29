@@ -1,10 +1,17 @@
+import { publicLeadOrganization } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { customers, referrals, logs } from '@/db/schema'
+import {
+    enqueueLeadSyncForAllOrganizations,
+    scheduleAllEnabledGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function POST(request: Request) {
     try {
+        const organizationId = await publicLeadOrganization()
+        if (!organizationId) return NextResponse.json({ error: 'Formulario pendiente de configurar' }, { status: 503 })
         const body = await request.json()
 
         if (!body.name || !body.email || !body.phone || !body.travel_time) {
@@ -16,7 +23,6 @@ export async function POST(request: Request) {
 
         let referralId: number | undefined
 
-        console.log('Received referral code:', body.referralCode)
         if (body.referralCode) {
             const [referral] = await db
                 .select()
@@ -31,7 +37,7 @@ export async function POST(request: Request) {
         const validateCurrentCustomer = await db
             .select()
             .from(customers)
-            .where(eq(customers.email, body.email))
+            .where(and(eq(customers.organizationId, organizationId), eq(customers.email, body.email)))
             .limit(1)
 
         if (validateCurrentCustomer.length > 0) {
@@ -50,7 +56,7 @@ export async function POST(request: Request) {
             await db
                 .update(customers)
                 .set(updateData)
-                .where(eq(customers.email, body.email))
+                .where(and(eq(customers.organizationId, organizationId), eq(customers.email, body.email)))
 
             const changedFields: Record<
                 string,
@@ -69,6 +75,15 @@ export async function POST(request: Request) {
                     action: 'lead_updated',
                     changes: JSON.stringify(changedFields)
                 })
+
+                if (
+                    await enqueueLeadSyncForAllOrganizations(
+                        'customer',
+                        existing.id
+                    )
+                ) {
+                    scheduleAllEnabledGoogleSheetsProcessing()
+                }
             }
 
             return NextResponse.json(
@@ -80,6 +95,7 @@ export async function POST(request: Request) {
         const [newCustomer] = await db
             .insert(customers)
             .values({
+                organizationId,
                 name: body.name,
                 email: body.email,
                 phone: body.phone,
@@ -103,6 +119,15 @@ export async function POST(request: Request) {
                 referralCode: body.referralCode || null
             })
         })
+
+        if (
+            await enqueueLeadSyncForAllOrganizations(
+                'customer',
+                newCustomer.id
+            )
+        ) {
+            scheduleAllEnabledGoogleSheetsProcessing()
+        }
 
         return NextResponse.json(newCustomer, { status: 201 })
     } catch (error) {

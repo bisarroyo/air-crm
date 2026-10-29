@@ -83,7 +83,7 @@ export default function SignIn() {
                             onClick={async () => {
                                 await authClient.signIn.social({
                                     provider: 'google',
-                                    callbackURL: '/'
+                                    callbackURL: getCallbackURL(params)
                                 })
                             }}>
                             <svg

@@ -1,3 +1,4 @@
+import { organizationAccess } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
@@ -18,6 +19,10 @@ export async function POST(request: Request) {
     })
     if (!session) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const organizationId = await organizationAccess(session)
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Seleccioná una organización de la que seas miembro' }, { status: 403 })
     }
 
     const body = await request.json().catch(() => null)
@@ -41,7 +46,8 @@ export async function POST(request: Request) {
 
     const ctx = await buildImportContext(
         session.user.id,
-        session.user.role
+        session.user.role,
+        organizationId
     )
 
     const seenEmails = new Map<string, number>()

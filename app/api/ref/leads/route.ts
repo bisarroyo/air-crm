@@ -1,9 +1,14 @@
+import { organizationAccess } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { eq, and } from 'drizzle-orm'
 import { db } from '@/db'
 import { customers, referrals, logs, status, priority } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import {
+    enqueueLeadSync,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function GET() {
     const session = await auth.api.getSession({
@@ -12,6 +17,10 @@ export async function GET() {
 
     if (!session || session.user.role !== 'ref') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+    const organizationId = await organizationAccess(session)
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Seleccioná una organización de la que seas miembro' }, { status: 403 })
     }
 
     const [referral] = await db
@@ -39,7 +48,7 @@ export async function GET() {
         .from(customers)
         .leftJoin(status, eq(customers.statusId, status.id))
         .leftJoin(priority, eq(customers.priorityId, priority.id))
-        .where(eq(customers.referralId, referral.id))
+        .where(and(eq(customers.organizationId, organizationId), eq(customers.referralId, referral.id)))
         .orderBy(customers.createdAt)
 
     return NextResponse.json(leads)
@@ -52,6 +61,10 @@ export async function POST(request: Request) {
 
     if (!session || session.user.role !== 'ref') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+    const organizationId = await organizationAccess(session)
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Seleccioná una organización de la que seas miembro' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -79,7 +92,7 @@ export async function POST(request: Request) {
     const [existing] = await db
         .select()
         .from(customers)
-        .where(eq(customers.email, body.email))
+        .where(and(eq(customers.organizationId, organizationId), eq(customers.email, body.email)))
         .limit(1)
 
     if (existing) {
@@ -92,6 +105,7 @@ export async function POST(request: Request) {
     const [newCustomer] = await db
         .insert(customers)
         .values({
+                organizationId,
             name: body.name,
             email: body.email,
             phone: body.phone,
@@ -115,6 +129,10 @@ export async function POST(request: Request) {
             referralCode: referral.code
         })
     })
+
+    if (await enqueueLeadSync(organizationId, 'customer', newCustomer.id)) {
+        scheduleGoogleSheetsProcessing(organizationId)
+    }
 
     return NextResponse.json(newCustomer, { status: 201 })
 }

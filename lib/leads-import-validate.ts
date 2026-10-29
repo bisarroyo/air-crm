@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { customers, referrals, status, priority } from '@/db/schema'
 import { user } from '@/auth-schema'
@@ -27,14 +28,15 @@ export interface ImportContext {
 
 export async function buildImportContext(
     sessionUserId: string,
-    role: string | undefined | null
+    role: string | undefined | null,
+    organizationId: string
 ): Promise<ImportContext> {
     const [statusRows, priorityRows, referralRows, existingCustomers, users] =
         await Promise.all([
             db.select({ id: status.id }).from(status),
             db.select({ id: priority.id }).from(priority),
             db.select({ id: referrals.id, code: referrals.code }).from(referrals),
-            db.select({ email: customers.email }).from(customers),
+            db.select({ email: customers.email }).from(customers).where(eq(customers.organizationId, organizationId)),
             db.select({ id: user.id }).from(user)
         ])
 

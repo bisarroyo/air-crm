@@ -9,7 +9,7 @@ import {
     index
 } from 'drizzle-orm/sqlite-core'
 import { relations } from 'drizzle-orm'
-import { user } from '@/auth-schema'
+import { user, organization } from '@/auth-schema'
 
 export const status = sqliteTable('status', {
     id: integer('id').primaryKey({ autoIncrement: true }),
@@ -469,6 +469,8 @@ export const quotationItemsRelations = relations(
 )
 
 export const customers = sqliteTable('customers', {
+    // Legacy records remain unassigned until their owner is explicitly confirmed.
+    organizationId: text('organization_id').references(() => organization.id),
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),
     phone: text('phone').notNull(),
@@ -497,7 +499,7 @@ export const customers = sqliteTable('customers', {
     updatedAt: integer('updated_at', { mode: 'timestamp' })
         .default(sql`(unixepoch())`)
         .$onUpdate(() => new Date())
-})
+}, (table) => [index('customers_organization_idx').on(table.organizationId, table.id)])
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
     referral: one(referrals, {
@@ -645,4 +647,215 @@ export const emailCampaignRecipientsRelations = relations(
             references: [customers.id]
         })
     })
+)
+
+/* -------------------------------------------------------------------------- */
+/*                                   Travel                                   */
+/* -------------------------------------------------------------------------- */
+
+export const travelStatuses = sqliteTable('travel_statuses', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    status: text('status').notNull().unique(),
+    color: text('color').default('#6b7280'),
+    isActive: integer('is_active').notNull().default(1)
+})
+
+export const travelLeads = sqliteTable('travel_leads', {
+    // Legacy records remain unassigned until their owner is explicitly confirmed.
+    organizationId: text('organization_id').references(() => organization.id),
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    phone: text('phone').notNull().default(''),
+    email: text('email').notNull().default(''),
+    metaInboxUrl: text('meta_inbox_url'),
+    statusId: integer('status_id')
+        .references(() => travelStatuses.id)
+        .notNull()
+        .default(1),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    ),
+    statusChangedAt: integer('status_changed_at', { mode: 'timestamp' }),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+        .default(sql`(unixepoch())`)
+        .$onUpdate(() => new Date())
+}, (table) => [index('travel_leads_organization_idx').on(table.organizationId, table.id)])
+
+export const travelLeadNotes = sqliteTable('travel_lead_notes', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    leadId: integer('lead_id')
+        .notNull()
+        .references(() => travelLeads.id, { onDelete: 'cascade' }),
+    note: text('note').notNull(),
+    userId: text('user_id').references(() => user.id),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    )
+})
+
+export const travelLeadEvents = sqliteTable('travel_lead_events', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    leadId: integer('lead_id')
+        .notNull()
+        .references(() => travelLeads.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: ['videollamada', 'charla', 'presencial'] })
+        .notNull()
+        .default('charla'),
+    title: text('title'),
+    scheduledAt: integer('scheduled_at', { mode: 'timestamp' }),
+    status: text('status', { enum: ['pending', 'attended', 'no_show'] })
+        .notNull()
+        .default('pending'),
+    meetingLink: text('meeting_link'),
+    userId: text('user_id').references(() => user.id),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(
+        sql`(unixepoch())`
+    )
+})
+
+export const travelStatusesRelations = relations(travelStatuses, ({ many }) => ({
+    leads: many(travelLeads)
+}))
+
+export const travelLeadsRelations = relations(travelLeads, ({ one, many }) => ({
+    status: one(travelStatuses, {
+        fields: [travelLeads.statusId],
+        references: [travelStatuses.id]
+    }),
+    notes: many(travelLeadNotes),
+    events: many(travelLeadEvents)
+}))
+
+export const travelLeadNotesRelations = relations(
+    travelLeadNotes,
+    ({ one }) => ({
+        lead: one(travelLeads, {
+            fields: [travelLeadNotes.leadId],
+            references: [travelLeads.id]
+        }),
+        user: one(user, {
+            fields: [travelLeadNotes.userId],
+            references: [user.id]
+        })
+    })
+)
+
+export const travelLeadEventsRelations = relations(
+    travelLeadEvents,
+    ({ one }) => ({
+        lead: one(travelLeads, {
+            fields: [travelLeadEvents.leadId],
+            references: [travelLeads.id]
+        }),
+        user: one(user, {
+            fields: [travelLeadEvents.userId],
+            references: [user.id]
+        })
+    })
+)
+
+/* -------------------------------------------------------------------------- */
+/*                         Google Sheets integration                          */
+/* -------------------------------------------------------------------------- */
+
+export const googleSheetsIntegrations = sqliteTable(
+    'google_sheets_integrations',
+    {
+        id: integer('id').primaryKey({ autoIncrement: true }),
+        organizationId: text('organization_id').notNull(),
+        name: text('name').notNull().default('Integración'),
+        enabled: integer('enabled', { mode: 'boolean' })
+            .notNull()
+            .default(false),
+        webAppUrl: text('web_app_url').notNull().default(''),
+        // AES-256-GCM payload. The plain secret is never stored or returned.
+        secretEncrypted: text('secret_encrypted'),
+        maxAttempts: integer('max_attempts').notNull().default(8),
+        // Each integration can export only one or both kinds of leads.
+        syncCustomers: integer('sync_customers', { mode: 'boolean' })
+            .notNull()
+            .default(true),
+        syncTravel: integer('sync_travel', { mode: 'boolean' })
+            .notNull()
+            .default(true),
+        // JSON array of status IDs. NULL/empty means every status is exported.
+        customerStatusIds: text('customer_status_ids'),
+        travelStatusIds: text('travel_status_ids'),
+        // JSON array of lead fields to export. NULL/empty means all fields.
+        fields: text('fields'),
+        customerCursor: integer('customer_cursor'),
+        travelCursor: integer('travel_cursor'),
+        lastSuccessAt: integer('last_success_at', { mode: 'timestamp' }),
+        lastError: text('last_error'),
+        lastTestedAt: integer('last_tested_at', { mode: 'timestamp' }),
+        createdAt: integer('created_at', { mode: 'timestamp' }).default(
+            sql`(unixepoch())`
+        ),
+        updatedAt: integer('updated_at', { mode: 'timestamp' })
+            .default(sql`(unixepoch())`)
+            .$onUpdate(() => new Date())
+    },
+    (table) => [
+        index('google_sheets_integrations_org_idx').on(table.organizationId)
+    ]
+)
+
+export const googleSheetsSyncJobs = sqliteTable(
+    'google_sheets_sync_jobs',
+    {
+        id: integer('id').primaryKey({ autoIncrement: true }),
+        organizationId: text('organization_id').notNull(),
+        integrationId: integer('integration_id').references(
+            () => googleSheetsIntegrations.id,
+            { onDelete: 'cascade' }
+        ),
+        leadSource: text('lead_source', {
+            enum: ['customer', 'travel']
+        })
+            .notNull()
+            .default('customer'),
+        leadId: integer('lead_id').notNull(),
+        operation: text('operation', { enum: ['upsert', 'delete'] })
+            .notNull()
+            .default('upsert'),
+        status: text('status', {
+            enum: ['pending', 'processing', 'failed', 'done', 'dead']
+        })
+            .notNull()
+            .default('pending'),
+        attempts: integer('attempts').notNull().default(0),
+        nextAttemptAt: integer('next_attempt_at', { mode: 'timestamp' })
+            .notNull()
+            .default(sql`(unixepoch())`),
+        lastError: text('last_error'),
+        // Monotonic version sent to Apps Script so an out-of-order request
+        // cannot overwrite a newer row.
+        version: integer('version').notNull().default(0),
+        lockedAt: integer('locked_at', { mode: 'timestamp' }),
+        leaseToken: text('lease_token'),
+        protocol: integer('protocol').notNull().default(2),
+        createdAt: integer('created_at', { mode: 'timestamp' }).default(
+            sql`(unixepoch())`
+        ),
+        updatedAt: integer('updated_at', { mode: 'timestamp' })
+            .default(sql`(unixepoch())`)
+            .$onUpdate(() => new Date())
+    },
+    (table) => [
+        index('google_sheets_sync_jobs_org_status_idx').on(
+            table.organizationId,
+            table.status,
+            table.nextAttemptAt
+        ),
+        index('google_sheets_sync_jobs_org_lead_idx').on(
+            table.organizationId,
+            table.leadSource,
+            table.leadId
+        ),
+        index('google_sheets_sync_jobs_integration_status_idx').on(
+            table.integrationId,
+            table.status,
+            table.nextAttemptAt
+        )
+    ]
 )

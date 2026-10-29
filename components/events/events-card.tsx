@@ -180,10 +180,17 @@ function EventItem({
     )
 }
 
-export function EventCard({ customerId }: { customerId: number }) {
+export function EventCard({
+    customerId,
+    apiBase
+}: {
+    customerId: number
+    apiBase?: string
+}) {
     const queryClient = useQueryClient()
     const { session } = useSession()
     const isAdmin = session?.user.role === 'admin'
+    const base = apiBase ?? `/api/customers/${customerId}`
 
     const [statusPendingId, setStatusPendingId] = useState<number | null>(null)
     const [editingEvent, setEditingEvent] = useState<CustomerEvent | null>(
@@ -191,9 +198,9 @@ export function EventCard({ customerId }: { customerId: number }) {
     )
 
     const { data: events = [], isLoading } = useQuery<CustomerEvent[]>({
-        queryKey: ['events', customerId],
+        queryKey: ['events', apiBase ?? customerId],
         queryFn: async () => {
-            const res = await fetch(`/api/customers/${customerId}/events`)
+            const res = await fetch(`${base}/events`)
             if (!res.ok) throw new Error('No se pudieron cargar los eventos')
             return res.json()
         }
@@ -207,10 +214,8 @@ export function EventCard({ customerId }: { customerId: number }) {
             event: CustomerEvent
             status: EventStatus
         }) => {
-            const res = await fetch(
-                `/api/customers/${customerId}/events/${event.id}`,
-                {
-                    method: 'PATCH',
+            const res = await fetch(`${base}/events/${event.id}`, {
+                method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status })
                 }
@@ -224,14 +229,14 @@ export function EventCard({ customerId }: { customerId: number }) {
         onMutate: async ({ event, status }) => {
             setStatusPendingId(event.id)
             await queryClient.cancelQueries({
-                queryKey: ['events', customerId]
+                queryKey: ['events', apiBase ?? customerId]
             })
             const previous = queryClient.getQueryData<CustomerEvent[]>([
                 'events',
                 customerId
             ])
             queryClient.setQueryData<CustomerEvent[]>(
-                ['events', customerId],
+                ['events', apiBase ?? customerId],
                 (old) =>
                     old?.map((e) =>
                         e.id === event.id ? { ...e, status } : e
@@ -243,7 +248,7 @@ export function EventCard({ customerId }: { customerId: number }) {
             setStatusPendingId(null)
             if (context?.previous) {
                 queryClient.setQueryData(
-                    ['events', customerId],
+                    ['events', apiBase ?? customerId],
                     context.previous
                 )
             }
@@ -252,17 +257,16 @@ export function EventCard({ customerId }: { customerId: number }) {
         onSettled: () => {
             setStatusPendingId(null)
             queryClient.invalidateQueries({
-                queryKey: ['events', customerId]
+                queryKey: ['events', apiBase ?? customerId]
             })
         }
     })
 
     const deleteMutation = useMutation({
         mutationFn: async (event: CustomerEvent) => {
-            const res = await fetch(
-                `/api/customers/${customerId}/events/${event.id}`,
-                { method: 'DELETE' }
-            )
+            const res = await fetch(`${base}/events/${event.id}`, {
+                method: 'DELETE'
+            })
             if (!res.ok) {
                 const err = await res.json()
                 throw new Error(err.error || 'No se pudo eliminar el evento')
@@ -272,14 +276,14 @@ export function EventCard({ customerId }: { customerId: number }) {
         onMutate: async (event) => {
             setStatusPendingId(event.id)
             await queryClient.cancelQueries({
-                queryKey: ['events', customerId]
+                queryKey: ['events', apiBase ?? customerId]
             })
             const previous = queryClient.getQueryData<CustomerEvent[]>([
                 'events',
                 customerId
             ])
             queryClient.setQueryData<CustomerEvent[]>(
-                ['events', customerId],
+                ['events', apiBase ?? customerId],
                 (old) => old?.filter((e) => e.id !== event.id) ?? []
             )
             return { previous }
@@ -288,7 +292,7 @@ export function EventCard({ customerId }: { customerId: number }) {
             setStatusPendingId(null)
             if (context?.previous) {
                 queryClient.setQueryData(
-                    ['events', customerId],
+                    ['events', apiBase ?? customerId],
                     context.previous
                 )
             }
@@ -297,7 +301,7 @@ export function EventCard({ customerId }: { customerId: number }) {
         onSettled: () => {
             setStatusPendingId(null)
             queryClient.invalidateQueries({
-                queryKey: ['events', customerId]
+                queryKey: ['events', apiBase ?? customerId]
             })
         }
     })
@@ -314,7 +318,10 @@ export function EventCard({ customerId }: { customerId: number }) {
                         className='text-muted-foreground'
                     />
                     <span className='flex-1'>Eventos</span>
-                    <CreateEventButton customerId={customerId} />
+                    <CreateEventButton
+                        customerId={customerId}
+                        apiBase={apiBase}
+                    />
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -356,6 +363,7 @@ export function EventCard({ customerId }: { customerId: number }) {
             {editingEvent && (
                 <EditEventDialog
                     customerId={customerId}
+                    apiBase={apiBase}
                     event={editingEvent}
                     open
                     onOpenChange={(open) => {

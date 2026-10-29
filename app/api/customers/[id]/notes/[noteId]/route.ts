@@ -1,9 +1,15 @@
+import { canAccessLeads } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { eq, and } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { customerNotes } from '@/db/schema'
+import {
+    enqueueLeadSync,
+    getOrganizationId,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function PATCH(
     request: Request,
@@ -15,6 +21,9 @@ export async function PATCH(
     })
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
     }
 
     const body = await request.json()
@@ -73,6 +82,13 @@ export async function PATCH(
             )
         }
 
+        const organizationId = await getOrganizationId(session)
+        if (
+            await enqueueLeadSync(organizationId, 'customer', Number(id))
+        ) {
+            scheduleGoogleSheetsProcessing(organizationId)
+        }
+
         return NextResponse.json(updated)
     } catch (error: unknown) {
         const err = error as Error
@@ -93,6 +109,9 @@ export async function DELETE(
     })
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
     }
 
     try {
@@ -136,6 +155,13 @@ export async function DELETE(
                 { error: 'Nota no encontrada' },
                 { status: 404 }
             )
+        }
+
+        const organizationId = await getOrganizationId(session)
+        if (
+            await enqueueLeadSync(organizationId, 'customer', Number(id))
+        ) {
+            scheduleGoogleSheetsProcessing(organizationId)
         }
 
         return NextResponse.json(deleted)

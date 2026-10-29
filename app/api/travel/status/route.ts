@@ -1,0 +1,61 @@
+import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
+import { auth } from '@/lib/auth'
+import { db } from '@/db'
+import { travelStatuses } from '@/db/schema'
+
+export async function GET() {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+    if (!session) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const allStatuses = await db
+        .select()
+        .from(travelStatuses)
+        .orderBy(travelStatuses.id)
+    return NextResponse.json(allStatuses)
+}
+
+export async function POST(request: Request) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+    if (!session || session.user.role !== 'admin') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const statusName = body.status
+
+    if (!statusName || typeof statusName !== 'string' || !statusName.trim()) {
+        return NextResponse.json(
+            { error: 'El nombre del estado es obligatorio' },
+            { status: 400 }
+        )
+    }
+
+    try {
+        const [newStatus] = await db
+            .insert(travelStatuses)
+            .values({
+                status: statusName.trim(),
+                color: body.color || '#6b7280'
+            })
+            .returning()
+        return NextResponse.json(newStatus, { status: 201 })
+    } catch (error) {
+        if ((error as Error)?.message?.includes('UNIQUE')) {
+            return NextResponse.json(
+                { error: 'Ya existe un estado de viaje con ese nombre' },
+                { status: 409 }
+            )
+        }
+        return NextResponse.json(
+            { error: 'No se pudo crear el estado de viaje' },
+            { status: 500 }
+        )
+    }
+}

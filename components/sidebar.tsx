@@ -13,8 +13,11 @@ import {
     Layers,
     Link2,
     Mail,
+    Plane,
+    Plug,
     Settings,
     ShieldCheck,
+    Table2,
     Tag,
     User,
     UserCog,
@@ -108,6 +111,18 @@ export function Sidebar() {
             ]
         },
         {
+            label: 'Travel',
+            icon: Plane,
+            defaultOpen: pathname.startsWith('/travel'),
+            items: [
+                {
+                    href: '/travel',
+                    label: 'Leads de viaje',
+                    icon: Plane
+                }
+            ]
+        },
+        {
             label: 'Cuenta',
             icon: User,
             defaultOpen: pathname.startsWith('/account'),
@@ -131,6 +146,11 @@ export function Sidebar() {
                               icon: Flag
                           },
                           {
+                              href: '/admin/travel-status',
+                              label: 'Estados de viaje',
+                              icon: Plane
+                          },
+                          {
                               href: '/admin/priority',
                               label: 'Prioridades',
                               icon: Layers
@@ -147,9 +167,22 @@ export function Sidebar() {
                               icon: FileText
                           }
                       ]
-                  } as MenuSection
+                  } as MenuSection,
+
               ]
-            : [])
+            : []),
+                  {
+                      label: 'Integraciones',
+                      icon: Plug,
+                      defaultOpen: pathname.startsWith('/admin/integrations'),
+                      items: [
+                          {
+                              href: '/admin/integrations/google-sheets',
+                              label: 'Google Sheets',
+                              icon: Table2
+                          }
+                      ]
+                  } as MenuSection
     ]
 
     const allItems = sections.flatMap((section) => section.items)

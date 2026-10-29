@@ -22,7 +22,12 @@ export async function proxy(request: NextRequest) {
     })
 
     if (!session) {
-        return NextResponse.redirect(new URL('/signin', request.url))
+        const signInUrl = new URL('/signin', request.url)
+        signInUrl.searchParams.set(
+            'callbackUrl',
+            `${request.nextUrl.pathname}${request.nextUrl.search}`
+        )
+        return NextResponse.redirect(signInUrl)
     }
 
     const role = session.user?.role
@@ -43,7 +48,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/ref', request.url))
     }
 
-    if (pathname.startsWith('/admin') && role !== 'admin') {
+    if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/integrations') && role !== 'admin') {
         return NextResponse.redirect(new URL('/', request.url))
     }
 

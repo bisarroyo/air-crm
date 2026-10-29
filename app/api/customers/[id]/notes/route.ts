@@ -1,3 +1,4 @@
+import { canAccessLeads } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { eq, desc } from 'drizzle-orm'
@@ -5,6 +6,11 @@ import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { customerNotes } from '@/db/schema'
 import { user } from '@/auth-schema'
+import {
+    enqueueLeadSync,
+    getOrganizationId,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function GET(
     _request: Request,
@@ -16,6 +22,9 @@ export async function GET(
     })
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
     }
 
     const rows = await db
@@ -46,6 +55,9 @@ export async function POST(
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
+    }
 
     const body = await request.json()
     const note = typeof body.note === 'string' ? body.note.trim() : ''
@@ -66,6 +78,13 @@ export async function POST(
                 userId: session.user.id
             })
             .returning()
+
+        const organizationId = await getOrganizationId(session)
+        if (
+            await enqueueLeadSync(organizationId, 'customer', Number(id))
+        ) {
+            scheduleGoogleSheetsProcessing(organizationId)
+        }
 
         return NextResponse.json(created, { status: 201 })
     } catch (error: unknown) {

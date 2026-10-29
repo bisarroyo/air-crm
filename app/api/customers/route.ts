@@ -1,3 +1,4 @@
+import { organizationAccess } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm'
@@ -13,6 +14,10 @@ import {
 } from '@/db/schema'
 import { user } from '@/auth-schema'
 import { resolveExistingTagIds } from '@/lib/tags'
+import {
+    enqueueLeadSync,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function GET(request: Request) {
     const session = await auth.api.getSession({
@@ -20,6 +25,10 @@ export async function GET(request: Request) {
     })
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    const organizationId = await organizationAccess(session)
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Seleccioná una organización de la que seas miembro' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -35,7 +44,7 @@ export async function GET(request: Request) {
     )
     const offset = (page - 1) * pageSize
 
-    const conditions: ReturnType<typeof eq>[] = []
+    const conditions: ReturnType<typeof eq>[] = [eq(customers.organizationId, organizationId)]
 
     if (!session.user.role || session.user.role === 'user') {
         conditions.push(eq(customers.assignedTo, session.user.id))
@@ -164,6 +173,10 @@ export async function POST(request: Request) {
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+    const organizationId = await organizationAccess(session)
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Seleccioná una organización de la que seas miembro' }, { status: 403 })
+    }
 
     const body = await request.json()
 
@@ -178,6 +191,7 @@ export async function POST(request: Request) {
         const [newCustomer] = await db
             .insert(customers)
             .values({
+                organizationId,
                 name: body.name,
                 email: body.email,
                 phone: body.phone,
@@ -216,6 +230,16 @@ export async function POST(request: Request) {
             }),
             userId: session.user.id
         })
+
+        if (
+            await enqueueLeadSync(
+                organizationId,
+                'customer',
+                newCustomer.id
+            )
+        ) {
+            scheduleGoogleSheetsProcessing(organizationId)
+        }
 
         return NextResponse.json(newCustomer, { status: 201 })
     } catch (error: unknown) {

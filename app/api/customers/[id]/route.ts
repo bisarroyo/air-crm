@@ -1,3 +1,4 @@
+import { canAccessLeads } from '@/lib/organization-access'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { and, eq, inArray } from 'drizzle-orm'
@@ -13,6 +14,11 @@ import {
 } from '@/db/schema'
 import { user } from '@/auth-schema'
 import { getTagNamesByIds, resolveExistingTagIds } from '@/lib/tags'
+import {
+    enqueueLeadSync,
+    getOrganizationId,
+    scheduleGoogleSheetsProcessing
+} from '@/lib/integrations/google-sheets'
 
 export async function GET(
     _request: Request,
@@ -24,6 +30,9 @@ export async function GET(
     })
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
     }
 
     const [row] = await db
@@ -96,6 +105,9 @@ export async function PUT(
     })
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
     }
 
     const body = await request.json()
@@ -238,6 +250,23 @@ export async function PUT(
                 changes: JSON.stringify(changedFields),
                 userId: session.user.id
             })
+
+            const sheetChanged = ['name', 'phone', 'email', 'statusId'].some(
+                (field) => field in changedFields
+            )
+
+            if (sheetChanged) {
+                const organizationId = await getOrganizationId(session)
+                if (
+                    await enqueueLeadSync(
+                        organizationId,
+                        'customer',
+                        Number(id)
+                    )
+                ) {
+                    scheduleGoogleSheetsProcessing(organizationId)
+                }
+            }
         }
 
         return NextResponse.json(updatedContact)
@@ -261,6 +290,9 @@ export async function DELETE(
     if (!session || session.user.role !== 'admin') {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+    if (!(await canAccessLeads(session, 'customer', [Number(id)]))) {
+        return NextResponse.json({ error: 'Lead no encontrado en la organización activa' }, { status: 404 })
+    }
 
     try {
         const [deleted] = await db
@@ -273,6 +305,18 @@ export async function DELETE(
                 { error: 'Cliente no encontrado' },
                 { status: 404 }
             )
+        }
+
+        const organizationId = await getOrganizationId(session)
+        if (
+            await enqueueLeadSync(
+                organizationId,
+                'customer',
+                deleted.id,
+                'delete'
+            )
+        ) {
+            scheduleGoogleSheetsProcessing(organizationId)
         }
 
         return NextResponse.json(deleted)

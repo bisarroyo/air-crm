@@ -1,0 +1,1 @@
+ALTER TABLE `google_sheets_integrations` ADD `fields` text;
