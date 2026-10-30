@@ -3,10 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+    Check,
     ChevronLeft,
     ChevronRight,
     ExternalLink,
-    Inbox,
     Loader2,
     Mail,
     MessageCircle,
@@ -21,7 +21,7 @@ import {
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
@@ -43,6 +43,11 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger
+} from '@/components/ui/popover'
+import {
     Select,
     SelectContent,
     SelectGroup,
@@ -51,6 +56,8 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import { GlobeLoader } from '@/components/ui/globe-loader'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { TagMultiSelect, TagPill, type TagOption } from '@/components/tags'
 import { useSession } from '@/hooks/use-session'
 
 interface StatusOption {
@@ -73,6 +80,9 @@ interface TravelLeadRow {
     email: string
     metaInboxUrl: string | null
     statusId: number
+    travelDateFrom: string | null
+    travelDateTo: string | null
+    tags: TagOption[]
     createdAt: string | null
     updatedAt: string | null
     statusName: string | null
@@ -92,7 +102,10 @@ const travelLeadSchema = z.object({
     phone: z.string().optional(),
     email: z.string().email('Email inválido').or(z.literal('')),
     metaInboxUrl: z.string().optional(),
-    statusId: z.string().min(1, 'El estado es obligatorio')
+    statusId: z.string().min(1, 'El estado es obligatorio'),
+    travelDateFrom: z.string().optional(),
+    travelDateTo: z.string().optional(),
+    tagIds: z.array(z.number()).optional()
 })
 
 type TravelLeadFormValues = z.infer<typeof travelLeadSchema>
@@ -144,6 +157,20 @@ function TravelContent() {
     const [filterStatusId, setFilterStatusId] = useState(
         searchParams.get('statusId') ?? ''
     )
+    const [filterTagIds, setFilterTagIds] = useState<number[]>(() => {
+        const raw = searchParams.get('tagIds')
+        if (!raw) return []
+        return raw
+            .split(',')
+            .map(Number)
+            .filter((n) => Number.isInteger(n) && n > 0)
+    })
+    const [filterDateFrom, setFilterDateFrom] = useState(
+        searchParams.get('travelDateFrom') ?? ''
+    )
+    const [filterDateTo, setFilterDateTo] = useState(
+        searchParams.get('travelDateTo') ?? ''
+    )
     const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
     const [pageSize, setPageSize] = useState(
         Number(searchParams.get('pageSize')) || 25
@@ -151,6 +178,10 @@ function TravelContent() {
 
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [bulkStatusId, setBulkStatusId] = useState('')
+    const [bulkTagIds, setBulkTagIds] = useState<number[]>([])
+    const [bulkTagAction, setBulkTagAction] = useState<
+        'add' | 'remove' | 'replace'
+    >('add')
 
     const [modalOpen, setModalOpen] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
@@ -162,14 +193,29 @@ function TravelContent() {
             phone: '',
             email: '',
             metaInboxUrl: '',
-            statusId: ''
+            statusId: '',
+            travelDateFrom: '',
+            travelDateTo: '',
+            tagIds: []
         }
+    })
+
+    const travelDateFromValue = useWatch({
+        control: form.control,
+        name: 'travelDateFrom'
+    })
+    const travelDateToValue = useWatch({
+        control: form.control,
+        name: 'travelDateTo'
     })
 
     const queryKey = [
         'travel-leads',
         search,
         filterStatusId,
+        filterTagIds,
+        filterDateFrom,
+        filterDateTo,
         page,
         pageSize
     ] as const
@@ -180,6 +226,11 @@ function TravelContent() {
             const params = new URLSearchParams()
             if (search) params.set('search', search)
             if (filterStatusId) params.set('statusId', filterStatusId)
+            if (filterTagIds.length > 0) {
+                params.set('tagIds', filterTagIds.join(','))
+            }
+            if (filterDateFrom) params.set('travelDateFrom', filterDateFrom)
+            if (filterDateTo) params.set('travelDateTo', filterDateTo)
             params.set('page', String(page))
             params.set('pageSize', String(pageSize))
             const res = await fetch(
@@ -206,20 +257,56 @@ function TravelContent() {
         label: s.name
     }))
 
+    const { data: travelTags = [] } = useQuery({
+        queryKey: ['travel-tags'],
+        queryFn: () => fetch('/api/travel/tags').then((r) => r.json()),
+        select: (
+            data: Array<{
+                id: number
+                tag: string
+                color: string | null
+                isActive: number
+            }>
+        ) =>
+            data.map((t) => ({
+                id: t.id,
+                name: t.tag,
+                color: t.color || '#6b7280',
+                isActive: t.isActive
+            }))
+    }) as { data: TagOption[] | undefined }
+
     useEffect(() => {
         const url = new URLSearchParams()
         if (search) url.set('search', search)
         if (filterStatusId) url.set('statusId', filterStatusId)
+        if (filterTagIds.length > 0) {
+            url.set('tagIds', filterTagIds.join(','))
+        }
+        if (filterDateFrom) url.set('travelDateFrom', filterDateFrom)
+        if (filterDateTo) url.set('travelDateTo', filterDateTo)
         if (page > 1) url.set('page', String(page))
         if (pageSize !== 25) url.set('pageSize', String(pageSize))
         const qs = url.toString()
         router.replace(qs ? `/travel?${qs}` : '/travel', { scroll: false })
-    }, [search, filterStatusId, page, pageSize, router])
+    }, [
+        search,
+        filterStatusId,
+        filterTagIds,
+        filterDateFrom,
+        filterDateTo,
+        page,
+        pageSize,
+        router
+    ])
 
     useEffect(() => {
         if (selectedIds.length === 0) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+            /* eslint-disable react-hooks/set-state-in-effect */
             setBulkStatusId('')
+            setBulkTagIds([])
+            setBulkTagAction('add')
+            /* eslint-enable react-hooks/set-state-in-effect */
         }
     }, [selectedIds])
 
@@ -244,7 +331,10 @@ function TravelContent() {
                     phone: data.phone ?? '',
                     email: data.email ?? '',
                     metaInboxUrl: data.metaInboxUrl ?? '',
-                    statusId: Number(data.statusId)
+                    statusId: Number(data.statusId),
+                    travelDateFrom: data.travelDateFrom ?? '',
+                    travelDateTo: data.travelDateTo ?? '',
+                    tagIds: data.tagIds ?? []
                 })
             })
             if (!res.ok) {
@@ -266,24 +356,48 @@ function TravelContent() {
     const inlineUpdateMutation = useMutation({
         mutationFn: async ({
             id,
-            statusId
+            patch
         }: {
             id: number
-            statusId: number
+            patch: {
+                statusId?: number
+                tagIds?: number[]
+                travelDateFrom?: string
+                travelDateTo?: string
+            }
         }) => {
             const res = await fetch(`/api/travel/leads/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ statusId })
+                body: JSON.stringify(patch)
             })
             if (!res.ok) {
                 const err = await res.json()
                 throw new Error(err.error || 'No se pudo actualizar')
             }
-            return res.json()
+            return res.json() as Promise<TravelLeadRow>
         },
-        onSuccess: () => invalidate(),
-        onError: (error: Error) => toast.error(error.message)
+        onSuccess: (updated, variables) => {
+            queryClient.setQueryData<TravelLeadsResponse>(
+                queryKey,
+                (previous) => {
+                    if (!previous) return previous
+                    return {
+                        ...previous,
+                        data: previous.data.map((lead) =>
+                            lead.id === variables.id
+                                ? { ...lead, ...updated }
+                                : lead
+                        )
+                    }
+                }
+            )
+            invalidate()
+        },
+        onError: (error: Error) => {
+            toast.error(error.message)
+            invalidate()
+        }
     })
 
     const bulkMutation = useMutation({
@@ -311,6 +425,37 @@ function TravelContent() {
         onError: (error: Error) => toast.error(error.message)
     })
 
+    const bulkTagsMutation = useMutation({
+        mutationFn: async () => {
+            const res = await fetch('/api/travel/leads/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ids: selectedIds,
+                    tagAction: bulkTagAction,
+                    tagIds: bulkTagIds
+                })
+            })
+            if (!res.ok) {
+                const err = await res.json()
+                throw new Error(err.error || 'No se pudieron actualizar las etiquetas')
+            }
+            return res.json()
+        },
+        onSuccess: (res: { updated: number }) => {
+            toast.success(
+                bulkTagAction === 'replace'
+                    ? `Etiquetas reemplazadas en ${res.updated} leads`
+                    : bulkTagAction === 'remove'
+                      ? `Etiquetas quitadas en ${res.updated} leads`
+                      : `Etiquetas agregadas en ${res.updated} leads`
+            )
+            setBulkTagIds([])
+            invalidate()
+        },
+        onError: (error: Error) => toast.error(error.message)
+    })
+
     const openCreate = () => {
         setEditingId(null)
         form.reset({
@@ -318,7 +463,10 @@ function TravelContent() {
             phone: '',
             email: '',
             metaInboxUrl: '',
-            statusId: statuses[0] ? String(statuses[0].id) : ''
+            statusId: statuses[0] ? String(statuses[0].id) : '',
+            travelDateFrom: '',
+            travelDateTo: '',
+            tagIds: []
         })
         setModalOpen(true)
     }
@@ -330,7 +478,10 @@ function TravelContent() {
             phone: lead.phone,
             email: lead.email,
             metaInboxUrl: lead.metaInboxUrl ?? '',
-            statusId: String(lead.statusId)
+            statusId: String(lead.statusId),
+            travelDateFrom: lead.travelDateFrom ?? '',
+            travelDateTo: lead.travelDateTo ?? '',
+            tagIds: lead.tags.map((tag) => tag.id)
         })
         setModalOpen(true)
     }
@@ -379,7 +530,17 @@ function TravelContent() {
     }
 
     const exportCsv = (rows: TravelLeadRow[]) => {
-        const headers = ['Nombre', 'Email', 'Teléfono', 'Enlace Meta', 'Estado']
+        const headers = [
+            'Nombre',
+            'Email',
+            'Teléfono',
+            'Etiquetas',
+            'Fecha desde',
+            'Fecha hasta',
+            'Estado'
+        ]
+        const escape = (field: string) =>
+            /[",\n]/.test(field) ? `"${field.replace(/"/g, '""')}"` : field
         const csv =
             '\uFEFF' +
             [
@@ -389,12 +550,12 @@ function TravelContent() {
                         lead.name,
                         lead.email,
                         lead.phone,
-                        lead.metaInboxUrl || '',
+                        lead.tags.map((tag) => tag.name).join(' | '),
+                        lead.travelDateFrom || '',
+                        lead.travelDateTo || '',
                         lead.statusName || ''
                     ]
-                        .map((field) =>
-                            field.includes(',') ? `"${field}"` : field
-                        )
+                        .map(escape)
                         .join(',')
                 )
             ].join('\n')
@@ -525,6 +686,54 @@ function TravelContent() {
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
+                        <div className='w-[220px]'>
+                            <TagMultiSelect
+                                options={travelTags}
+                                selected={filterTagIds}
+                                onToggle={(tagId) => {
+                                    setFilterTagIds((prev) =>
+                                        prev.includes(tagId)
+                                            ? prev.filter((id) => id !== tagId)
+                                            : [...prev, tagId]
+                                    )
+                                    setPage(1)
+                                }}
+                                placeholder='Todas las etiquetas'
+                                searchPlaceholder='Buscar etiqueta...'
+                                emptyMessage='No hay etiquetas de viaje.'
+                                triggerClassName='h-8 text-sm'
+                            />
+                        </div>
+                        <DateRangePicker
+                            from={filterDateFrom}
+                            to={filterDateTo}
+                            onChange={(from, to) => {
+                                setFilterDateFrom(from)
+                                setFilterDateTo(to)
+                                setPage(1)
+                            }}
+                            placeholder='Fechas de viaje'
+                            className='h-8 w-[240px] text-sm'
+                        />
+                        {(search ||
+                            filterStatusId ||
+                            filterTagIds.length > 0 ||
+                            filterDateFrom ||
+                            filterDateTo) && (
+                            <Button
+                                variant='ghost'
+                                size='sm'
+                                onClick={() => {
+                                    setSearch('')
+                                    setFilterStatusId('')
+                                    setFilterTagIds([])
+                                    setFilterDateFrom('')
+                                    setFilterDateTo('')
+                                    setPage(1)
+                                }}>
+                                <X size={14} /> Limpiar filtros
+                            </Button>
+                        )}
                     </div>
 
                     {selectedIds.length > 0 && (
@@ -588,6 +797,87 @@ function TravelContent() {
                                 )}
                             </Button>
                             <span className='text-muted-foreground'>|</span>
+                            <label className='text-sm text-muted-foreground'>
+                                Etiquetas:
+                            </label>
+                            <Select
+                                value={bulkTagAction}
+                                items={[
+                                    { value: 'add', label: 'Agregar' },
+                                    { value: 'remove', label: 'Quitar' },
+                                    { value: 'replace', label: 'Reemplazar' }
+                                ]}
+                                onValueChange={(val) =>
+                                    setBulkTagAction(
+                                        (val ?? 'add') as
+                                            | 'add'
+                                            | 'remove'
+                                            | 'replace'
+                                    )
+                                }>
+                                <SelectTrigger
+                                    size='sm'
+                                    className='h-7 text-xs'>
+                                    <SelectValue placeholder='Agregar' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value='add'>
+                                            Agregar
+                                        </SelectItem>
+                                        <SelectItem value='remove'>
+                                            Quitar
+                                        </SelectItem>
+                                        <SelectItem value='replace'>
+                                            Reemplazar
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <div className='w-[210px]'>
+                                <TagMultiSelect
+                                    options={travelTags}
+                                    selected={bulkTagIds}
+                                    onToggle={(tagId) =>
+                                        setBulkTagIds((prev) =>
+                                            prev.includes(tagId)
+                                                ? prev.filter(
+                                                      (id) => id !== tagId
+                                                  )
+                                                : [...prev, tagId]
+                                        )
+                                    }
+                                    placeholder='Elegir etiquetas'
+                                    searchPlaceholder='Buscar etiqueta...'
+                                    emptyMessage='No hay etiquetas de viaje.'
+                                    triggerClassName='h-7 text-xs'
+                                />
+                            </div>
+                            <Button
+                                size='xs'
+                                onClick={() => {
+                                    if (
+                                        bulkTagIds.length === 0 &&
+                                        bulkTagAction !== 'replace'
+                                    ) {
+                                        toast.error(
+                                            'Seleccioná al menos una etiqueta'
+                                        )
+                                        return
+                                    }
+                                    bulkTagsMutation.mutate()
+                                }}
+                                disabled={bulkTagsMutation.isPending}>
+                                {bulkTagsMutation.isPending ? (
+                                    <Loader2
+                                        size={14}
+                                        className='animate-spin'
+                                    />
+                                ) : (
+                                    'Aplicar'
+                                )}
+                            </Button>
+                            <span className='text-muted-foreground'>|</span>
                             <Button
                                 size='xs'
                                 variant='outline'
@@ -614,6 +904,8 @@ function TravelContent() {
                                 onClick={() => {
                                     setSelectedIds([])
                                     setBulkStatusId('')
+                                    setBulkTagIds([])
+                                    setBulkTagAction('add')
                                 }}>
                                 Limpiar
                             </Button>
@@ -629,7 +921,11 @@ function TravelContent() {
                     ) : leads.length === 0 ? (
                         <div className='py-16 text-center'>
                             <p className='text-muted-foreground'>
-                                {search || filterStatusId
+                                {search ||
+                                filterStatusId ||
+                                filterTagIds.length > 0 ||
+                                filterDateFrom ||
+                                filterDateTo
                                     ? 'Ningún lead coincide con tus filtros'
                                     : 'Todavía no hay leads de viaje. ¡Creá el primero!'}
                             </p>
@@ -662,13 +958,13 @@ function TravelContent() {
                                                 Teléfono
                                             </th>
                                             <th className='pb-2 font-medium'>
-                                                Meta Inbox
+                                                Etiquetas
+                                            </th>
+                                            <th className='pb-2 font-medium'>
+                                                Fechas de viaje
                                             </th>
                                             <th className='pb-2 font-medium'>
                                                 Estado
-                                            </th>
-                                            <th className='pb-2 font-medium'>
-                                                Creado
                                             </th>
                                             <th className='pb-2 font-medium text-right'>
                                                 Acciones
@@ -748,26 +1044,49 @@ function TravelContent() {
                                                             </span>
                                                         )}
                                                     </td>
-                                                    <td className='py-2.5'>
-                                                        {lead.metaInboxUrl ? (
-                                                            <a
-                                                                href={
-                                                                    lead.metaInboxUrl
-                                                                }
-                                                                target='_blank'
-                                                                rel='noopener noreferrer'
-                                                                title='Abrir Meta Inbox'
-                                                                className='inline-flex items-center gap-1 text-primary hover:underline'>
-                                                                <Inbox
-                                                                    size={14}
-                                                                />
-                                                                Abrir
-                                                            </a>
-                                                        ) : (
-                                                            <span className='text-xs text-muted-foreground'>
-                                                                —
-                                                            </span>
-                                                        )}
+                                                    <td className='py-1'>
+                                                        <InlineTravelTags
+                                                            tags={lead.tags}
+                                                            options={
+                                                                travelTags
+                                                            }
+                                                            onSave={(
+                                                                tagIds
+                                                            ) =>
+                                                                inlineUpdateMutation.mutate(
+                                                                    {
+                                                                        id: lead.id,
+                                                                        patch: {
+                                                                            tagIds
+                                                                        }
+                                                                    }
+                                                                )
+                                                            }
+                                                        />
+                                                    </td>
+                                                    <td className='py-1'>
+                                                        <InlineTravelDates
+                                                            from={
+                                                                lead.travelDateFrom
+                                                            }
+                                                            to={
+                                                                lead.travelDateTo
+                                                            }
+                                                            onSave={(
+                                                                travelDateFrom,
+                                                                travelDateTo
+                                                            ) =>
+                                                                inlineUpdateMutation.mutate(
+                                                                    {
+                                                                        id: lead.id,
+                                                                        patch: {
+                                                                            travelDateFrom,
+                                                                            travelDateTo
+                                                                        }
+                                                                    }
+                                                                )
+                                                            }
+                                                        />
                                                     </td>
                                                     <td className='py-2.5'>
                                                         <Select
@@ -783,10 +1102,12 @@ function TravelContent() {
                                                                 inlineUpdateMutation.mutate(
                                                                     {
                                                                         id: lead.id,
-                                                                        statusId:
-                                                                            Number(
-                                                                                val
-                                                                            )
+                                                                        patch: {
+                                                                            statusId:
+                                                                                Number(
+                                                                                    val
+                                                                                )
+                                                                        }
                                                                     }
                                                                 )
                                                             }>
@@ -828,19 +1149,6 @@ function TravelContent() {
                                                                 </SelectGroup>
                                                             </SelectContent>
                                                         </Select>
-                                                    </td>
-                                                    <td className='py-2.5 text-xs text-muted-foreground'>
-                                                        {lead.createdAt
-                                                            ? new Date(
-                                                                  lead.createdAt
-                                                              ).toLocaleDateString(
-                                                                  'es',
-                                                                  {
-                                                                      dateStyle:
-                                                                          'short'
-                                                                  }
-                                                              )
-                                                            : '—'}
                                                     </td>
                                                     <td className='py-2.5 text-right'>
                                                         <div className='flex items-center justify-end gap-1'>
@@ -1083,6 +1391,57 @@ function TravelContent() {
                                     </Field>
                                 )}
                             />
+                            <Field>
+                                <FieldLabel>Etiquetas de viaje</FieldLabel>
+                                <Controller
+                                    name='tagIds'
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <TagMultiSelect
+                                            options={travelTags}
+                                            selected={field.value ?? []}
+                                            onToggle={(tagId) => {
+                                                const current =
+                                                    field.value ?? []
+                                                field.onChange(
+                                                    current.includes(tagId)
+                                                        ? current.filter(
+                                                              (id) =>
+                                                                  id !== tagId
+                                                          )
+                                                        : [...current, tagId]
+                                                )
+                                            }}
+                                            placeholder='Destinos, paquetes o intereses'
+                                            searchPlaceholder='Buscar etiqueta...'
+                                            emptyMessage='No hay etiquetas de viaje. Creá algunas en Administración.'
+                                            triggerClassName='h-9 text-sm'
+                                            maxChips={3}
+                                        />
+                                    )}
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel>
+                                    Fecha estimada de viaje
+                                </FieldLabel>
+                                <DateRangePicker
+                                    from={travelDateFromValue}
+                                    to={travelDateToValue}
+                                    onChange={(from, to) => {
+                                        form.setValue(
+                                            'travelDateFrom',
+                                            from,
+                                            { shouldDirty: true }
+                                        )
+                                        form.setValue('travelDateTo', to, {
+                                            shouldDirty: true
+                                        })
+                                    }}
+                                    placeholder='¿De cuándo a cuándo puede viajar?'
+                                    className='h-9'
+                                />
+                            </Field>
                             <Controller
                                 name='statusId'
                                 control={form.control}
@@ -1154,5 +1513,216 @@ function TravelContent() {
                 </DialogContent>
             </Dialog>
         </div>
+    )
+}
+
+function InlineTravelTags({
+    tags,
+    options,
+    onSave
+}: {
+    tags: TagOption[]
+    options: TagOption[]
+    onSave: (tagIds: number[]) => void
+}) {
+    const [open, setOpen] = useState(false)
+    const [query, setQuery] = useState('')
+    const [selected, setSelected] = useState<number[]>(() =>
+        tags.map((tag) => tag.id)
+    )
+    const [dirty, setDirty] = useState(false)
+
+    useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
+        setSelected(tags.map((tag) => tag.id))
+        setDirty(false)
+        /* eslint-enable react-hooks/set-state-in-effect */
+    }, [tags])
+
+    const visibleOptions = query.trim()
+        ? options.filter((tag) =>
+              tag.name.toLowerCase().includes(query.trim().toLowerCase())
+          )
+        : options
+
+    const displayTags = (dirty ? selected : tags.map((tag) => tag.id))
+        .map(
+            (id) =>
+                options.find((tag) => tag.id === id) ??
+                tags.find((tag) => tag.id === id)
+        )
+        .filter((tag): tag is TagOption => Boolean(tag))
+
+    const toggle = (id: number) => {
+        setSelected((prev) =>
+            prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]
+        )
+        setDirty(true)
+    }
+
+    const closeAndSave = () => {
+        if (dirty) onSave(selected)
+        setOpen(false)
+        setQuery('')
+    }
+
+    return (
+        <Popover
+            open={open}
+            onOpenChange={(next) => {
+                if (next) {
+                    setOpen(true)
+                } else {
+                    closeAndSave()
+                }
+            }}>
+            <PopoverTrigger
+                render={
+                    <button
+                        type='button'
+                        title='Editar etiquetas'
+                        className='group flex min-h-7 w-full max-w-[220px] items-center gap-1 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted'
+                    />
+                }>
+                {displayTags.length > 0 ? (
+                    <span className='flex flex-wrap gap-1'>
+                        {displayTags.map((tag) => (
+                            <TagPill key={tag.id} tag={tag} />
+                        ))}
+                    </span>
+                ) : (
+                    <span className='text-xs text-muted-foreground'>—</span>
+                )}
+                <Pencil
+                    size={12}
+                    className='ml-auto shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'
+                />
+            </PopoverTrigger>
+            <PopoverContent align='start' className='w-64 gap-0 p-0'>
+                <div className='border-b p-2'>
+                    <div className='relative'>
+                        <Search
+                            size={14}
+                            className='pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground'
+                        />
+                        <Input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder='Buscar etiqueta...'
+                            className='h-7 pl-8 text-xs'
+                        />
+                    </div>
+                </div>
+                <div className='max-h-56 overflow-y-auto p-1'>
+                    {visibleOptions.length === 0 ? (
+                        <p className='px-2 py-3 text-center text-xs text-muted-foreground'>
+                            No hay etiquetas de viaje.
+                        </p>
+                    ) : (
+                        visibleOptions.map((tag) => {
+                            const active = selected.includes(tag.id)
+                            return (
+                                <button
+                                    key={tag.id}
+                                    type='button'
+                                    onClick={() => toggle(tag.id)}
+                                    className='flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground'>
+                                    <span
+                                        className={
+                                            active
+                                                ? 'flex size-4 shrink-0 items-center justify-center rounded-[4px] text-white'
+                                                : 'flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input'
+                                        }
+                                        style={
+                                            active
+                                                ? {
+                                                      backgroundColor:
+                                                          tag.color ||
+                                                          '#6b7280'
+                                                  }
+                                                : undefined
+                                        }>
+                                        {active && <Check size={12} />}
+                                    </span>
+                                    <span className='flex-1 truncate'>
+                                        {tag.name}
+                                    </span>
+                                </button>
+                            )
+                        })
+                    )}
+                </div>
+                <div className='flex items-center justify-between gap-2 border-t px-2 py-1.5'>
+                    <span className='text-xs text-muted-foreground'>
+                        {selected.length} seleccionada
+                        {selected.length === 1 ? '' : 's'}
+                    </span>
+                    <div className='flex items-center gap-1'>
+                        {selected.length > 0 && (
+                            <Button
+                                type='button'
+                                size='xs'
+                                variant='ghost'
+                                onClick={() => {
+                                    setSelected([])
+                                    setDirty(true)
+                                }}>
+                                Limpiar
+                            </Button>
+                        )}
+                        <Button
+                            type='button'
+                            size='xs'
+                            onClick={closeAndSave}>
+                            Guardar
+                        </Button>
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
+function InlineTravelDates({
+    from,
+    to,
+    onSave
+}: {
+    from: string | null
+    to: string | null
+    onSave: (from: string, to: string) => void
+}) {
+    const [range, setRange] = useState({ from: from ?? '', to: to ?? '' })
+    const [dirty, setDirty] = useState(false)
+
+    useEffect(() => {
+        /* eslint-disable react-hooks/set-state-in-effect */
+        setRange({ from: from ?? '', to: to ?? '' })
+        setDirty(false)
+        /* eslint-enable react-hooks/set-state-in-effect */
+    }, [from, to])
+
+    const displayFrom = dirty ? range.from : (from ?? '')
+    const displayTo = dirty ? range.to : (to ?? '')
+
+    return (
+        <DateRangePicker
+            from={displayFrom}
+            to={displayTo}
+            placeholder='—'
+            className='h-7 w-auto max-w-[190px] border-transparent bg-transparent px-1 text-xs font-normal text-muted-foreground shadow-none hover:bg-muted hover:text-foreground'
+            onChange={(nextFrom, nextTo) => {
+                setRange({ from: nextFrom, to: nextTo })
+                setDirty(true)
+            }}
+            onOpenChange={(next) => {
+                if (next) return
+                const changed =
+                    range.from !== (from ?? '') || range.to !== (to ?? '')
+                if (dirty && changed) {
+                    onSave(range.from, range.to)
+                }
+            }}
+        />
     )
 }

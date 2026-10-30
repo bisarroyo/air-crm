@@ -162,6 +162,11 @@ export function Sidebar() {
                           },
                           { href: '/admin/tags', label: 'Etiquetas', icon: Tag },
                           {
+                              href: '/admin/travel-tags',
+                              label: 'Etiquetas de viaje',
+                              icon: Plane
+                          },
+                          {
                               href: '/admin/quotations',
                               label: 'Cotizaciones',
                               icon: FileText

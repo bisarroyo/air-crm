@@ -6,10 +6,21 @@ import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { travelLeads, travelStatuses } from '@/db/schema'
 import {
+    getTravelTagsByLeadIds,
+    replaceTravelLeadTags
+} from '@/lib/travel-tags'
+import {
     enqueueLeadSync,
     getOrganizationId,
     scheduleGoogleSheetsProcessing
 } from '@/lib/integrations/google-sheets'
+
+function normalizeDate(value: unknown): string | null {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null
+}
 
 export async function GET(
     _request: Request,
@@ -34,6 +45,8 @@ export async function GET(
             email: travelLeads.email,
             metaInboxUrl: travelLeads.metaInboxUrl,
             statusId: travelLeads.statusId,
+            travelDateFrom: travelLeads.travelDateFrom,
+            travelDateTo: travelLeads.travelDateTo,
             createdAt: travelLeads.createdAt,
             updatedAt: travelLeads.updatedAt,
             statusName: travelStatuses.status,
@@ -51,7 +64,12 @@ export async function GET(
         )
     }
 
-    return NextResponse.json(row)
+    const tagsByLead = await getTravelTagsByLeadIds([row.id])
+
+    return NextResponse.json({
+        ...row,
+        tags: tagsByLead.get(row.id) ?? []
+    })
 }
 
 export async function PUT(
@@ -71,6 +89,7 @@ export async function PUT(
 
     const body = await request.json()
     const updateData: Record<string, string | number | Date | null> = {}
+    const hasTagUpdate = body.tagIds !== undefined
 
     if (body.name !== undefined) {
         const name = typeof body.name === 'string' ? body.name.trim() : ''
@@ -91,8 +110,14 @@ export async function PUT(
                 : null
     }
     if (body.statusId !== undefined) updateData.statusId = Number(body.statusId)
+    if (body.travelDateFrom !== undefined) {
+        updateData.travelDateFrom = normalizeDate(body.travelDateFrom)
+    }
+    if (body.travelDateTo !== undefined) {
+        updateData.travelDateTo = normalizeDate(body.travelDateTo)
+    }
 
-    if (Object.keys(updateData).length === 0) {
+    if (Object.keys(updateData).length === 0 && !hasTagUpdate) {
         return NextResponse.json(
             { error: 'No hay campos para actualizar' },
             { status: 400 }
@@ -113,18 +138,28 @@ export async function PUT(
             )
         }
 
-        if (
-            updateData.statusId !== undefined &&
-            Number(updateData.statusId) !== existing.statusId
-        ) {
-            updateData.statusChangedAt = new Date()
+        let updated = existing
+
+        if (Object.keys(updateData).length > 0) {
+            if (
+                updateData.statusId !== undefined &&
+                Number(updateData.statusId) !== existing.statusId
+            ) {
+                updateData.statusChangedAt = new Date()
+            }
+
+            const [row] = await db
+                .update(travelLeads)
+                .set(updateData)
+                .where(eq(travelLeads.id, Number(id)))
+                .returning()
+
+            updated = row
         }
 
-        const [updated] = await db
-            .update(travelLeads)
-            .set(updateData)
-            .where(eq(travelLeads.id, Number(id)))
-            .returning()
+        if (hasTagUpdate) {
+            await replaceTravelLeadTags(Number(id), body.tagIds)
+        }
 
         const sheetChanged = ['name', 'phone', 'email', 'statusId'].some(
             (field) => field in updateData
@@ -143,7 +178,12 @@ export async function PUT(
             }
         }
 
-        return NextResponse.json(updated)
+        const tagsByLead = await getTravelTagsByLeadIds([Number(id)])
+
+        return NextResponse.json({
+            ...updated,
+            tags: tagsByLead.get(Number(id)) ?? []
+        })
     } catch (error: unknown) {
         const message =
             error instanceof Error

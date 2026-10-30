@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
     ArrowLeft,
+    CalendarDays,
     ExternalLink,
     Inbox,
     Loader2,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
@@ -43,6 +44,11 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import { GlobeLoader } from '@/components/ui/globe-loader'
+import {
+    DateRangePicker,
+    formatDateRange
+} from '@/components/ui/date-range-picker'
+import { TagMultiSelect, TagPill, type TagOption } from '@/components/tags'
 import { EventCard } from '@/components/events/events-card'
 import { TravelNotes } from '@/components/travel/travel-notes'
 import { useSession } from '@/hooks/use-session'
@@ -54,6 +60,9 @@ interface TravelLeadDetail {
     email: string
     metaInboxUrl: string | null
     statusId: number
+    travelDateFrom: string | null
+    travelDateTo: string | null
+    tags: TagOption[]
     createdAt: string | null
     updatedAt: string | null
     statusName: string | null
@@ -72,7 +81,10 @@ const travelLeadSchema = z.object({
     phone: z.string().optional(),
     email: z.string().email('Email inválido').or(z.literal('')),
     metaInboxUrl: z.string().optional(),
-    statusId: z.string().min(1, 'El estado es obligatorio')
+    statusId: z.string().min(1, 'El estado es obligatorio'),
+    travelDateFrom: z.string().optional(),
+    travelDateTo: z.string().optional(),
+    tagIds: z.array(z.number()).optional()
 })
 
 type TravelLeadFormValues = z.infer<typeof travelLeadSchema>
@@ -117,7 +129,10 @@ export default function TravelDetailPage() {
             phone: '',
             email: '',
             metaInboxUrl: '',
-            statusId: ''
+            statusId: '',
+            travelDateFrom: '',
+            travelDateTo: '',
+            tagIds: []
         }
     })
 
@@ -152,6 +167,34 @@ export default function TravelDetailPage() {
         label: s.name
     }))
 
+    const { data: travelTags = [] } = useQuery({
+        queryKey: ['travel-tags'],
+        queryFn: () => fetch('/api/travel/tags').then((r) => r.json()),
+        select: (
+            data: Array<{
+                id: number
+                tag: string
+                color: string | null
+                isActive: number
+            }>
+        ) =>
+            data.map((t) => ({
+                id: t.id,
+                name: t.tag,
+                color: t.color || '#6b7280',
+                isActive: t.isActive
+            }))
+    }) as { data: TagOption[] | undefined }
+
+    const travelDateFromValue = useWatch({
+        control: form.control,
+        name: 'travelDateFrom'
+    })
+    const travelDateToValue = useWatch({
+        control: form.control,
+        name: 'travelDateTo'
+    })
+
     const updateMutation = useMutation({
         mutationFn: async (data: TravelLeadFormValues) => {
             const res = await fetch(`/api/travel/leads/${id}`, {
@@ -162,7 +205,10 @@ export default function TravelDetailPage() {
                     phone: data.phone ?? '',
                     email: data.email ?? '',
                     metaInboxUrl: data.metaInboxUrl ?? '',
-                    statusId: Number(data.statusId)
+                    statusId: Number(data.statusId),
+                    travelDateFrom: data.travelDateFrom ?? '',
+                    travelDateTo: data.travelDateTo ?? '',
+                    tagIds: data.tagIds ?? []
                 })
             })
             if (!res.ok) {
@@ -206,7 +252,10 @@ export default function TravelDetailPage() {
             phone: lead.phone,
             email: lead.email,
             metaInboxUrl: lead.metaInboxUrl ?? '',
-            statusId: String(lead.statusId)
+            statusId: String(lead.statusId),
+            travelDateFrom: lead.travelDateFrom ?? '',
+            travelDateTo: lead.travelDateTo ?? '',
+            tagIds: lead.tags.map((tag) => tag.id)
         })
         setModalOpen(true)
     }
@@ -369,6 +418,39 @@ export default function TravelDetailPage() {
                         </div>
                         <div>
                             <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
+                                Fechas estimadas de viaje
+                            </p>
+                            <p className='mt-1 flex items-center gap-1.5 text-sm'>
+                                <CalendarDays
+                                    size={14}
+                                    className='text-muted-foreground'
+                                />
+                                {lead.travelDateFrom || lead.travelDateTo
+                                    ? formatDateRange(
+                                          lead.travelDateFrom,
+                                          lead.travelDateTo
+                                      )
+                                    : 'No especificado'}
+                            </p>
+                        </div>
+                        <div>
+                            <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
+                                Etiquetas de viaje
+                            </p>
+                            {lead.tags.length > 0 ? (
+                                <div className='mt-1 flex flex-wrap gap-1.5'>
+                                    {lead.tags.map((tag) => (
+                                        <TagPill key={tag.id} tag={tag} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className='mt-1 text-sm text-muted-foreground'>
+                                    Sin etiquetas
+                                </p>
+                            )}
+                        </div>
+                        <div>
+                            <p className='text-xs font-medium uppercase tracking-wider text-muted-foreground'>
                                 Creado
                             </p>
                             <p className='text-sm'>
@@ -504,6 +586,57 @@ export default function TravelDetailPage() {
                                     </Field>
                                 )}
                             />
+                            <Field>
+                                <FieldLabel>Etiquetas de viaje</FieldLabel>
+                                <Controller
+                                    name='tagIds'
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <TagMultiSelect
+                                            options={travelTags}
+                                            selected={field.value ?? []}
+                                            onToggle={(tagId) => {
+                                                const current =
+                                                    field.value ?? []
+                                                field.onChange(
+                                                    current.includes(tagId)
+                                                        ? current.filter(
+                                                              (id) =>
+                                                                  id !== tagId
+                                                          )
+                                                        : [...current, tagId]
+                                                )
+                                            }}
+                                            placeholder='Destinos, paquetes o intereses'
+                                            searchPlaceholder='Buscar etiqueta...'
+                                            emptyMessage='No hay etiquetas de viaje. Creá algunas en Administración.'
+                                            triggerClassName='h-9 text-sm'
+                                            maxChips={3}
+                                        />
+                                    )}
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel>
+                                    Fecha estimada de viaje
+                                </FieldLabel>
+                                <DateRangePicker
+                                    from={travelDateFromValue}
+                                    to={travelDateToValue}
+                                    onChange={(from, to) => {
+                                        form.setValue(
+                                            'travelDateFrom',
+                                            from,
+                                            { shouldDirty: true }
+                                        )
+                                        form.setValue('travelDateTo', to, {
+                                            shouldDirty: true
+                                        })
+                                    }}
+                                    placeholder='¿De cuándo a cuándo puede viajar?'
+                                    className='h-9'
+                                />
+                            </Field>
                             <Controller
                                 name='statusId'
                                 control={form.control}

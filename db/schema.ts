@@ -660,6 +660,13 @@ export const travelStatuses = sqliteTable('travel_statuses', {
     isActive: integer('is_active').notNull().default(1)
 })
 
+export const travelTags = sqliteTable('travel_tags', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    tag: text('tag').notNull().unique(),
+    color: text('color').default('#6b7280'),
+    isActive: integer('is_active').notNull().default(1)
+})
+
 export const travelLeads = sqliteTable('travel_leads', {
     // Legacy records remain unassigned until their owner is explicitly confirmed.
     organizationId: text('organization_id').references(() => organization.id),
@@ -672,6 +679,10 @@ export const travelLeads = sqliteTable('travel_leads', {
         .references(() => travelStatuses.id)
         .notNull()
         .default(1),
+    // Rango estimado en el que el cliente puede viajar. Se guarda como fecha
+    // local (YYYY-MM-DD) para no desplazarse por zona horaria.
+    travelDateFrom: text('travel_date_from'),
+    travelDateTo: text('travel_date_to'),
     createdAt: integer('created_at', { mode: 'timestamp' }).default(
         sql`(unixepoch())`
     ),
@@ -680,6 +691,22 @@ export const travelLeads = sqliteTable('travel_leads', {
         .default(sql`(unixepoch())`)
         .$onUpdate(() => new Date())
 }, (table) => [index('travel_leads_organization_idx').on(table.organizationId, table.id)])
+
+export const travelLeadTags = sqliteTable(
+    'travel_lead_tags',
+    {
+        leadId: integer('lead_id')
+            .notNull()
+            .references(() => travelLeads.id, { onDelete: 'cascade' }),
+        tagId: integer('tag_id')
+            .notNull()
+            .references(() => travelTags.id, { onDelete: 'cascade' })
+    },
+    (table) => [
+        primaryKey({ columns: [table.leadId, table.tagId] }),
+        index('travel_lead_tags_tag_idx').on(table.tagId)
+    ]
+)
 
 export const travelLeadNotes = sqliteTable('travel_lead_notes', {
     id: integer('id').primaryKey({ autoIncrement: true }),
@@ -717,11 +744,30 @@ export const travelStatusesRelations = relations(travelStatuses, ({ many }) => (
     leads: many(travelLeads)
 }))
 
+export const travelTagsRelations = relations(travelTags, ({ many }) => ({
+    leadTags: many(travelLeadTags)
+}))
+
+export const travelLeadTagsRelations = relations(
+    travelLeadTags,
+    ({ one }) => ({
+        lead: one(travelLeads, {
+            fields: [travelLeadTags.leadId],
+            references: [travelLeads.id]
+        }),
+        tag: one(travelTags, {
+            fields: [travelLeadTags.tagId],
+            references: [travelTags.id]
+        })
+    })
+)
+
 export const travelLeadsRelations = relations(travelLeads, ({ one, many }) => ({
     status: one(travelStatuses, {
         fields: [travelLeads.statusId],
         references: [travelStatuses.id]
     }),
+    tags: many(travelLeadTags),
     notes: many(travelLeadNotes),
     events: many(travelLeadEvents)
 }))

@@ -92,6 +92,22 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
                 </Link>
+                <Link href='/admin/travel-tags'>
+                    <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
+                        <CardHeader>
+                            <CardTitle>Etiquetas de viaje</CardTitle>
+                            <CardDescription>
+                                Administrar intereses de leads de viaje
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className='text-sm text-muted-foreground'>
+                                Creá, editá, activá o desactivá etiquetas para
+                                clasificar destinos, paquetes e intereses.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </Link>
                 <Link href='/admin/quotations'>
                     <Card className='cursor-pointer transition-all hover:ring-2 hover:ring-primary/30'>
                         <CardHeader>
