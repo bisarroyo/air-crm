@@ -1,5 +1,6 @@
 'use client'
 
+import { readQuotationEmailResponse } from '@/lib/cotizaciones/email-response'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -21,9 +22,10 @@ export function QuotationEmailSettingsManager() {
         queryKey: ['quotation-email-settings'],
         queryFn: async () => {
             const response = await fetch('/api/admin/quotation-email-settings')
-            if (!response.ok)
-                throw new Error('No se pudieron cargar los ajustes de email')
-            return response.json()
+            return readQuotationEmailResponse<QuotationEmailSettings>(
+                response,
+                'No se pudieron cargar los ajustes de email'
+            )
         }
     })
     const [form, setForm] = useState<QuotationEmailSettings | null>(null)
@@ -54,9 +56,7 @@ export function QuotationEmailSettingsManager() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(value)
             })
-            const body = await response.json()
-            if (!response.ok)
-                throw new Error(body.error || 'No se pudieron guardar los ajustes')
+            const body = await readQuotationEmailResponse<QuotationEmailSettings>(response, 'No se pudieron guardar los ajustes')
             queryClient.setQueryData(['quotation-email-settings'], body)
             setForm(null)
             toast.success('Ajustes de email guardados')

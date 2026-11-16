@@ -1,3 +1,4 @@
+import { withQuotationEmailErrors } from '@/lib/cotizaciones/email-errors'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { and, eq } from 'drizzle-orm'
@@ -81,7 +82,7 @@ async function loadContext(params: RouteParams['params']) {
     }
     return { row, data, context, settings, session }
 }
-export async function GET(_request: Request, { params }: RouteParams) {
+async function getEmail(_request: Request, { params }: RouteParams) {
     const loaded = await loadContext(params)
     if ('error' in loaded)
         return NextResponse.json({ error: loaded.error }, { status: loaded.status })
@@ -92,7 +93,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         filename: quotationPdfFilename(loaded.row.number, loaded.data.client.name)
     })
 }
-export async function POST(request: Request, { params }: RouteParams) {
+async function postEmail(request: Request, { params }: RouteParams) {
     const loaded = await loadContext(params)
     if ('error' in loaded)
         return NextResponse.json({ error: loaded.error }, { status: loaded.status })
@@ -239,4 +240,12 @@ export async function POST(request: Request, { params }: RouteParams) {
             { status: notConfigured ? 503 : 502 }
         )
     }
+}
+
+export async function GET(request: Request, context: RouteParams) {
+    return withQuotationEmailErrors(() => getEmail(request, context))
+}
+
+export async function POST(request: Request, context: RouteParams) {
+    return withQuotationEmailErrors(() => postEmail(request, context))
 }

@@ -1,3 +1,4 @@
+import { withQuotationEmailErrors } from '@/lib/cotizaciones/email-errors'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
@@ -9,12 +10,12 @@ import {
     type QuotationEmailSettings
 } from '@/lib/cotizaciones/email'
 
-export async function GET() {
+async function getSettings() {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     return NextResponse.json(await getQuotationEmailSettings())
 }
-export async function PUT(request: Request) {
+async function putSettings(request: Request) {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session || session.user.role !== 'admin')
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
@@ -32,4 +33,12 @@ export async function PUT(request: Request) {
         .values({ id: 1, ...values })
         .onConflictDoUpdate({ target: quotationEmailSettings.id, set: values })
     return NextResponse.json(value)
+}
+
+export async function GET() {
+    return withQuotationEmailErrors(getSettings)
+}
+
+export async function PUT(request: Request) {
+    return withQuotationEmailErrors(() => putSettings(request))
 }

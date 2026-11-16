@@ -1,5 +1,6 @@
 'use client'
 
+import { readQuotationEmailResponse } from '@/lib/cotizaciones/email-response'
 import { useRef, useState } from 'react'
 import { Mail, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -56,10 +57,7 @@ export function QuotationEmailDialog({
         setLoading(true)
         try {
             const response = await fetch(endpoint)
-            const body = await response.json()
-            if (!response.ok)
-                throw new Error(body.error || 'No se pudo preparar el correo')
-            const loaded = body as EmailDraft
+            const loaded = await readQuotationEmailResponse<EmailDraft>(response, 'No se pudo preparar el correo')
             setData(loaded)
             setTo(loaded.context.clientEmail)
             setCopyCompany(loaded.settings.copyCompany)
@@ -116,13 +114,16 @@ export function QuotationEmailDialog({
                     message
                 })
             })
-            const body = await response.json()
-            if (!response.ok) {
-                // Keep the id on uncertain/in-progress results to prevent duplicate sends.
-                if (response.status === 400 || response.status === 503)
-                    requestId.current = crypto.randomUUID()
-                throw new Error(body.error || 'No se pudo enviar el correo')
-            }
+            // Only validation/configuration failures are known to be safe to retry.
+            if (response.status === 400 || response.status === 503)
+                requestId.current = crypto.randomUUID()
+            const body = await readQuotationEmailResponse<{
+                success: boolean
+                warning?: string
+                partial?: boolean
+                quotationStatus?: QuotationStatus
+            }>(response, 'No se pudo confirmar el envío. Comprueba el resultado antes de reintentar')
+            if (body.success !== true) throw new Error('No se pudo confirmar el envío. Comprueba el resultado antes de reintentar.')
             if (body.warning) toast.warning(body.warning)
             else
                 toast.success(

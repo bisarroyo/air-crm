@@ -225,7 +225,10 @@ function setup(overrides = {}) {
             snapshotCompany: async () => company
         },
         '@/lib/cotizaciones/email-settings': {
-            getQuotationEmailSettings: async () => email.DEFAULT_QUOTATION_EMAIL_SETTINGS
+            getQuotationEmailSettings: async () => {
+                if (state.settingsFailure) throw state.settingsFailure
+                return email.DEFAULT_QUOTATION_EMAIL_SETTINGS
+            }
         },
         '@/lib/cotizaciones/pdf': {
             buildQuotationPdf: async (data, number) => {
@@ -377,4 +380,40 @@ test('SMTP acceptance followed by persistence failure does not claim a confirmed
     assert.equal(state.sends.length, 1)
     assert.equal((await route.POST(request(body), params)).status, 409)
     assert.equal(state.sends.length, 1)
+})
+
+const { readQuotationEmailResponse } = require('../../lib/cotizaciones/email-response.ts')
+test('empty, HTML, null and truncated responses show a useful error instead of JSON syntax errors', async () => {
+    for (const response of [
+        new Response('', {status:500}),
+        new Response('<html>Bad gateway</html>', {status:502}),
+        new Response('{', {status:200}),
+        Response.json(null),
+        Response.json([])
+    ]) {
+        await assert.rejects(readQuotationEmailResponse(response, 'No se pudo preparar el correo'), error =>
+            error.message.includes('No se pudo preparar el correo') && !error.message.includes('Unexpected'))
+    }
+    await assert.rejects(readQuotationEmailResponse(Response.json({error:'No autorizado'}, {status:401}), 'fallback'), /No autorizado/)
+    assert.deepEqual(await readQuotationEmailResponse(Response.json({success:true}), 'fallback'), {success:true})
+})
+test('missing migration returns JSON for both opening and sending, without SMTP side effects', async () => {
+    const failure = new Error('Failed query with private parameters', {cause:new Error('SQLITE_ERROR: no such table: quotation_email_settings')})
+    const {route,state,mocks} = setup({settingsFailure:failure})
+    for (const response of [await route.GET(new Request('http://localhost'),params), await route.POST(request(body),params)]) {
+        assert.equal(response.status,503)
+        assert.equal((await response.json()).code,'EMAIL_SCHEMA_MISSING')
+    }
+    const settings = loadModule('app/api/admin/quotation-email-settings/route.ts',mocks)
+    assert.equal((await settings.GET()).status,503)
+    assert.equal(state.sends.length,0)
+})
+test('unexpected preparation failure returns safe JSON, not raw database details', async () => {
+    const {route,state} = setup({settingsFailure:new Error('private connection token')})
+    const response = await route.GET(new Request('http://localhost'),params)
+    assert.equal(response.status,500)
+    const body = await response.json()
+    assert.equal(body.code,'QUOTATION_EMAIL_ERROR')
+    assert.ok(!JSON.stringify(body).includes('private connection token'))
+    assert.equal(state.sends.length,0)
 })
