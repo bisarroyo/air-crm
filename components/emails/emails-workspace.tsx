@@ -40,6 +40,7 @@ import { CampaignHistory } from './campaign-history'
 import { TemplatePresets } from './template-presets'
 import type { BodyMode } from './body-editor'
 import { TemplateManager } from './template-manager'
+import { SenderSettings } from './sender-settings'
 import type { StoredEmailTemplate } from '@/lib/email/presets'
 import {
     TEMPLATE_VARIABLES,
@@ -92,7 +93,7 @@ export function EmailsWorkspace() {
     const smtpConfigured = statusQuery.data?.smtpConfigured ?? false
     const abortRef = useRef(false)
 
-    const [tab, setTab] = useState<'compose' | 'templates' | 'history'>(
+    const [tab, setTab] = useState<'compose' | 'templates' | 'history' | 'settings'>(
         'compose'
     )
 
@@ -328,7 +329,7 @@ export function EmailsWorkspace() {
                 </div>
             )}
 
-            <div className='flex gap-1 border-b'>
+            <div className='flex flex-wrap gap-1 border-b'>
                 <Button
                     type='button'
                     variant='ghost'
@@ -368,9 +369,19 @@ export function EmailsWorkspace() {
                     <Mail />
                     Historial
                 </Button>
+                <Button
+                    type='button'
+                    variant='ghost'
+                    className='rounded-b-none border-b-2 border-transparent'
+                    onClick={() => setTab('settings')}
+                    style={tab === 'settings' ? { borderBottomColor: 'var(--primary)' } : undefined}>
+                    Configuración
+                </Button>
             </div>
 
-            {tab === 'history' ? (
+            {tab === 'settings' ? (
+                <SenderSettings />
+            ) : tab === 'history' ? (
                 <CampaignHistory onSelect={() => setTab('compose')} />
             ) : tab === 'templates' ? (
                 <TemplateManager />

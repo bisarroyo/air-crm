@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from 'nodemailer'
+import { getEmailSenderSettings } from './sender-settings'
 
 /**
  * Transporte SMTP para las campañas masivas.
@@ -102,7 +103,8 @@ export function getTransporter(): Transporter {
     return transporter
 }
 
-export function senderAddress(): { name: string; address: string } {
+export async function senderAddress(): Promise<{ name: string; address: string }> {
     const settings = smtpSettings()
-    return { name: settings.fromName, address: settings.fromAddress }
+    const sender = await getEmailSenderSettings()
+    return { name: sender.fromName, address: settings.fromAddress }
 }

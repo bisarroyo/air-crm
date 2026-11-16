@@ -86,3 +86,15 @@ del import.
 - Admin: cualquier cliente y cualquier campaña.
 - Asesores: solo clientes asignados (`customers.assignedTo`) y solo las campañas
   que él creó.
+## Nombre del remitente
+
+En **Emails → Configuración**, un administrador puede guardar el nombre que
+verán los destinatarios. El valor es compartido por todo el equipo y se aplica
+a campañas, pruebas y cotizaciones. La dirección se muestra como solo lectura.
+Hasta guardar un nombre, se utiliza `SMTP_FROM_NAME` y el respaldo existente.
+
+Antes de desplegar esta función, aplica las migraciones con `pnpm db:migrate`
+(con las variables de conexión de la base de datos cargadas). La migración
+`0024_young_gorilla_man.sql` crea la tabla `email_sender_settings`.
+
+Pruebas del remitente: `node --test tests/emails/*.test.cjs`.

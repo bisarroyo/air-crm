@@ -169,7 +169,7 @@ async function postEmail(request: Request, { params }: RouteParams) {
     try {
         const pdf = await buildQuotationPdf(loaded.data, loaded.row.number)
         const result = await getTransporter().sendMail({
-            from: senderAddress(),
+            from: await senderAddress(),
             to: recipients.to,
             cc: recipients.cc,
             replyTo: isValidEmail(loaded.context.advisorEmail)

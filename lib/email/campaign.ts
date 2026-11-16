@@ -20,7 +20,8 @@ import { buildTemplateVars, type RecipientContext } from './variables'
 import {
     getTransporter,
     isSmtpConfigured,
-    smtpSettings
+    smtpSettings,
+    senderAddress
 } from './smtp'
 
 export const CAMPAIGN_MODES = ['visual', 'html'] as const
@@ -319,10 +320,10 @@ export async function sendBatch(
     // Se resuelve el transporte ANTES de marcar la campaña como "sending": si
     // falta configuración no debe quedar una campaña a medio enviar.
     let transporter: ReturnType<typeof getTransporter>
-    let from: ReturnType<typeof smtpSettings>
+    let from: Awaited<ReturnType<typeof senderAddress>>
     try {
         transporter = getTransporter()
-        from = smtpSettings()
+        from = await senderAddress()
     } catch (error: unknown) {
         const message =
             error instanceof Error ? error.message : 'SMTP no está configurado'
@@ -333,7 +334,7 @@ export async function sendBatch(
     const bcc =
         parseAddressList(campaign.bcc).length > 0
             ? parseAddressList(campaign.bcc)
-            : parseAddressList(from.bcc)
+            : parseAddressList(smtpSettings().bcc)
 
     if (campaign.status === 'draft') {
         await markCampaignStatus(campaignId, 'sending', {
@@ -380,7 +381,7 @@ export async function sendBatch(
 
         try {
             await transporter.sendMail({
-                from: { name: from.fromName, address: from.fromAddress },
+                from,
                 to: email,
                 ...(bcc.length > 0 ? { bcc } : {}),
                 subject: renderTemplate(campaign.subject, vars),
@@ -481,10 +482,10 @@ export async function sendTestEmail(input: {
 
     try {
         const transporter = getTransporter()
-        const from = smtpSettings()
+        const from = await senderAddress()
 
         await transporter.sendMail({
-            from: { name: from.fromName, address: from.fromAddress },
+            from,
             to: input.to,
             // La copia oculta también se aplica al correo de prueba.
             ...(bcc.length > 0 ? { bcc } : {}),

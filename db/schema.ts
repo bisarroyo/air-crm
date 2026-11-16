@@ -907,6 +907,11 @@ export const googleSheetsSyncJobs = sqliteTable(
 )
 
 // Email preferences are separate from company snapshots saved in quotations.
+export const emailSenderSettings = sqliteTable('email_sender_settings', {
+    id: integer('id').primaryKey(),
+    fromName: text('from_name').notNull()
+})
+
 export const quotationEmailSettings = sqliteTable('quotation_email_settings', {
     id: integer('id').primaryKey(),
     copyCompany: integer('copy_company', { mode: 'boolean' }).notNull().default(true),
