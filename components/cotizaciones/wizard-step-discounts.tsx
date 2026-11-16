@@ -10,7 +10,8 @@ import {
     formatMoney,
     type QuotationDraft
 } from '@/lib/cotizaciones/shared'
-import { makeLineKey, type DiscountRow } from './types'
+import { computeDiscountLines, roundEuros } from '@/lib/cotizaciones/pricing'
+import { makeLineKey, discountIsActive, type DiscountRow } from './types'
 
 export function WizardStepDiscounts({
     draft,
@@ -25,7 +26,7 @@ export function WizardStepDiscounts({
     currency: QuotationDraft['currency']
     subtotal: number
 }) {
-    const activeDiscounts = discounts?.filter((d) => d.isActive === 1) || []
+    const activeDiscounts = discounts?.filter((d) => discountIsActive(d) && (d.type === 'percent' || d.currency === currency)) || []
     const appliedIds = new Set(
         draft.discounts
             .map((d) => d.id)
@@ -54,7 +55,7 @@ export function WizardStepDiscounts({
                     value,
                     currency,
                     amount: type === 'percent'
-                        ? Math.round((subtotal * value) / 100)
+                        ? roundEuros((subtotal * value) / 100)
                         : value,
                     startsAt: option.startsAt ?? null,
                     endsAt: option.endsAt ?? null
@@ -63,26 +64,13 @@ export function WizardStepDiscounts({
         }))
     }
 
-    // Compute discount lines with clamped amounts
-    const computedDiscounts = draft.discounts.reduce<
-        Array<typeof draft.discounts[0] & { amount: number }>
-    >((acc, discount) => {
-        let amount = 0
-        const applied = acc.reduce((sum, d) => sum + d.amount, 0)
-        if (discount.type === 'percent') {
-            amount = Math.round((subtotal * discount.value) / 100)
-        } else {
-            amount = discount.value
-        }
-        amount = Math.min(Math.max(amount, 0), Math.max(subtotal - applied, 0))
-        return [...acc, { ...discount, amount }]
-    }, [])
+    const computedDiscounts = computeDiscountLines(draft)
 
     function shownAmount(option: DiscountRow): number {
         if (option.type === 'percent') {
-            return Math.round((subtotal * option.value) / 100)
+            return Math.min(subtotal, roundEuros((subtotal * option.value) / 100))
         }
-        return option.value
+        return Math.min(subtotal, option.value)
     }
 
     return (

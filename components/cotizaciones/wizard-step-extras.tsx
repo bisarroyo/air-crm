@@ -18,7 +18,7 @@ export function WizardStepExtras({
     extras?: ExtraRow[]
     currency: QuotationDraft['currency']
 }) {
-    const activeExtras = extras?.filter((e) => e.isActive === 1) || []
+    const activeExtras = extras?.filter((e) => e.isActive === 1 && e.currency === currency) || []
 
     function isAdded(id: number | null) {
         return id !== null && draft.extras.some((extra) => extra.id === id)

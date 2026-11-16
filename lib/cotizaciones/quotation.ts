@@ -7,6 +7,7 @@ import {
 } from '@/db/schema'
 import {
     computeTotals,
+    computeDiscountLines,
     computeAccommodation
 } from './pricing'
 import { nextQuotationNumber, parseCurrency } from './numbering'
@@ -81,7 +82,7 @@ export async function getCompanySettings() {
         id: 1,
         companyName: COMPANY_DEFAULT_NAME,
         currency: 'EUR'
-    })
+    }).onConflictDoNothing()
 
     const [created] = await db
         .select()
@@ -142,6 +143,7 @@ async function buildData(
     return {
         data: {
             ...draft,
+            discounts: computeDiscountLines(draft),
             company,
             totals
         },
@@ -255,7 +257,7 @@ function itemsFromData(
         })
     }
 
-    for (const discount of data.discounts) {
+    for (const discount of computeDiscountLines(data)) {
         items.push({
             quotationId,
             kind: 'discount',

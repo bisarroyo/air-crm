@@ -905,3 +905,23 @@ export const googleSheetsSyncJobs = sqliteTable(
         )
     ]
 )
+
+// Email preferences are separate from company snapshots saved in quotations.
+export const quotationEmailSettings = sqliteTable('quotation_email_settings', {
+    id: integer('id').primaryKey(),
+    copyCompany: integer('copy_company', { mode: 'boolean' }).notNull().default(true),
+    defaultTemplateId: text('default_template_id'),
+    templates: text('templates').notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`).$onUpdate(() => new Date())
+})
+
+export const quotationEmailDeliveries = sqliteTable('quotation_email_deliveries', {
+    id: text('id').primaryKey(),
+    quotationId: integer('quotation_id').notNull().references(() => quotations.id, { onDelete: 'cascade' }),
+    sentBy: text('sent_by').notNull().references(() => user.id),
+    recipients: text('recipients').notNull(),
+    subject: text('subject').notNull(),
+    status: text('status', { enum: ['sending', 'sent', 'partial', 'failed'] }).notNull(),
+    providerId: text('provider_id'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`)
+})

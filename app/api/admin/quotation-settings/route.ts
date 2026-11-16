@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/db'
 import { quotationSettings } from '@/db/schema'
@@ -39,6 +38,12 @@ export async function PUT(request: Request) {
     }
 
     const body = (await request.json()) as Record<string, unknown>
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return NextResponse.json({ error: 'Configuración inválida' }, { status: 400 })
+    }
+    if (body.logo && (typeof body.logo !== 'string' || !/^data:image\/(png|jpeg);base64,/.test(body.logo))) {
+        return NextResponse.json({ error: 'El logo debe ser una imagen PNG o JPEG' }, { status: 400 })
+    }
     const updateData: Record<string, string> = {}
 
     for (const key of STRING_FIELDS) {
@@ -66,9 +71,9 @@ export async function PUT(request: Request) {
 
     try {
         const [updated] = await db
-            .update(quotationSettings)
-            .set(updateData)
-            .where(eq(quotationSettings.id, 1))
+            .insert(quotationSettings)
+            .values({ id: 1, ...updateData })
+            .onConflictDoUpdate({ target: quotationSettings.id, set: updateData })
             .returning()
 
         return NextResponse.json(companyToSnapshot(updated))

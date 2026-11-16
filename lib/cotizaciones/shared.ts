@@ -231,9 +231,9 @@ export function toDateInputValue(value: Date | string | null | undefined): strin
 }
 
 export function parseDateInput(value: string | null | undefined): Date | null {
-    if (!value) return null
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null
     const date = toLocalDate(value.trim())
-    if (Number.isNaN(date.getTime())) return null
+    if (Number.isNaN(date.getTime()) || toDateInputValue(date) !== value.trim()) return null
     return date
 }
 
@@ -323,7 +323,10 @@ export function makeLineKey(): string {
 export function validateDraftPure(
     draft: QuotationDraft
 ): string | null {
-    if (!draft.client?.name?.trim()) {
+    if (!draft || !draft.accommodation || !Array.isArray(draft.extras) || !Array.isArray(draft.discounts)) {
+        return 'Datos de la cotización no válidos'
+    }
+    if (typeof draft.client?.name !== 'string' || !draft.client.name.trim()) {
         return 'El cliente es obligatorio'
     }
     if (!isCurrency(draft.currency)) {
@@ -343,13 +346,13 @@ export function validateDraftPure(
         return 'La fecha de vencimiento no puede ser anterior a la fecha de emisión'
     }
 
-    if (draft.course && draft.course.price < 0) {
+    if (draft.course && (!Number.isFinite(draft.course.price) || draft.course.price < 0)) {
         return 'El precio del curso no puede ser negativo'
     }
 
     if (draft.accommodation.included) {
         const weeks = draft.accommodation.weeks
-        if (!weeks || weeks <= 0) {
+        if (!Number.isInteger(weeks) || weeks <= 0) {
             return 'La cantidad de semanas de alojamiento es inválida'
         }
         if (
@@ -364,24 +367,33 @@ export function validateDraftPure(
         ) {
             return `El alojamiento permite máximo ${draft.accommodation.maxWeeks} semanas`
         }
-        if (draft.accommodation.pricePerWeek < 0) {
+        if (!Number.isFinite(draft.accommodation.pricePerWeek) || draft.accommodation.pricePerWeek < 0) {
             return 'El precio del alojamiento no puede ser negativo'
         }
     }
 
     for (const extra of draft.extras || []) {
-        if (!extra.name) return 'Los extras deben tener un nombre'
-        if (typeof extra.price !== 'number' || extra.price < 0) {
+        if (!extra?.name) return 'Los extras deben tener un nombre'
+        if (!Number.isFinite(extra.price) || extra.price < 0) {
             return `El extra "${extra.name}" tiene un precio inválido`
         }
     }
 
+    const discountIds = new Set<number>()
     for (const discount of draft.discounts || []) {
-        if (!discount.name) {
+        if (!discount?.name) {
             return 'Los descuentos deben tener un nombre'
         }
-        if (typeof discount.value !== 'number' || discount.value <= 0) {
+        if (!Number.isFinite(discount.value) || discount.value <= 0) {
             return `El descuento "${discount.name}" tiene un valor inválido`
+        }
+        if (!DISCOUNT_TYPES.includes(discount.type)) return 'Tipo de descuento inválido'
+        if (discount.id != null) {
+            if (discountIds.has(discount.id)) return 'No se puede aplicar el mismo descuento más de una vez'
+            discountIds.add(discount.id)
+        }
+        if (discount.type === 'fixed' && discount.currency !== draft.currency) {
+            return `El descuento "${discount.name}" debe usar la moneda de la cotización`
         }
         if (discount.type === 'percent' && discount.value > 100) {
             return `El descuento "${discount.name}" no puede superar el 100%`

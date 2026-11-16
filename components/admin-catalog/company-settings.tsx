@@ -80,7 +80,8 @@ export function CompanySettingsManager() {
             }
             return result
         },
-        onSuccess: () => {
+        onSuccess: (saved: QuotationCompany) => {
+            queryClient.setQueryData(['quotation-settings'], saved)
             toast.success('Configuración guardada')
             setForm(null)
             queryClient.invalidateQueries({
@@ -117,10 +118,14 @@ export function CompanySettingsManager() {
                         </FieldLabel>
                         <Input
                             type='file'
-                            accept='image/*'
+                            accept='image/png,image/jpeg'
                             onChange={(event) => {
                                 const file = event.target.files?.[0]
                                 if (!file) return
+                                if (!['image/png', 'image/jpeg'].includes(file.type)) {
+                                    toast.error('El logo debe ser PNG o JPEG para generar el PDF')
+                                    return
+                                }
                                 const reader = new FileReader()
                                 reader.onload = () =>
                                     set('logo', String(reader.result))

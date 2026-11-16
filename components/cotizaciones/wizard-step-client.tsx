@@ -90,8 +90,10 @@ export function WizardStepClient({
             <div className='grid gap-4 sm:grid-cols-3'>
                 <Field>
                     <FieldLabel>Moneda de la cotización</FieldLabel>
+                    <p className="text-xs text-muted-foreground">Selecciona la moneda antes de añadir conceptos. Para cambiarla, retira los conceptos seleccionados.</p>
                     <Select
                         value={draft.currency}
+                        disabled={!!draft.course || draft.accommodation.included || draft.extras.length > 0 || draft.discounts.length > 0}
                         onValueChange={(value) =>
                             setDraft((prev) => ({
                                 ...prev,

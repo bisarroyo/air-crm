@@ -61,7 +61,7 @@ export function WizardStepProgram({
     const availablePrograms = toActive(programs)
     const availableSchools = toActive(schools)
     const availableSchedules = toActive(schedules)
-    const availableCourses = toActive(courses)
+    const availableCourses = toActive(courses).filter((course) => course.currency === draft.currency)
 
     const schoolIdsForProgram = new Set(
         availableCourses

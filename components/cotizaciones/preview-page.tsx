@@ -28,6 +28,7 @@ import {
     type QuotationStatus
 } from '@/lib/cotizaciones/shared'
 import { QuotationPreview } from './preview'
+import { QuotationEmailDialog } from './email-dialog'
 
 function StatusBadge({ status }: { status: QuotationStatus }) {
     const palette: Record<QuotationStatus, string> = {
@@ -200,6 +201,10 @@ export function QuotationPreviewPage({
                             />
                         </>
                     )}
+                    {canEdit && <QuotationEmailDialog customerId={customerId} quotationId={quotationId} onSent={(confirmedStatus) => {
+                        if (confirmedStatus) setCurrentStatus(confirmedStatus)
+                        queryClient.invalidateQueries({ queryKey: ['quotations', customerId] })
+                    }} />}
                     <a
                         href={`/api/customers/${customerId}/quotations/${quotationId}/pdf`}
                         target='_blank'
@@ -223,7 +228,7 @@ export function QuotationPreviewPage({
                 {currentStatus === 'sent' && (
                     <span className='flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-800'>
                         <Send size={14} />
-                        Cotización enviada al cliente
+                        Estado de la cotización: enviada
                     </span>
                 )}
             </div>

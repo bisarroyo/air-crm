@@ -56,7 +56,7 @@ export const PRICE_TYPE_OPTIONS: CatalogFieldOption[] = [
 
 export const DISCOUNT_TYPE_OPTIONS: CatalogFieldOption[] = [
     { value: 'percent', label: 'Porcentaje (%)' },
-    { value: 'fixed', label: 'Monto fijo (€)' }
+    { value: 'fixed', label: 'Monto fijo' }
 ]
 
 export const CURRENCY_OPTIONS: CatalogFieldOption[] = CURRENCIES.map(
@@ -397,7 +397,7 @@ export const CATALOG_DEFS: Record<string, CatalogConfig> = {
                 required: true,
                 min: 0,
                 step: 0.01,
-                helper: 'Para porcentaje: 10 → 10%. Para monto fijo: euros (150 = €150).',
+                helper: 'Para porcentaje: 10 → 10%. Para monto fijo: 150 en la moneda seleccionada.',
                 showInTable: true,
                 format: 'euros'
             },

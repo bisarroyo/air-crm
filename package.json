@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio",
     "db:auth": "pnpm dlx @better-auth/cli@latest generate",
     "org:bootstrap": "node --env-file=.env scripts/bootstrap-organization.mjs",
+    "test:quotations": "node --test tests/quotations/*.test.cjs",
     "test:google-sheets": "node --experimental-strip-types --test tests/google-sheets/*.test.mjs"
   },
   "dependencies": {

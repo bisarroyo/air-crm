@@ -11,7 +11,7 @@ import {
     DialogTitle
 } from '@/components/ui/dialog'
 import {
-    toDateInputValue,
+    validateDraftPure,
     type QuotationCompany,
     type QuotationData,
     type QuotationDraft,
@@ -93,12 +93,7 @@ export function WizardEditor({
     const previewData: QuotationData = {
         ...draft,
         company,
-        totals: values,
-        advisor: {
-            id: '',
-            name: '',
-            email: ''
-        }
+        totals: values
     }
 
     function canGenerate(): { ok: boolean; error?: string } {
@@ -110,16 +105,15 @@ export function WizardEditor({
     }
 
     async function save(status: QuotationStatus) {
+        const validationError = validateClientDraft(draft)
+        if (validationError) {
+            toast.error(validationError)
+            return
+        }
         if (status === 'sent') {
             const check = canGenerate()
             if (!check.ok) {
                 toast.error(check.error)
-                return
-            }
-        } else {
-            const error = validateClientDraft(draft)
-            if (error) {
-                toast.error(error)
                 return
             }
         }
@@ -297,16 +291,5 @@ export function WizardEditor({
 }
 
 function validateClientDraft(draft: QuotationDraft): string | null {
-    if (!draft.client?.name?.trim()) {
-        return 'El cliente es obligatorio'
-    }
-    if (!draft.issueDate || !draft.validUntil) {
-        return 'Las fechas son obligatorias'
-    }
-    if (
-        toDateInputValue(draft.validUntil) < toDateInputValue(draft.issueDate)
-    ) {
-        return 'La fecha de vencimiento no puede ser anterior a la emisión'
-    }
-    return null
+    return validateDraftPure(draft)
 }

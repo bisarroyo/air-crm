@@ -12,7 +12,7 @@ import {
     type QuotationData,
     type Currency
 } from './shared'
-import { computeDiscountLines } from './pricing'
+import { computeDiscountLines, computeTotals } from './pricing'
 
 const PRIMARY = '#0F766E'
 const PRIMARY_DARK = '#134E4A'
@@ -106,6 +106,7 @@ interface Node {
 function sectionLabel(text: string): Node {
     return {
         text: text.toUpperCase(),
+        headlineLevel: 1,
         fontSize: 10,
         bold: true,
         color: PRIMARY_DARK,
@@ -143,10 +144,12 @@ const noBorderLayout = {
     paddingBottom: () => 0
 }
 
-function costTable(rows: PdfRow[]): Node {
+function costTable(rows: PdfRow[], headerRows = 1): Node {
     return {
         table: {
             widths: ['*', 90],
+            headerRows,
+            dontBreakRows: true,
             body: rows.map((row) =>
                 row.detail
                     ? [
@@ -247,11 +250,10 @@ function accommodationBox(
 /** Lista con viñetas repartida en columnas parejas (misma regla que la vista previa). */
 function bulletColumns(items: string[]): Node {
     const columns = splitEvenly(items, 2)
-    const hasTwo = columns.filter((column) => column.length > 0).length > 1
 
     return {
         columns: columns.map((column) => ({
-            width: hasTwo ? '50%' : '*',
+            width: '*',
             stack: column.map((item) => ({
                 text: `•  ${item}`,
                 fontSize: 9.5,
@@ -266,11 +268,10 @@ function bulletColumns(items: string[]): Node {
 /** Filas label/value repartidas en columnas parejas. */
 function labelValueColumns(rows: Array<{ label: string; value: string }>): Node {
     const columns = splitEvenly(rows, 2)
-    const hasTwo = columns.filter((column) => column.length > 0).length > 1
 
     return {
         columns: columns.map((column) => ({
-            width: hasTwo ? '50%' : '*',
+            width: '*',
             stack: [labelValueTable(column.map((row) => [row.label, row.value]))]
         })),
         columnGap: 12
@@ -284,7 +285,7 @@ export function buildDocDefinition(
     const company = data.company
     const companyName = company.companyName || 'S Travel Costa Rica'
     const currency = data.currency
-    const totals = data.totals
+    const totals = computeTotals(data)
     const advisor = {
         name: data.advisor.name || company.advisorName || '—',
         email: data.advisor.email || company.advisorEmail || '—'
@@ -368,7 +369,7 @@ export function buildDocDefinition(
     content.push({
         columns: [
             {
-                width: '44%',
+                width: '*',
                 stack: [
                     sectionLabel('Asesor'),
                     {
@@ -414,7 +415,7 @@ export function buildDocDefinition(
                 ]
             },
             {
-                width: '62%',
+                width: '*',
                 stack: [
                     sectionLabel('Datos del cliente'),
                     labelValueTable([
@@ -439,7 +440,7 @@ export function buildDocDefinition(
                     fontSize: 13,
                     bold: true,
                     color: TEXT,
-                    margin: [0, 0, 0, 6]
+                    margin: [0, 0, 0, 2]
                 }
             ],
             margin: [0, 0, 0, 6]
@@ -516,7 +517,7 @@ export function buildDocDefinition(
     if (discountLines.length > 0) {
         const discountRows: PdfRow[] = discountLines.flatMap((discount) => [
             {
-                label: discount.name,
+                label: discount.type === 'percent' ? `${discount.name} (${discount.value}%)` : discount.name,
                 value: `- ${money(discount.amount, currency)}`,
                 bold: true,
                 danger: true
@@ -578,7 +579,8 @@ export function buildDocDefinition(
     })
 
     content.push({
-        stack: [sectionLabel('Resumen de costos'), costTable(summary)],
+        stack: [sectionLabel('Resumen de costos'), costTable(summary, 0)],
+        unbreakable: true,
         margin: [0, 0, 0, 8]
     })
 
@@ -613,6 +615,7 @@ export function buildDocDefinition(
         stack: [
             {
                 text: 'TÉRMINOS Y CONDICIONES',
+                headlineLevel: 1,
                 fontSize: 9,
                 bold: true,
                 color: PRIMARY_DARK
@@ -628,6 +631,10 @@ export function buildDocDefinition(
 
     return {
         pageSize: 'A4',
+        pageBreakBefore: (
+            node: { headlineLevel?: number },
+            container: { getFollowingNodesOnPage(): unknown[] }
+        ) => node.headlineLevel === 1 && container.getFollowingNodesOnPage().length === 0,
         pageMargins: [36, 26, 36, 40],
         info: {
             title: `Cotización ${number}`,

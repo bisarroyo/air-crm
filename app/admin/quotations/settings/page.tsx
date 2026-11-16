@@ -1,5 +1,6 @@
 'use client'
 
+import { QuotationEmailSettingsManager } from '@/components/admin-catalog/quotation-email-settings'
 import { CompanySettingsManager } from '@/components/admin-catalog/company-settings'
 
 export default function QuotationSettingsPage() {
@@ -13,6 +14,7 @@ export default function QuotationSettingsPage() {
                 </a>
             </div>
             <CompanySettingsManager />
+            <QuotationEmailSettingsManager />
         </div>
     )
 }

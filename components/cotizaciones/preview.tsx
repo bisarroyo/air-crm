@@ -12,7 +12,7 @@ import {
     type QuotationData,
     type Currency
 } from '@/lib/cotizaciones/shared'
-import { computeDiscountLines } from '@/lib/cotizaciones/pricing'
+import { computeDiscountLines, computeTotals } from '@/lib/cotizaciones/pricing'
 
 const ACCENT = '#0F766E'
 const ACCENT_DARK = '#134E4A'
@@ -238,7 +238,7 @@ export function QuotationPreview({
     const currency: Currency = data.currency
     const money = (amount: number) => formatMoneyCompact(amount, currency)
     const company = data.company
-    const totals = data.totals
+    const totals = computeTotals(data)
     const lines = computeDiscountLines(data)
     const includes = quotationIncludes(data)
     const contactRows = companyContactRows(company)
@@ -289,7 +289,7 @@ export function QuotationPreview({
             </div>
 
             {/* Asesor + Cliente */}
-            <div className='grid gap-4 sm:grid-cols-[44%_62%] sm:justify-between'>
+            <div className='grid gap-4 sm:grid-cols-2 sm:justify-between'>
                 <div>
                     <SectionLabel>Asesor</SectionLabel>
                     <LabelValueTable
@@ -424,7 +424,7 @@ export function QuotationPreview({
                                     className='border-t'
                                     style={{ borderColor: BORDER }}>
                                     <CostRow
-                                        label={line.name}
+                                        label={line.type === 'percent' ? `${line.name} (${line.value}%)` : line.name}
                                         value={`- ${money(line.amount)}`}
                                         bold
                                         danger

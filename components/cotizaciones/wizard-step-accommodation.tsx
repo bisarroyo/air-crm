@@ -29,7 +29,7 @@ export function WizardStepAccommodation({
     setDraft: Dispatch<SetStateAction<QuotationDraft>>
     accommodations?: AccommodationRow[]
 }) {
-    const active = toActive(accommodations)
+    const active = toActive(accommodations).filter((row) => row.currency === draft.currency)
     const [selectedId, setSelectedId] = useState<number | null>(
         draft.accommodation.id
     )
